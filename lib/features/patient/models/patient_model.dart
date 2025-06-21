@@ -5,7 +5,7 @@ part 'patient_model.freezed.dart';
 part 'patient_model.g.dart';
 
 @freezed
-class Patient with _$Patient {
+abstract class Patient with _$Patient {
   const factory Patient({
     // ── identity ─────────────────────────────────────────────
     required String id,
@@ -14,7 +14,7 @@ class Patient with _$Patient {
     String? mrn,
 
     // ── location / admission ─────────────────────────────────
-    required String location, // e.g. “3-East 12” or "Home Health"
+    required String location,
     DateTime? admittedAt,
     bool? isIsolation,
 
@@ -22,7 +22,7 @@ class Patient with _$Patient {
     required String primaryDiagnosis,
     @RiskLevelConverter() RiskLevel? manualRiskOverride,
     List<String>? allergies,
-    String? codeStatus, // DNR / Full / etc.
+    String? codeStatus,
 
     // ── demographics ─────────────────────────────────────────
     DateTime? birthDate,
@@ -31,8 +31,8 @@ class Patient with _$Patient {
 
     // ── roster & ownership ───────────────────────────────────
     List<String>? assignedNurses,
-    String? ownerUid, // head nurse / provider
-    String? createdBy, // who added record
+    String? ownerUid,
+    String? createdBy,
 
     // ── tags & misc ──────────────────────────────────────────
     List<String>? tags,

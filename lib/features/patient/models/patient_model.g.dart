@@ -12,31 +12,33 @@ _Patient _$PatientFromJson(Map<String, dynamic> json) => _Patient(
       lastName: json['lastName'] as String,
       mrn: json['mrn'] as String?,
       location: json['location'] as String,
-      admittedAt: json['admittedAt'] == null
-          ? null
-          : DateTime.parse(json['admittedAt'] as String),
-      createdAt: json['createdAt'] == null
-          ? null
-          : DateTime.parse(json['createdAt'] as String),
-      isIsolation: json['isIsolation'] as bool?,
+      admittedAt:
+          const TimestampConverter().fromJson(json['admittedAt'] as Timestamp?),
+      createdAt:
+          const TimestampConverter().fromJson(json['createdAt'] as Timestamp?),
+      isIsolation: json['isIsolation'] as bool? ?? false,
       primaryDiagnosis: json['primaryDiagnosis'] as String,
       manualRiskOverride: _$JsonConverterFromJson<String, RiskLevel>(
           json['manualRiskOverride'], const RiskLevelConverter().fromJson),
       allergies: (json['allergies'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList(),
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
       codeStatus: json['codeStatus'] as String?,
-      birthDate: json['birthDate'] == null
-          ? null
-          : DateTime.parse(json['birthDate'] as String),
+      birthDate:
+          const TimestampConverter().fromJson(json['birthDate'] as Timestamp?),
       pronouns: json['pronouns'] as String?,
+      biologicalSex: json['biologicalSex'] as String? ?? 'unspecified',
       photoUrl: json['photoUrl'] as String?,
       assignedNurses: (json['assignedNurses'] as List<dynamic>?)
-          ?.map((e) => e as String)
-          .toList(),
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
       ownerUid: json['ownerUid'] as String?,
       createdBy: json['createdBy'] as String?,
-      tags: (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList(),
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              const [],
       notes: json['notes'] as String?,
     );
 
@@ -46,16 +48,17 @@ Map<String, dynamic> _$PatientToJson(_Patient instance) => <String, dynamic>{
       'lastName': instance.lastName,
       'mrn': instance.mrn,
       'location': instance.location,
-      'admittedAt': instance.admittedAt?.toIso8601String(),
-      'createdAt': instance.createdAt?.toIso8601String(),
+      'admittedAt': const TimestampConverter().toJson(instance.admittedAt),
+      'createdAt': const TimestampConverter().toJson(instance.createdAt),
       'isIsolation': instance.isIsolation,
       'primaryDiagnosis': instance.primaryDiagnosis,
       'manualRiskOverride': _$JsonConverterToJson<String, RiskLevel>(
           instance.manualRiskOverride, const RiskLevelConverter().toJson),
       'allergies': instance.allergies,
       'codeStatus': instance.codeStatus,
-      'birthDate': instance.birthDate?.toIso8601String(),
+      'birthDate': const TimestampConverter().toJson(instance.birthDate),
       'pronouns': instance.pronouns,
+      'biologicalSex': instance.biologicalSex,
       'photoUrl': instance.photoUrl,
       'assignedNurses': instance.assignedNurses,
       'ownerUid': instance.ownerUid,

@@ -1,5 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../utils/risk_utils.dart';
+import 'package:nurseos_v3/shared/converters/timestamp_converter.dart';
 
 part 'patient_model.freezed.dart';
 part 'patient_model.g.dart';
@@ -7,36 +9,26 @@ part 'patient_model.g.dart';
 @freezed
 abstract class Patient with _$Patient {
   const factory Patient({
-    // ── identity ─────────────────────────────────────────────
     required String id,
     required String firstName,
     required String lastName,
     String? mrn,
-
-    // ── location / admission ─────────────────────────────────
     required String location,
-    DateTime? admittedAt,
-    DateTime? createdAt,
-    bool? isIsolation,
-
-    // ── clinical info ────────────────────────────────────────
+    @TimestampConverter() DateTime? admittedAt,
+    @TimestampConverter() DateTime? createdAt,
+    @Default(false) bool? isIsolation,
     required String primaryDiagnosis,
     @RiskLevelConverter() RiskLevel? manualRiskOverride,
-    List<String>? allergies,
+    @Default([]) List<String>? allergies,
     String? codeStatus,
-
-    // ── demographics ─────────────────────────────────────────
-    DateTime? birthDate,
+    @TimestampConverter() DateTime? birthDate,
     String? pronouns,
+    @Default('unspecified') String? biologicalSex,
     String? photoUrl,
-
-    // ── roster & ownership ───────────────────────────────────
-    List<String>? assignedNurses,
+    @Default([]) List<String>? assignedNurses,
     String? ownerUid,
     String? createdBy,
-
-    // ── tags & misc ──────────────────────────────────────────
-    List<String>? tags,
+    @Default([]) List<String>? tags,
     String? notes,
   }) = _Patient;
 

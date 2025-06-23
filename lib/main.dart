@@ -13,20 +13,21 @@ import '/core/env/env.dart'; // useMockServices + logEnv()
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  /// ── 1: Load .env ──────────────────────────────────────────────
   final envFile = File('.env');
-  print('[bootstrap] .env exists: ${await envFile.exists()}');
+  final exists = await envFile.exists();
+  debugPrint('[bootstrap] .env exists: $exists');
 
-  /* 1 ─ Load .env (safe fallback if file absent) */
   try {
-    await dotenv.load(); // looks for .env asset
+    await dotenv.load(fileName: '.env');
   } catch (e) {
-    debugPrint('⚠️  .env not found – defaulting to mock mode ($e)');
-    // Mark dotenv as "initialised" with an empty map (requires ≥5.0)
-    dotenv.testLoad(fileInput: '');
+    debugPrint('⚠️ .env not loaded — defaulting to mock mode. Error: $e');
+    dotenv.testLoad(fileInput: ''); // init empty fallback
   }
-  logEnv(); // prints USE_MOCK_SERVICES
 
-  /* 2 ─ Dev-only early-Firestore detector */
+  logEnv(); // log current USE_MOCK_SERVICES mode
+
+  /// ── 2: Dev-only early Firestore guard ─────────────────────────
   if (kDebugMode) {
     FlutterError.onError = (details) {
       if (details.exception is FirebaseException) {
@@ -37,11 +38,11 @@ Future<void> main() async {
     };
   }
 
-  /* 3 ─ Initialise Firebase once */
+  /// ── 3: Firebase Init ──────────────────────────────────────────
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  /* 4 ─ Run the app */
+  /// ── 4: App Entry ──────────────────────────────────────────────
   runApp(const ProviderScope(child: NurseOSApp()));
 }

@@ -15,30 +15,29 @@ T _$identity<T>(T value) => value;
 
 /// @nodoc
 mixin _$Patient {
-// ── identity ─────────────────────────────────────────────
   String get id;
   String get firstName;
   String get lastName;
-  String? get mrn; // ── location / admission ─────────────────────────────────
+  String? get mrn;
   String get location;
+  @TimestampConverter()
   DateTime? get admittedAt;
+  @TimestampConverter()
   DateTime? get createdAt;
-  bool?
-      get isIsolation; // ── clinical info ────────────────────────────────────────
+  bool? get isIsolation;
   String get primaryDiagnosis;
   @RiskLevelConverter()
   RiskLevel? get manualRiskOverride;
   List<String>? get allergies;
-  String?
-      get codeStatus; // ── demographics ─────────────────────────────────────────
+  String? get codeStatus;
+  @TimestampConverter()
   DateTime? get birthDate;
   String? get pronouns;
-  String?
-      get photoUrl; // ── roster & ownership ───────────────────────────────────
+  String? get biologicalSex;
+  String? get photoUrl;
   List<String>? get assignedNurses;
   String? get ownerUid;
-  String?
-      get createdBy; // ── tags & misc ──────────────────────────────────────────
+  String? get createdBy;
   List<String>? get tags;
   String? get notes;
 
@@ -82,6 +81,8 @@ mixin _$Patient {
                 other.birthDate == birthDate) &&
             (identical(other.pronouns, pronouns) ||
                 other.pronouns == pronouns) &&
+            (identical(other.biologicalSex, biologicalSex) ||
+                other.biologicalSex == biologicalSex) &&
             (identical(other.photoUrl, photoUrl) ||
                 other.photoUrl == photoUrl) &&
             const DeepCollectionEquality()
@@ -112,6 +113,7 @@ mixin _$Patient {
         codeStatus,
         birthDate,
         pronouns,
+        biologicalSex,
         photoUrl,
         const DeepCollectionEquality().hash(assignedNurses),
         ownerUid,
@@ -122,7 +124,7 @@ mixin _$Patient {
 
   @override
   String toString() {
-    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, createdAt: $createdAt, isIsolation: $isIsolation, primaryDiagnosis: $primaryDiagnosis, manualRiskOverride: $manualRiskOverride, allergies: $allergies, codeStatus: $codeStatus, birthDate: $birthDate, pronouns: $pronouns, photoUrl: $photoUrl, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, tags: $tags, notes: $notes)';
+    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, createdAt: $createdAt, isIsolation: $isIsolation, primaryDiagnosis: $primaryDiagnosis, manualRiskOverride: $manualRiskOverride, allergies: $allergies, codeStatus: $codeStatus, birthDate: $birthDate, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, tags: $tags, notes: $notes)';
   }
 }
 
@@ -137,15 +139,16 @@ abstract mixin class $PatientCopyWith<$Res> {
       String lastName,
       String? mrn,
       String location,
-      DateTime? admittedAt,
-      DateTime? createdAt,
+      @TimestampConverter() DateTime? admittedAt,
+      @TimestampConverter() DateTime? createdAt,
       bool? isIsolation,
       String primaryDiagnosis,
       @RiskLevelConverter() RiskLevel? manualRiskOverride,
       List<String>? allergies,
       String? codeStatus,
-      DateTime? birthDate,
+      @TimestampConverter() DateTime? birthDate,
       String? pronouns,
+      String? biologicalSex,
       String? photoUrl,
       List<String>? assignedNurses,
       String? ownerUid,
@@ -180,6 +183,7 @@ class _$PatientCopyWithImpl<$Res> implements $PatientCopyWith<$Res> {
     Object? codeStatus = freezed,
     Object? birthDate = freezed,
     Object? pronouns = freezed,
+    Object? biologicalSex = freezed,
     Object? photoUrl = freezed,
     Object? assignedNurses = freezed,
     Object? ownerUid = freezed,
@@ -244,6 +248,10 @@ class _$PatientCopyWithImpl<$Res> implements $PatientCopyWith<$Res> {
           ? _self.pronouns
           : pronouns // ignore: cast_nullable_to_non_nullable
               as String?,
+      biologicalSex: freezed == biologicalSex
+          ? _self.biologicalSex
+          : biologicalSex // ignore: cast_nullable_to_non_nullable
+              as String?,
       photoUrl: freezed == photoUrl
           ? _self.photoUrl
           : photoUrl // ignore: cast_nullable_to_non_nullable
@@ -281,20 +289,21 @@ class _Patient implements Patient {
       required this.lastName,
       this.mrn,
       required this.location,
-      this.admittedAt,
-      this.createdAt,
-      this.isIsolation,
+      @TimestampConverter() this.admittedAt,
+      @TimestampConverter() this.createdAt,
+      this.isIsolation = false,
       required this.primaryDiagnosis,
       @RiskLevelConverter() this.manualRiskOverride,
-      final List<String>? allergies,
+      final List<String>? allergies = const [],
       this.codeStatus,
-      this.birthDate,
+      @TimestampConverter() this.birthDate,
       this.pronouns,
+      this.biologicalSex = 'unspecified',
       this.photoUrl,
-      final List<String>? assignedNurses,
+      final List<String>? assignedNurses = const [],
       this.ownerUid,
       this.createdBy,
-      final List<String>? tags,
+      final List<String>? tags = const [],
       this.notes})
       : _allergies = allergies,
         _assignedNurses = assignedNurses,
@@ -302,7 +311,6 @@ class _Patient implements Patient {
   factory _Patient.fromJson(Map<String, dynamic> json) =>
       _$PatientFromJson(json);
 
-// ── identity ─────────────────────────────────────────────
   @override
   final String id;
   @override
@@ -311,16 +319,17 @@ class _Patient implements Patient {
   final String lastName;
   @override
   final String? mrn;
-// ── location / admission ─────────────────────────────────
   @override
   final String location;
   @override
+  @TimestampConverter()
   final DateTime? admittedAt;
   @override
+  @TimestampConverter()
   final DateTime? createdAt;
   @override
+  @JsonKey()
   final bool? isIsolation;
-// ── clinical info ────────────────────────────────────────
   @override
   final String primaryDiagnosis;
   @override
@@ -328,6 +337,7 @@ class _Patient implements Patient {
   final RiskLevel? manualRiskOverride;
   final List<String>? _allergies;
   @override
+  @JsonKey()
   List<String>? get allergies {
     final value = _allergies;
     if (value == null) return null;
@@ -338,17 +348,19 @@ class _Patient implements Patient {
 
   @override
   final String? codeStatus;
-// ── demographics ─────────────────────────────────────────
   @override
+  @TimestampConverter()
   final DateTime? birthDate;
   @override
   final String? pronouns;
   @override
-  final String? photoUrl;
-// ── roster & ownership ───────────────────────────────────
-  final List<String>? _assignedNurses;
-// ── roster & ownership ───────────────────────────────────
+  @JsonKey()
+  final String? biologicalSex;
   @override
+  final String? photoUrl;
+  final List<String>? _assignedNurses;
+  @override
+  @JsonKey()
   List<String>? get assignedNurses {
     final value = _assignedNurses;
     if (value == null) return null;
@@ -361,10 +373,9 @@ class _Patient implements Patient {
   final String? ownerUid;
   @override
   final String? createdBy;
-// ── tags & misc ──────────────────────────────────────────
   final List<String>? _tags;
-// ── tags & misc ──────────────────────────────────────────
   @override
+  @JsonKey()
   List<String>? get tags {
     final value = _tags;
     if (value == null) return null;
@@ -422,6 +433,8 @@ class _Patient implements Patient {
                 other.birthDate == birthDate) &&
             (identical(other.pronouns, pronouns) ||
                 other.pronouns == pronouns) &&
+            (identical(other.biologicalSex, biologicalSex) ||
+                other.biologicalSex == biologicalSex) &&
             (identical(other.photoUrl, photoUrl) ||
                 other.photoUrl == photoUrl) &&
             const DeepCollectionEquality()
@@ -452,6 +465,7 @@ class _Patient implements Patient {
         codeStatus,
         birthDate,
         pronouns,
+        biologicalSex,
         photoUrl,
         const DeepCollectionEquality().hash(_assignedNurses),
         ownerUid,
@@ -462,7 +476,7 @@ class _Patient implements Patient {
 
   @override
   String toString() {
-    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, createdAt: $createdAt, isIsolation: $isIsolation, primaryDiagnosis: $primaryDiagnosis, manualRiskOverride: $manualRiskOverride, allergies: $allergies, codeStatus: $codeStatus, birthDate: $birthDate, pronouns: $pronouns, photoUrl: $photoUrl, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, tags: $tags, notes: $notes)';
+    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, createdAt: $createdAt, isIsolation: $isIsolation, primaryDiagnosis: $primaryDiagnosis, manualRiskOverride: $manualRiskOverride, allergies: $allergies, codeStatus: $codeStatus, birthDate: $birthDate, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, tags: $tags, notes: $notes)';
   }
 }
 
@@ -478,15 +492,16 @@ abstract mixin class _$PatientCopyWith<$Res> implements $PatientCopyWith<$Res> {
       String lastName,
       String? mrn,
       String location,
-      DateTime? admittedAt,
-      DateTime? createdAt,
+      @TimestampConverter() DateTime? admittedAt,
+      @TimestampConverter() DateTime? createdAt,
       bool? isIsolation,
       String primaryDiagnosis,
       @RiskLevelConverter() RiskLevel? manualRiskOverride,
       List<String>? allergies,
       String? codeStatus,
-      DateTime? birthDate,
+      @TimestampConverter() DateTime? birthDate,
       String? pronouns,
+      String? biologicalSex,
       String? photoUrl,
       List<String>? assignedNurses,
       String? ownerUid,
@@ -521,6 +536,7 @@ class __$PatientCopyWithImpl<$Res> implements _$PatientCopyWith<$Res> {
     Object? codeStatus = freezed,
     Object? birthDate = freezed,
     Object? pronouns = freezed,
+    Object? biologicalSex = freezed,
     Object? photoUrl = freezed,
     Object? assignedNurses = freezed,
     Object? ownerUid = freezed,
@@ -584,6 +600,10 @@ class __$PatientCopyWithImpl<$Res> implements _$PatientCopyWith<$Res> {
       pronouns: freezed == pronouns
           ? _self.pronouns
           : pronouns // ignore: cast_nullable_to_non_nullable
+              as String?,
+      biologicalSex: freezed == biologicalSex
+          ? _self.biologicalSex
+          : biologicalSex // ignore: cast_nullable_to_non_nullable
               as String?,
       photoUrl: freezed == photoUrl
           ? _self.photoUrl

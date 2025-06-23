@@ -6,13 +6,12 @@ class AppShell extends StatelessWidget {
   final Widget child;
   const AppShell({super.key, required this.child});
 
+  // Routes for each tab
   static const tabs = ['/tasks', '/patients', '/profile'];
 
-  int _indexForLocation(String location) {
-    return tabs
-        .indexWhere((t) => location.startsWith(t))
-        .clamp(0, tabs.length - 1);
-  }
+  /// Returns the index that matches the current location.
+  int _indexForLocation(String location) =>
+      tabs.indexWhere(location.startsWith).clamp(0, tabs.length - 1);
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +19,10 @@ class AppShell extends StatelessWidget {
     final currentIndex = _indexForLocation(location);
 
     return Scaffold(
+      key: const ValueKey('app-shell'), // 🔑 let tests target *this* Scaffold
       body: SafeArea(child: child),
+
+      // --- bottom navigation -------------------------------------------------
       bottomNavigationBar: Theme(
         data: Theme.of(context).copyWith(
           splashFactory: NoSplash.splashFactory,
@@ -30,14 +32,10 @@ class AppShell extends StatelessWidget {
         child: BottomNavigationBar(
           currentIndex: currentIndex,
           onTap: (index) {
-            if (index != currentIndex) {
-              context.go(tabs[index]);
-            }
+            if (index != currentIndex) context.go(tabs[index]);
           },
           showSelectedLabels: false,
           showUnselectedLabels: false,
-          selectedFontSize: 0,
-          unselectedFontSize: 0,
           type: BottomNavigationBarType.fixed,
           items: const [
             BottomNavigationBarItem(

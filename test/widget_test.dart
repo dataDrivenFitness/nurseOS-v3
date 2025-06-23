@@ -1,16 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import 'package:nurseos_v3/main.dart';
+import 'package:nurseos_v3/app.dart';
+import 'mock/mock_patient_overrides.dart';
 
 void main() {
-  testWidgets('App builds and renders base shell', (WidgetTester tester) async {
-    await tester.pumpWidget(
-      const ProviderScope(child: NurseOSApp()),
-    );
+  group('💡 NurseOS base shell renders', () {
+    testWidgets('displays Assigned Patients screen with bottom navigation',
+        (tester) async {
+      // Run app with mock patient loading state
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            mockPatientsLoading,
+          ],
+          child: const NurseOSApp(),
+        ),
+      );
 
-    // Basic sanity check: app renders something expected from AppShell
-    expect(find.byType(NavigationBar), findsOneWidget);
+      await tester.pumpAndSettle();
+
+      // Confirm nav bar widget exists
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is BottomNavigationBar ||
+              w.runtimeType.toString() == 'NavigationBar',
+        ),
+        findsOneWidget,
+      );
+
+      // Confirm screen title is visible
+      expect(find.text('Assigned Patients'), findsOneWidget);
+    });
   });
 }

@@ -148,3 +148,14 @@ match /patients/{patientId}/shift_notes/{noteId} {
 ---
 
 *Firebase is powerful — but we stay mock-first, audit-safe, and patient-focused.*
+
+<!-- v2.1 update – Jun 22 -->
+
+## 🔄 Updated Mock Enforcement
+
+* The `useMockServices` toggle must affect **all repositories and services**, not just data sources.
+* This includes:
+  - `AuthService`
+  - `GPTService` / note generation
+  - XP-related writes
+* In production builds, `.env` pre-load is optional — but in testing, always await `.env` before initializing Firebase to prevent init errors.

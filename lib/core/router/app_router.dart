@@ -2,9 +2,9 @@
 import 'package:go_router/go_router.dart';
 
 import '../../shared/widgets/app_shell.dart';
-import '../../features/patient/screens/patient_list_screen.dart';
-import '../../features/tasks/screens/task_list_screen.dart';
-import '../../features/profile/screens/profile_screen.dart';
+import '../../features/patient/presentation/patient_list_screen.dart';
+import '../../features/tasks/presentation/task_list_screen.dart';
+import '../../features/profile/presentation/profile_screen.dart';
 
 final appRoutes = [
   ShellRoute(

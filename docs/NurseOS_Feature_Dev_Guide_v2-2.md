@@ -109,3 +109,20 @@ Still required for:
 ---
 
 *Firebase-powered. Modular-first. Still nurse-safe.*
+
+
+<!-- v2.1 update – Jun 22 -->
+
+## 🔁 Repository Return Type Enforcement
+
+* All repositories must return `Either<Failure, T>` for consistency and retry-safe UI.
+* This applies to:
+  - PatientRepository
+  - VitalsRepository
+  - ShiftNoteRepository
+  - Future features (CarePlans, Tasks)
+
+## 🎮 XP Hook Placement
+
+* XP logic should currently live inside the `.save()` method of feature repositories (e.g., `MockPatientRepository.save()`).
+* This preserves modularity and aligns with event-driven XP attribution (based on nurse actions).

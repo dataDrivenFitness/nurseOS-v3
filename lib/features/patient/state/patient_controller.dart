@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nurseos_v3/features/patient/models/patient_model.dart';
 import 'package:nurseos_v3/features/patient/data/patient_repository_provider.dart';
-import 'package:nurseos_v3/core/error/failure.dart';
-import 'package:fpdart/fpdart.dart';
+//import 'package:nurseos_v3/core/error/failure.dart';
+//import 'package:fpdart/fpdart.dart';
 
 class PatientController extends AsyncNotifier<List<Patient>> {
   @override

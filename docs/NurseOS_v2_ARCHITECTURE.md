@@ -96,3 +96,16 @@ test/           ← unit, widget & golden tests
 - [ ] Archive `stable-pre-v2` branch
 - [ ] Update README & docs for v2
 - [ ] Move obsolete docs to `/legacy`
+
+
+<!-- v2.1 update – Jun 22 -->
+
+## 🔌 Firestore Integration Discipline
+
+* All models must connect to Firestore using `.withConverter<T>()` — never raw Maps.
+* Do not include Firestore SDK logic (`.collection()`, `.doc()`, etc.) inside:
+  - Models
+  - Domain services
+  - Controllers
+
+*Firestore access must only happen in `FirebaseXRepository` files.*

@@ -1,23 +1,69 @@
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fpdart/fpdart.dart';
-import '../../../core/error/failure.dart';
 import 'package:nurseos_v3/features/patient/models/patient_model.dart';
+import '../../../core/error/failure.dart';
 import 'abstract_patient_repository.dart';
 
 class FirebasePatientRepository implements PatientRepository {
-  final patientsRef =
-      FirebaseFirestore.instance.collection('patients').withConverter<Patient>(
-            fromFirestore: (snap, _) => Patient.fromJson(snap.data()!),
+  final FirebaseFirestore _db;
+
+  FirebasePatientRepository(this._db);
+
+  CollectionReference<Patient> get _patients =>
+      _db.collection('patients').withConverter<Patient>(
+            fromFirestore: (snap, _) =>
+                Patient.fromJson(snap.data()!).copyWith(id: snap.id),
             toFirestore: (p, _) => p.toJson(),
           );
 
   @override
   Future<Either<Failure, List<Patient>>> getAllPatients() async {
     try {
-      final query = await patientsRef.get();
-      return right(query.docs.map((doc) => doc.data()).toList());
+      debugPrint('🔥 FirebasePatientRepository.fetchAll() called');
+      final snap = await _patients.get();
+      final patients = snap.docs.map((doc) => doc.data()).toList();
+      return Right(patients);
+    } on FirebaseException catch (e) {
+      return Left(Failure.unexpected(e.message ?? 'Firestore error'));
     } catch (e) {
-      return left(Failure.unexpected(e.toString()));
+      return Left(Failure.unexpected(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Patient?>> fetchById(String id) async {
+    try {
+      final doc = await _patients.doc(id).get();
+      return Right(doc.exists ? doc.data() : null);
+    } on FirebaseException catch (e) {
+      return Left(Failure.unexpected(e.message ?? 'Firestore error'));
+    } catch (e) {
+      return Left(Failure.unexpected(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> save(Patient patient) async {
+    try {
+      await _patients.doc(patient.id).set(patient);
+      return const Right(unit);
+    } on FirebaseException catch (e) {
+      return Left(Failure.unexpected(e.message ?? 'Firestore error'));
+    } catch (e) {
+      return Left(Failure.unexpected(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Unit>> delete(String id) async {
+    try {
+      await _patients.doc(id).delete();
+      return const Right(unit);
+    } on FirebaseException catch (e) {
+      return Left(Failure.unexpected(e.message ?? 'Firestore error'));
+    } catch (e) {
+      return Left(Failure.unexpected(e.toString()));
     }
   }
 }

@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "86708810215",
+    "project_id": "nurse-os",
+    "storage_bucket": "nurse-os.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:86708810215:android:f98843f621206883a60d42",
+        "android_client_info": {
+          "package_name": "com.example.nurse_os"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAmEoTgi48F6jhCYXUMamjLqXDwBVfLHrg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:86708810215:android:514a9c9357e5f8f4a60d42",
+        "android_client_info": {
+          "package_name": "com.nurseos.nurseos_v3"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAmEoTgi48F6jhCYXUMamjLqXDwBVfLHrg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

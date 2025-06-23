@@ -1,10 +1,10 @@
 import 'package:json_annotation/json_annotation.dart';
 
-enum RiskLevel { high, moderate, low, unknown }
+enum RiskLevel { high, medium, low, unknown }
 
 const riskDiagnosisMap = {
   RiskLevel.high: ['sepsis', 'stroke'],
-  RiskLevel.moderate: ['pneumonia', 'uti'],
+  RiskLevel.medium: ['pneumonia', 'uti'],
   RiskLevel.low: ['constipation'],
 };
 

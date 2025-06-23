@@ -15,6 +15,9 @@ _Patient _$PatientFromJson(Map<String, dynamic> json) => _Patient(
       admittedAt: json['admittedAt'] == null
           ? null
           : DateTime.parse(json['admittedAt'] as String),
+      createdAt: json['createdAt'] == null
+          ? null
+          : DateTime.parse(json['createdAt'] as String),
       isIsolation: json['isIsolation'] as bool?,
       primaryDiagnosis: json['primaryDiagnosis'] as String,
       manualRiskOverride: _$JsonConverterFromJson<String, RiskLevel>(
@@ -44,6 +47,7 @@ Map<String, dynamic> _$PatientToJson(_Patient instance) => <String, dynamic>{
       'mrn': instance.mrn,
       'location': instance.location,
       'admittedAt': instance.admittedAt?.toIso8601String(),
+      'createdAt': instance.createdAt?.toIso8601String(),
       'isIsolation': instance.isIsolation,
       'primaryDiagnosis': instance.primaryDiagnosis,
       'manualRiskOverride': _$JsonConverterToJson<String, RiskLevel>(

@@ -16,6 +16,7 @@ abstract class Patient with _$Patient {
     // ── location / admission ─────────────────────────────────
     required String location,
     DateTime? admittedAt,
+    DateTime? createdAt,
     bool? isIsolation,
 
     // ── clinical info ────────────────────────────────────────

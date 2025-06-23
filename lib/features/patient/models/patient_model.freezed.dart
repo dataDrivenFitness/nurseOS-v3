@@ -20,24 +20,25 @@ mixin _$Patient {
   String get firstName;
   String get lastName;
   String? get mrn; // ── location / admission ─────────────────────────────────
-  String get location; // e.g. “3-East 12” or "Home Health"
+  String get location;
   DateTime? get admittedAt;
+  DateTime? get createdAt;
   bool?
       get isIsolation; // ── clinical info ────────────────────────────────────────
   String get primaryDiagnosis;
   @RiskLevelConverter()
   RiskLevel? get manualRiskOverride;
   List<String>? get allergies;
-  String? get codeStatus; // DNR / Full / etc.
-// ── demographics ─────────────────────────────────────────
+  String?
+      get codeStatus; // ── demographics ─────────────────────────────────────────
   DateTime? get birthDate;
   String? get pronouns;
   String?
       get photoUrl; // ── roster & ownership ───────────────────────────────────
   List<String>? get assignedNurses;
-  String? get ownerUid; // head nurse / provider
-  String? get createdBy; // who added record
-// ── tags & misc ──────────────────────────────────────────
+  String? get ownerUid;
+  String?
+      get createdBy; // ── tags & misc ──────────────────────────────────────────
   List<String>? get tags;
   String? get notes;
 
@@ -66,6 +67,8 @@ mixin _$Patient {
                 other.location == location) &&
             (identical(other.admittedAt, admittedAt) ||
                 other.admittedAt == admittedAt) &&
+            (identical(other.createdAt, createdAt) ||
+                other.createdAt == createdAt) &&
             (identical(other.isIsolation, isIsolation) ||
                 other.isIsolation == isIsolation) &&
             (identical(other.primaryDiagnosis, primaryDiagnosis) ||
@@ -101,6 +104,7 @@ mixin _$Patient {
         mrn,
         location,
         admittedAt,
+        createdAt,
         isIsolation,
         primaryDiagnosis,
         manualRiskOverride,
@@ -118,7 +122,7 @@ mixin _$Patient {
 
   @override
   String toString() {
-    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, isIsolation: $isIsolation, primaryDiagnosis: $primaryDiagnosis, manualRiskOverride: $manualRiskOverride, allergies: $allergies, codeStatus: $codeStatus, birthDate: $birthDate, pronouns: $pronouns, photoUrl: $photoUrl, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, tags: $tags, notes: $notes)';
+    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, createdAt: $createdAt, isIsolation: $isIsolation, primaryDiagnosis: $primaryDiagnosis, manualRiskOverride: $manualRiskOverride, allergies: $allergies, codeStatus: $codeStatus, birthDate: $birthDate, pronouns: $pronouns, photoUrl: $photoUrl, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, tags: $tags, notes: $notes)';
   }
 }
 
@@ -134,6 +138,7 @@ abstract mixin class $PatientCopyWith<$Res> {
       String? mrn,
       String location,
       DateTime? admittedAt,
+      DateTime? createdAt,
       bool? isIsolation,
       String primaryDiagnosis,
       @RiskLevelConverter() RiskLevel? manualRiskOverride,
@@ -167,6 +172,7 @@ class _$PatientCopyWithImpl<$Res> implements $PatientCopyWith<$Res> {
     Object? mrn = freezed,
     Object? location = null,
     Object? admittedAt = freezed,
+    Object? createdAt = freezed,
     Object? isIsolation = freezed,
     Object? primaryDiagnosis = null,
     Object? manualRiskOverride = freezed,
@@ -205,6 +211,10 @@ class _$PatientCopyWithImpl<$Res> implements $PatientCopyWith<$Res> {
       admittedAt: freezed == admittedAt
           ? _self.admittedAt
           : admittedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      createdAt: freezed == createdAt
+          ? _self.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
       isIsolation: freezed == isIsolation
           ? _self.isIsolation
@@ -272,6 +282,7 @@ class _Patient implements Patient {
       this.mrn,
       required this.location,
       this.admittedAt,
+      this.createdAt,
       this.isIsolation,
       required this.primaryDiagnosis,
       @RiskLevelConverter() this.manualRiskOverride,
@@ -303,9 +314,10 @@ class _Patient implements Patient {
 // ── location / admission ─────────────────────────────────
   @override
   final String location;
-// e.g. “3-East 12” or "Home Health"
   @override
   final DateTime? admittedAt;
+  @override
+  final DateTime? createdAt;
   @override
   final bool? isIsolation;
 // ── clinical info ────────────────────────────────────────
@@ -326,7 +338,6 @@ class _Patient implements Patient {
 
   @override
   final String? codeStatus;
-// DNR / Full / etc.
 // ── demographics ─────────────────────────────────────────
   @override
   final DateTime? birthDate;
@@ -348,13 +359,10 @@ class _Patient implements Patient {
 
   @override
   final String? ownerUid;
-// head nurse / provider
   @override
   final String? createdBy;
-// who added record
 // ── tags & misc ──────────────────────────────────────────
   final List<String>? _tags;
-// who added record
 // ── tags & misc ──────────────────────────────────────────
   @override
   List<String>? get tags {
@@ -398,6 +406,8 @@ class _Patient implements Patient {
                 other.location == location) &&
             (identical(other.admittedAt, admittedAt) ||
                 other.admittedAt == admittedAt) &&
+            (identical(other.createdAt, createdAt) ||
+                other.createdAt == createdAt) &&
             (identical(other.isIsolation, isIsolation) ||
                 other.isIsolation == isIsolation) &&
             (identical(other.primaryDiagnosis, primaryDiagnosis) ||
@@ -434,6 +444,7 @@ class _Patient implements Patient {
         mrn,
         location,
         admittedAt,
+        createdAt,
         isIsolation,
         primaryDiagnosis,
         manualRiskOverride,
@@ -451,7 +462,7 @@ class _Patient implements Patient {
 
   @override
   String toString() {
-    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, isIsolation: $isIsolation, primaryDiagnosis: $primaryDiagnosis, manualRiskOverride: $manualRiskOverride, allergies: $allergies, codeStatus: $codeStatus, birthDate: $birthDate, pronouns: $pronouns, photoUrl: $photoUrl, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, tags: $tags, notes: $notes)';
+    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, createdAt: $createdAt, isIsolation: $isIsolation, primaryDiagnosis: $primaryDiagnosis, manualRiskOverride: $manualRiskOverride, allergies: $allergies, codeStatus: $codeStatus, birthDate: $birthDate, pronouns: $pronouns, photoUrl: $photoUrl, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, tags: $tags, notes: $notes)';
   }
 }
 
@@ -468,6 +479,7 @@ abstract mixin class _$PatientCopyWith<$Res> implements $PatientCopyWith<$Res> {
       String? mrn,
       String location,
       DateTime? admittedAt,
+      DateTime? createdAt,
       bool? isIsolation,
       String primaryDiagnosis,
       @RiskLevelConverter() RiskLevel? manualRiskOverride,
@@ -501,6 +513,7 @@ class __$PatientCopyWithImpl<$Res> implements _$PatientCopyWith<$Res> {
     Object? mrn = freezed,
     Object? location = null,
     Object? admittedAt = freezed,
+    Object? createdAt = freezed,
     Object? isIsolation = freezed,
     Object? primaryDiagnosis = null,
     Object? manualRiskOverride = freezed,
@@ -539,6 +552,10 @@ class __$PatientCopyWithImpl<$Res> implements _$PatientCopyWith<$Res> {
       admittedAt: freezed == admittedAt
           ? _self.admittedAt
           : admittedAt // ignore: cast_nullable_to_non_nullable
+              as DateTime?,
+      createdAt: freezed == createdAt
+          ? _self.createdAt
+          : createdAt // ignore: cast_nullable_to_non_nullable
               as DateTime?,
       isIsolation: freezed == isIsolation
           ? _self.isIsolation

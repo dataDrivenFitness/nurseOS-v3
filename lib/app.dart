@@ -1,23 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nurseos_v3/core/theme/app_theme.dart';
-import 'core/bootstrap.dart';
+import 'package:nurseos_v3/core/router/app_router.dart';
 
-/// NurseOSApp is the root of the widget tree. It sets up routing, theming, and platform configuration.
-class NurseOSApp extends StatelessWidget {
+/// Root widget for NurseOS — sets up theming, routing, and platform behavior.
+class NurseOSApp extends ConsumerWidget {
   const NurseOSApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(appRouterProvider); // ✅ Router from provider
+
     return MaterialApp.router(
       title: 'NurseOS v3',
 
-      // ✅ Apply custom light and dark themes from AppTheme
-      theme: AppTheme.light(), // returns ThemeData
-      darkTheme: AppTheme.dark(), // returns ThemeData
-      themeMode: ThemeMode.system, // system theme toggle support
+      // ✅ Apply shared app theme
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.system,
 
-      // 🔁 Routing configuration is defined in core/bootstrap.dart
-      routerConfig: createRouter(),
+      // 🧭 Route config via GoRouter provider
+      routerConfig: router,
     );
   }
 }

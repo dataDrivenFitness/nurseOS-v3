@@ -1,45 +1,61 @@
-//import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../shared/widgets/app_shell.dart';
+import '../../features/auth/presentation/login_screen.dart';
+import '../../features/auth/state/auth_controller.dart';
+import '../../features/auth/state/auth_refresh_notifier.dart';
 import '../../features/patient/presentation/patient_list_screen.dart';
-import '../../features/tasks/presentation/task_list_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/tasks/presentation/task_list_screen.dart';
+import '../../shared/widgets/app_shell.dart';
 
-final appRoutes = [
-  ShellRoute(
-    builder: (context, state, child) => AppShell(child: child),
+final _rootNavigatorKey = GlobalKey<NavigatorState>();
+final _shellNavigatorKey = GlobalKey<NavigatorState>();
+
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final auth = ref.watch(authControllerProvider);
+  final refreshNotifier = ref.watch(authRefreshNotifierProvider);
+
+  return GoRouter(
+    navigatorKey: _rootNavigatorKey,
+    refreshListenable: refreshNotifier,
+    initialLocation: '/tasks',
+    redirect: (context, state) {
+      final path = state.uri.path;
+      final isLoggingIn = path == '/login';
+      final isAuthenticated = auth is AsyncData && auth.value != null;
+
+      if (!isAuthenticated && !isLoggingIn) return '/login';
+      if (isAuthenticated && isLoggingIn) return '/tasks';
+      return null;
+    },
     routes: [
-      _redirectRootToPatients(),
-      _patientsRoute(),
-      _tasksRoute(),
-      _profileRoute(),
+      GoRoute(
+        path: '/login',
+        builder: (_, __) => const LoginScreen(),
+      ),
+      ShellRoute(
+        navigatorKey: _shellNavigatorKey,
+        builder: (_, __, child) => AppShell(child: child),
+        routes: [
+          GoRoute(
+            path: '/tasks',
+            pageBuilder: (_, __) =>
+                const NoTransitionPage(child: TaskListScreen()),
+          ),
+          GoRoute(
+            path: '/patients',
+            pageBuilder: (_, __) =>
+                const NoTransitionPage(child: PatientListScreen()),
+          ),
+          GoRoute(
+            path: '/profile',
+            pageBuilder: (_, __) =>
+                const NoTransitionPage(child: ProfileScreen()),
+          ),
+        ],
+      ),
     ],
-  ),
-];
-
-GoRoute _redirectRootToPatients() => GoRoute(
-      path: '/',
-      redirect: (_, __) => '/patients',
-    );
-
-GoRoute _patientsRoute() => GoRoute(
-      path: '/patients',
-      pageBuilder: (context, state) => const NoTransitionPage(
-        child: PatientListScreen(),
-      ),
-    );
-
-GoRoute _tasksRoute() => GoRoute(
-      path: '/tasks',
-      pageBuilder: (context, state) => const NoTransitionPage(
-        child: TaskListScreen(),
-      ),
-    );
-
-GoRoute _profileRoute() => GoRoute(
-      path: '/profile',
-      pageBuilder: (context, state) => const NoTransitionPage(
-        child: ProfileScreen(),
-      ),
-    );
+  );
+});

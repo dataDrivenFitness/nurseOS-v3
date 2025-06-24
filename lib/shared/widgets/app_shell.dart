@@ -6,12 +6,17 @@ class AppShell extends StatelessWidget {
   final Widget child;
   const AppShell({super.key, required this.child});
 
-  // Routes for each tab
+  /// Route paths for each tab in order
   static const tabs = ['/tasks', '/patients', '/profile'];
 
-  /// Returns the index that matches the current location.
-  int _indexForLocation(String location) =>
-      tabs.indexWhere(location.startsWith).clamp(0, tabs.length - 1);
+  /// Get index of active tab based on current route
+  int _indexForLocation(String location) {
+    // Match full route or prefix
+    for (int i = 0; i < tabs.length; i++) {
+      if (location.startsWith(tabs[i])) return i;
+    }
+    return 0; // default to tasks
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,10 +24,9 @@ class AppShell extends StatelessWidget {
     final currentIndex = _indexForLocation(location);
 
     return Scaffold(
-      key: const ValueKey('app-shell'), // 🔑 let tests target *this* Scaffold
+      key: const ValueKey('app-shell'), // 🔑 for test targeting
       body: SafeArea(child: child),
 
-      // --- bottom navigation -------------------------------------------------
       bottomNavigationBar: Theme(
         data: Theme.of(context).copyWith(
           splashFactory: NoSplash.splashFactory,

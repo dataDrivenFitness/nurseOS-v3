@@ -12,10 +12,8 @@ _Patient _$PatientFromJson(Map<String, dynamic> json) => _Patient(
       lastName: json['lastName'] as String,
       mrn: json['mrn'] as String?,
       location: json['location'] as String,
-      admittedAt:
-          const TimestampConverter().fromJson(json['admittedAt'] as Timestamp?),
-      createdAt:
-          const TimestampConverter().fromJson(json['createdAt'] as Timestamp?),
+      admittedAt: const TimestampConverter().fromJson(json['admittedAt']),
+      createdAt: const TimestampConverter().fromJson(json['createdAt']),
       isIsolation: json['isIsolation'] as bool? ?? false,
       primaryDiagnosis: json['primaryDiagnosis'] as String,
       manualRiskOverride: _$JsonConverterFromJson<String, RiskLevel>(
@@ -25,8 +23,7 @@ _Patient _$PatientFromJson(Map<String, dynamic> json) => _Patient(
               .toList() ??
           const [],
       codeStatus: json['codeStatus'] as String?,
-      birthDate:
-          const TimestampConverter().fromJson(json['birthDate'] as Timestamp?),
+      birthDate: const TimestampConverter().fromJson(json['birthDate']),
       pronouns: json['pronouns'] as String?,
       biologicalSex: json['biologicalSex'] as String? ?? 'unspecified',
       photoUrl: json['photoUrl'] as String?,

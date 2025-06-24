@@ -30,7 +30,7 @@ This document outlines the integration strategy for connecting NurseOS to Fireba
 
 ## 🔁 Mock vs. Firebase Toggle
 
-**Source:** `lib/.env.dart`
+**Source:** `lib/env.dart`
 ```dart
 const bool useMockServices = false;
 ```

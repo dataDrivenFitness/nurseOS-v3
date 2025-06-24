@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
 
 import '../models/patient_model.dart';
 import '../data/abstract_patient_repository.dart';
@@ -12,11 +13,13 @@ import 'package:nurseos_v3/core/env/env.dart';
 ///
 /// If [useMockServices] is true, returns [MockPatientRepository].
 /// Otherwise, returns [FirebasePatientRepository] using a Firestore instance.
-final patientRepositoryProvider = Provider<PatientRepository>((ref) {
-  if (useMockServices) {
-    return MockPatientRepository();
-  } else {
-    final firestore = FirebaseFirestore.instance;
-    return FirebasePatientRepository(firestore);
-  }
+final patientRepositoryProvider = Provider<PatientRepository?>((ref) {
+  if (useMockServices) return MockPatientRepository();
+
+  final firestore = FirebaseFirestore.instance;
+  final user = ref.watch(authControllerProvider).value;
+
+  if (user == null) return null; // Don't throw, just wait
+
+  return FirebasePatientRepository(firestore, user);
 });

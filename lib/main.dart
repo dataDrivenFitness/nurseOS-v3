@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,26 +6,22 @@ import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_options.dart';
 import 'app.dart';
-import '/core/env/env.dart'; // useMockServices + logEnv()
+import 'core/env/env.dart'; // useMockServices + logEnv()
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   /// ── 1: Load .env ──────────────────────────────────────────────
-  final envFile = File('.env');
-  final exists = await envFile.exists();
-  debugPrint('[bootstrap] .env exists: $exists');
-
   try {
     await dotenv.load(fileName: '.env');
   } catch (e) {
     debugPrint('⚠️ .env not loaded — defaulting to mock mode. Error: $e');
-    dotenv.testLoad(fileInput: ''); // init empty fallback
+    dotenv.testLoad(fileInput: ''); // fallback to allow safe access
   }
 
-  logEnv(); // log current USE_MOCK_SERVICES mode
+  logEnv(); // Logs USE_MOCK_SERVICES and raw value
 
-  /// ── 2: Dev-only early Firestore guard ─────────────────────────
+  /// ── 2: Dev-only Firebase early error log ──────────────────────
   if (kDebugMode) {
     FlutterError.onError = (details) {
       if (details.exception is FirebaseException) {

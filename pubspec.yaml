@@ -1,60 +1,68 @@
 name: nurseos_v3
 description: A HIPAA-ready nurse documentation app.
-publish_to: "none"  # Private app; do not publish
+publish_to: "none" # Private app; do not publish
 version: 0.1.0
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
 
-# ────── 🧩 Dependencies ──────
+# ──────────────────────────────────────────────
+# 🧩 App Dependencies
+# ──────────────────────────────────────────────
 dependencies:
   flutter:
     sdk: flutter
 
   # UI Enhancements
-  shimmer: ^3.0.0
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^1.0.8           # iOS-style icons
+  shimmer: ^3.0.0                   # loading placeholders
+
+  # Routing
+  go_router: ^15.2.3                # declarative navigation
 
   # State Management
-  flutter_riverpod: ^2.5.1
+  flutter_riverpod: ^2.5.1          # app-wide reactive state
 
-  # Navigation
-  go_router: ^15.2.3
+  # Models & Serialization
+  freezed_annotation: ^3.0.0        # immutable data classes
+  json_annotation: ^4.9.0           # JSON serialization helpers
 
-  # Data Models
-  freezed_annotation: ^3.0.0
-  json_annotation: ^4.9.0
+  # Functional Patterns
+  fpdart: ^1.1.0                    # Either, Option, etc.
 
-  # Firebase Core & Firestore
-  firebase_core: ^3.14.0
-  cloud_firestore: ^5.6.9
+  # Firebase Core Services
+  firebase_core: ^3.14.0            # required for all Firebase features
+  cloud_firestore: ^5.6.9           # secure data storage
+  firebase_auth: ^5.6.0             # email/password or federated login
 
-  # Functional Programming
-  fpdart: ^1.1.0
+  # Environment Variables
+  flutter_dotenv: ^5.1.0            # .env file support
 
-  # Optional Runtime Config
-  flutter_dotenv: ^5.1.0
-
-# ────── 🧪 Dev Dependencies ──────
+# ──────────────────────────────────────────────
+# 🧪 Dev Dependencies
+# ──────────────────────────────────────────────
 dev_dependencies:
   flutter_test:
-    sdk: flutter
+    sdk: flutter                   # standard test framework
 
-  # Code Generation
-  build_runner: ^2.4.6
-  freezed: ^3.0.6
-  json_serializable: ^6.7.1
+  # Codegen (Freezed + JSON)
+  build_runner: ^2.4.6             # executes code generation
+  freezed: ^3.0.6                  # generates union/data classes
+  json_serializable: ^6.7.1        # generates .g.dart files
+  riverpod_generator: ^2.3.0
 
-  # Linting
-  very_good_analysis: ^9.0.0
-  flutter_lints: ^6.0.0
+  # Static Analysis
+  very_good_analysis: ^9.0.0       # recommended VGV rules
+  flutter_lints: ^6.0.0            # Dart 3-compatible linting
 
-# ────── 🗂 Assets ──────
+# ──────────────────────────────────────────────
+# 🖼 Flutter Assets & Fonts
+# ──────────────────────────────────────────────
 flutter:
   uses-material-design: true
 
   assets:
-    - .env
+    - .env                         # environment config (useMockServices toggle)
 
   fonts:
     - family: InterVariable

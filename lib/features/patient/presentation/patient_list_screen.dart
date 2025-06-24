@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../shared/widgets/loading/patient_list_shimmer.dart';
-import '../../../shared/widgets/error/error_retry_tile.dart';
-import '../state/patient_providers.dart';
 import 'package:nurseos_v3/features/patient/presentation/widgets/patient_card.dart';
+import '../../../shared/widgets/error/error_retry_tile.dart';
+import '../../../shared/widgets/loading/patient_list_shimmer.dart';
+import '../state/patient_providers.dart';
 
 class PatientListScreen extends ConsumerWidget {
   const PatientListScreen({super.key});
@@ -13,7 +13,12 @@ class PatientListScreen extends ConsumerWidget {
     final patients = ref.watch(patientProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Assigned Patients')),
+      appBar: AppBar(
+        title: const Text(
+          'Assigned Patients',
+          key: Key('assignedPatientsTitle'), // 🧪 test identifier
+        ),
+      ),
       body: patients.when(
         loading: () {
           debugPrint('[UI] State: Loading');
@@ -22,7 +27,7 @@ class PatientListScreen extends ConsumerWidget {
             child: PatientListShimmer(),
           );
         },
-        error: (err, stack) {
+        error: (err, _) {
           debugPrint('[UI] State: Error → $err');
           return KeyedSubtree(
             key: const Key('patient_list_error'),
@@ -46,13 +51,10 @@ class PatientListScreen extends ConsumerWidget {
             key: const Key('patient_list'),
             padding: const EdgeInsets.all(16),
             itemCount: list.length,
-            itemBuilder: (context, index) {
-              final patient = list[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: PatientCard(patient: patient),
-              );
-            },
+            itemBuilder: (_, index) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: PatientCard(patient: list[index]),
+            ),
           );
         },
       ),

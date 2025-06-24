@@ -10,15 +10,15 @@ import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/tasks/presentation/task_list_screen.dart';
 import '../../shared/widgets/app_shell.dart';
 
-final _rootNavigatorKey = GlobalKey<NavigatorState>();
-final _shellNavigatorKey = GlobalKey<NavigatorState>();
-
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final rootNavigatorKey = GlobalKey<NavigatorState>(); // ✅ moved inside
+  final shellNavigatorKey = GlobalKey<NavigatorState>();
+
   final auth = ref.watch(authControllerProvider);
   final refreshNotifier = ref.watch(authRefreshNotifierProvider);
 
   return GoRouter(
-    navigatorKey: _rootNavigatorKey,
+    navigatorKey: rootNavigatorKey,
     refreshListenable: refreshNotifier,
     initialLocation: '/tasks',
     redirect: (context, state) {
@@ -36,7 +36,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const LoginScreen(),
       ),
       ShellRoute(
-        navigatorKey: _shellNavigatorKey,
+        navigatorKey: shellNavigatorKey,
         builder: (_, __, child) => AppShell(child: child),
         routes: [
           GoRoute(

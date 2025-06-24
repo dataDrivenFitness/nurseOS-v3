@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
 
-import 'router/app_router.dart';
+import 'package:nurseos_v3/core/router/app_router.dart';
 import 'package:nurseos_v3/firebase_options.dart';
 
 Future<void> bootstrap(FutureOr<Widget> Function(GoRouter) builder) async {

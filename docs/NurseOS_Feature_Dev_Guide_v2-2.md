@@ -126,3 +126,45 @@ Still required for:
 
 * XP logic should currently live inside the `.save()` method of feature repositories (e.g., `MockPatientRepository.save()`).
 * This preserves modularity and aligns with event-driven XP attribution (based on nurse actions).
+
+---
+
+## 🧠 Persistent Riverpod Providers – NurseOS v2 Pattern
+
+### When to Use `@Riverpod(keepAlive: true)`
+
+Use `keepAlive: true` when the provider manages **global or cross-screen state** that must:
+- Survive screen transitions
+- Be globally available (theme, auth, routing)
+- Avoid reset/rebuild due to lack of listeners
+
+---
+
+### ✅ Required for These Providers
+
+| Provider               | Reason |
+|------------------------|--------|
+| `AuthController`       | Tracks logged-in nurse across all screens |
+| `ThemeController`      | Ensures stable UI mode (light/dark) |
+| `RouteNotifier`        | Maintains navigation guards and deep-link state |
+
+---
+
+### 🔁 Optional for These (Only if state used across screens)
+
+| Provider                      | When to use `keepAlive` |
+|-------------------------------|--------------------------|
+| `UserPreferencesController`   | If language, notification, or accessibility settings are shared |
+| `ShiftSessionController`      | If shift timing/session data must persist across tabs |
+| `AppUpdateNotifier`           | If update prompts are shown from multiple entry points |
+
+---
+
+### ❌ Avoid `keepAlive` for:
+- Screen-local forms (Vitals entry, Patient notes)
+- One-off UI state (FAB visibility, toggles scoped to one view)
+- Any provider used in only one widget tree
+
+---
+
+> 📌 **Enforcement**: All new global providers must be reviewed for `keepAlive` scope and explicitly tagged in code and `Feature_Dev_Guide_v2-2.md`.

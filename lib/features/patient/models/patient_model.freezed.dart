@@ -25,6 +25,7 @@ mixin _$Patient {
   @TimestampConverter()
   DateTime? get createdAt;
   bool? get isIsolation;
+  bool get isFallRisk;
   String get primaryDiagnosis;
   @RiskLevelConverter()
   RiskLevel? get manualRiskOverride;
@@ -70,6 +71,8 @@ mixin _$Patient {
                 other.createdAt == createdAt) &&
             (identical(other.isIsolation, isIsolation) ||
                 other.isIsolation == isIsolation) &&
+            (identical(other.isFallRisk, isFallRisk) ||
+                other.isFallRisk == isFallRisk) &&
             (identical(other.primaryDiagnosis, primaryDiagnosis) ||
                 other.primaryDiagnosis == primaryDiagnosis) &&
             (identical(other.manualRiskOverride, manualRiskOverride) ||
@@ -107,6 +110,7 @@ mixin _$Patient {
         admittedAt,
         createdAt,
         isIsolation,
+        isFallRisk,
         primaryDiagnosis,
         manualRiskOverride,
         const DeepCollectionEquality().hash(allergies),
@@ -124,7 +128,7 @@ mixin _$Patient {
 
   @override
   String toString() {
-    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, createdAt: $createdAt, isIsolation: $isIsolation, primaryDiagnosis: $primaryDiagnosis, manualRiskOverride: $manualRiskOverride, allergies: $allergies, codeStatus: $codeStatus, birthDate: $birthDate, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, tags: $tags, notes: $notes)';
+    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, createdAt: $createdAt, isIsolation: $isIsolation, isFallRisk: $isFallRisk, primaryDiagnosis: $primaryDiagnosis, manualRiskOverride: $manualRiskOverride, allergies: $allergies, codeStatus: $codeStatus, birthDate: $birthDate, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, tags: $tags, notes: $notes)';
   }
 }
 
@@ -142,6 +146,7 @@ abstract mixin class $PatientCopyWith<$Res> {
       @TimestampConverter() DateTime? admittedAt,
       @TimestampConverter() DateTime? createdAt,
       bool? isIsolation,
+      bool isFallRisk,
       String primaryDiagnosis,
       @RiskLevelConverter() RiskLevel? manualRiskOverride,
       List<String>? allergies,
@@ -177,6 +182,7 @@ class _$PatientCopyWithImpl<$Res> implements $PatientCopyWith<$Res> {
     Object? admittedAt = freezed,
     Object? createdAt = freezed,
     Object? isIsolation = freezed,
+    Object? isFallRisk = null,
     Object? primaryDiagnosis = null,
     Object? manualRiskOverride = freezed,
     Object? allergies = freezed,
@@ -224,6 +230,10 @@ class _$PatientCopyWithImpl<$Res> implements $PatientCopyWith<$Res> {
           ? _self.isIsolation
           : isIsolation // ignore: cast_nullable_to_non_nullable
               as bool?,
+      isFallRisk: null == isFallRisk
+          ? _self.isFallRisk
+          : isFallRisk // ignore: cast_nullable_to_non_nullable
+              as bool,
       primaryDiagnosis: null == primaryDiagnosis
           ? _self.primaryDiagnosis
           : primaryDiagnosis // ignore: cast_nullable_to_non_nullable
@@ -292,6 +302,7 @@ class _Patient implements Patient {
       @TimestampConverter() this.admittedAt,
       @TimestampConverter() this.createdAt,
       this.isIsolation = false,
+      this.isFallRisk = false,
       required this.primaryDiagnosis,
       @RiskLevelConverter() this.manualRiskOverride,
       final List<String>? allergies = const [],
@@ -330,6 +341,9 @@ class _Patient implements Patient {
   @override
   @JsonKey()
   final bool? isIsolation;
+  @override
+  @JsonKey()
+  final bool isFallRisk;
   @override
   final String primaryDiagnosis;
   @override
@@ -421,6 +435,8 @@ class _Patient implements Patient {
                 other.createdAt == createdAt) &&
             (identical(other.isIsolation, isIsolation) ||
                 other.isIsolation == isIsolation) &&
+            (identical(other.isFallRisk, isFallRisk) ||
+                other.isFallRisk == isFallRisk) &&
             (identical(other.primaryDiagnosis, primaryDiagnosis) ||
                 other.primaryDiagnosis == primaryDiagnosis) &&
             (identical(other.manualRiskOverride, manualRiskOverride) ||
@@ -459,6 +475,7 @@ class _Patient implements Patient {
         admittedAt,
         createdAt,
         isIsolation,
+        isFallRisk,
         primaryDiagnosis,
         manualRiskOverride,
         const DeepCollectionEquality().hash(_allergies),
@@ -476,7 +493,7 @@ class _Patient implements Patient {
 
   @override
   String toString() {
-    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, createdAt: $createdAt, isIsolation: $isIsolation, primaryDiagnosis: $primaryDiagnosis, manualRiskOverride: $manualRiskOverride, allergies: $allergies, codeStatus: $codeStatus, birthDate: $birthDate, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, tags: $tags, notes: $notes)';
+    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, createdAt: $createdAt, isIsolation: $isIsolation, isFallRisk: $isFallRisk, primaryDiagnosis: $primaryDiagnosis, manualRiskOverride: $manualRiskOverride, allergies: $allergies, codeStatus: $codeStatus, birthDate: $birthDate, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, tags: $tags, notes: $notes)';
   }
 }
 
@@ -495,6 +512,7 @@ abstract mixin class _$PatientCopyWith<$Res> implements $PatientCopyWith<$Res> {
       @TimestampConverter() DateTime? admittedAt,
       @TimestampConverter() DateTime? createdAt,
       bool? isIsolation,
+      bool isFallRisk,
       String primaryDiagnosis,
       @RiskLevelConverter() RiskLevel? manualRiskOverride,
       List<String>? allergies,
@@ -530,6 +548,7 @@ class __$PatientCopyWithImpl<$Res> implements _$PatientCopyWith<$Res> {
     Object? admittedAt = freezed,
     Object? createdAt = freezed,
     Object? isIsolation = freezed,
+    Object? isFallRisk = null,
     Object? primaryDiagnosis = null,
     Object? manualRiskOverride = freezed,
     Object? allergies = freezed,
@@ -577,6 +596,10 @@ class __$PatientCopyWithImpl<$Res> implements _$PatientCopyWith<$Res> {
           ? _self.isIsolation
           : isIsolation // ignore: cast_nullable_to_non_nullable
               as bool?,
+      isFallRisk: null == isFallRisk
+          ? _self.isFallRisk
+          : isFallRisk // ignore: cast_nullable_to_non_nullable
+              as bool,
       primaryDiagnosis: null == primaryDiagnosis
           ? _self.primaryDiagnosis
           : primaryDiagnosis // ignore: cast_nullable_to_non_nullable

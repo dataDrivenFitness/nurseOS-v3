@@ -15,6 +15,7 @@ _Patient _$PatientFromJson(Map<String, dynamic> json) => _Patient(
       admittedAt: const TimestampConverter().fromJson(json['admittedAt']),
       createdAt: const TimestampConverter().fromJson(json['createdAt']),
       isIsolation: json['isIsolation'] as bool? ?? false,
+      isFallRisk: json['isFallRisk'] as bool? ?? false,
       primaryDiagnosis: json['primaryDiagnosis'] as String,
       manualRiskOverride: _$JsonConverterFromJson<String, RiskLevel>(
           json['manualRiskOverride'], const RiskLevelConverter().fromJson),
@@ -48,6 +49,7 @@ Map<String, dynamic> _$PatientToJson(_Patient instance) => <String, dynamic>{
       'admittedAt': const TimestampConverter().toJson(instance.admittedAt),
       'createdAt': const TimestampConverter().toJson(instance.createdAt),
       'isIsolation': instance.isIsolation,
+      'isFallRisk': instance.isFallRisk,
       'primaryDiagnosis': instance.primaryDiagnosis,
       'manualRiskOverride': _$JsonConverterToJson<String, RiskLevel>(
           instance.manualRiskOverride, const RiskLevelConverter().toJson),

@@ -1,111 +1,114 @@
-# NurseOS v2 Architecture Blueprint
+# NurseOS v2 Architecture – Unified Blueprint
 
-## 1 Overview
-A lightweight, test‑driven rebuild of NurseOS that follows a Clean Layered
-architecture, enforces HIPAA‑safe practices, and prevents future drift.
+A lightweight, test-driven, HIPAA-safe Flutter rebuild of NurseOS using Clean Architecture, Riverpod, and Firestore-first modularity.
 
-## 2 Layered Architecture
+---
+
+## 🧱 1. Layered Architecture
+
 ```
-UI Widgets ─┬─ Riverpod Feature Notifiers ─┬─ Repositories ─┬─ Data Sources
-            │                            │                 └─ Firebase / REST
+UI Widgets ─┬─ Riverpod Feature Notifiers ─┬─ Repositories ─┬─ Data Sources (Firebase / REST)
+            │                            │                 └─ Abstracted Firestore
             │                            └─ Domain Models (Freezed)
-            └─ Design‑System Components
+            └─ Design System Components
 ```
 
-## 3 Folder Structure
+---
+
+## 📁 2. Folder Structure
+
 ```
 lib/
-  core/        ← cross‑cutting (env, error, theme)
-  features/    ← one folder per vertical slice
-  shared/      ← small reusable widgets & util
-test/           ← unit, widget & golden tests
+  core/        ← env, theme, tokens, global logic
+  features/    ← one per slice (e.g., patient, gamification, auth)
+  shared/      ← widgets, design atoms
+test/          ← unit, widget, golden tests
 ```
 
-## 4 Naming Conventions
-* Models: `SomethingModel`
-* Providers: `somethingProvider`
-* AsyncNotifiers: `SomethingController`
-* Screens: `SomethingScreen`
+---
 
-## 5 State Management
-* **Riverpod** everywhere — no `setState` in production widgets.
-* `AsyncValue` guards all async work; UI must handle `loading`, `error`, `data`.
+## ✍️ 3. Naming Conventions
 
-## 6 Data Layer
-* Repositories return *typed* models, never raw Maps.
-* Firestore is accessed via `withConverter`, one collection per aggregate root.
+| Item           | Convention                |
+|----------------|---------------------------|
+| Models         | `SomethingModel`          |
+| Providers      | `somethingProvider`       |
+| AsyncNotifiers | `SomethingController`     |
+| Screens        | `SomethingScreen`         |
 
-## 7 Error Handling Strategy
-* All repos wrap calls in `Result<T, Failure>`.
-* UI logs to Sentry and shows friendly retry tiles.
+---
 
-## 8 Theming & Design System
-* Central `AppColors`, `SpacingTokens`, typography scale.
-* Dark theme first, rely on Theme extensions—no literal `Colors.*`.
+## 🔁 4. State Management
 
-## 9 Testing Strategy
-* Unit tests for every repository & converter.
-* Widget tests for every screen.
-* Golden tests for reusable components.
-* Coverage target ≥ 30 % before production release.
+- Riverpod v2 (AsyncNotifier / Notifier only)
+- All async logic wrapped with `AsyncValue.guard()` and `.when()`
+- No `setState` in production widgets
 
-## 10 CI / CD & Tooling
-* GitHub Action: `flutter pub get`, `flutter analyze`, `flutter test`.
-* Pre‑commit hook: `dart format` + `flutter analyze`.
-* `very_good_analysis` or equivalent ruleset.
+---
 
-## 11 Guardrails to Prevent Drift
-1. Each PR must add/modify at least one test.
-2. No runtime type casts.
-3. Weekly architecture review against this doc.
-4. Major decisions captured in `/docs/decisions/`.
+## 🔌 5. Firestore & Data Layer
 
-## 12 Roadmap Implementation Checklist
+- Use `.withConverter<T>()` — no raw Maps
+- Access Firestore only inside `FirebaseXRepository` files
+- One aggregate root per collection (e.g., `patients/`, `users/`)
 
-### Phase 0 – Safety Net (💻 ≈ 30 min)
-- [ ] Tag current commit: `git tag stable-pre-v2`
-- [ ] Push tags: `git push origin --tags`
-- [ ] Zip & archive working directory locally
+---
 
-### Phase 1 – Branch & Scaffold (🗂 ≈ 1–2 hrs)
-- [ ] Create branch: `git checkout -b v2`
-- [ ] Add empty folders (`core`, `features`, `shared`, `test`)
-- [ ] Extend `.gitignore`, add `.env.example`
+## 🔐 6. GoRouter + Auth Integration
 
-### Phase 2 – Tooling & CI (⚙️ ≈ 4 hrs)
-- [ ] Add `analysis_options.yaml`
-- [ ] Configure GitHub Action (analyze + test)
-- [ ] Install pre‑commit hook
+- Uses `AuthRefreshNotifier` (ChangeNotifier) to listen to `authControllerProvider`
+- Ensures `GoRouter` refreshes on sign in/out or restore
+- Safer than `GoRouterRefreshStream`
 
-### Phase 3 – Port Essentials (📦 ≈ ½ day)
-- [ ] Copy Freezed models & theme tokens
-- [ ] Implement baseline Patient repository contract + mock
+```dart
+class AuthRefreshNotifier extends ChangeNotifier {
+  late final ProviderSubscription<AsyncValue<UserModel?>> _sub;
+  AuthRefreshNotifier(Ref ref) {
+    _sub = ref.listen<AsyncValue<UserModel?>>(
+      authControllerProvider,
+      (_, __) => notifyListeners(),
+    );
+  }
+  @override void dispose() { _sub.close(); super.dispose(); }
+}
+```
 
-### Phase 4 – First Vertical Slice (🖥 ≈ 1–2 days)
-- [ ] Build *Patient List → Patient Detail → Vitals Entry* flow
-- [ ] Wire via Riverpod `AsyncNotifier`
-- [ ] Add unit & widget tests
+---
 
-### Phase 5 – Iterate Feature‑by‑Feature (♻️ ongoing)
-- [ ] Vitals entry workflow (Firestore)
-- [ ] Auth flow with persistent login
-- [ ] Profile editing & photo upload
-- [ ] Dashboard & tasks aggregation
+## 🎨 7. Theming & Design System
 
-### Phase 6 – Legacy Decommission (📁 after parity)
-- [ ] Archive `stable-pre-v2` branch
-- [ ] Update README & docs for v2
-- [ ] Move obsolete docs to `/legacy`
+- Dark theme first
+- Use `AppColors`, `SpacingTokens`, `TextStyles`
+- No literal `Colors.*`; only theme extensions
+- Font scaling via `MediaQuery.textScalerOf(context)`
 
+---
 
-<!-- v2.1 update – Jun 22 -->
+## 🧪 8. Testing Strategy
 
-## 🔌 Firestore Integration Discipline
+| Type       | Requirement            |
+|------------|------------------------|
+| Unit       | Every model/repo       |
+| Widget     | Every screen interaction |
+| Golden     | Reusable components    |
+| Coverage   | ≥ 30% before release   |
 
-* All models must connect to Firestore using `.withConverter<T>()` — never raw Maps.
-* Do not include Firestore SDK logic (`.collection()`, `.doc()`, etc.) inside:
-  - Models
-  - Domain services
-  - Controllers
+---
 
-*Firestore access must only happen in `FirebaseXRepository` files.*
+## 🚀 9. CI/CD & Tooling
+
+- GitHub Actions:
+  - `flutter analyze`, `flutter test`, `dart format`
+- Pre-commit: format + analyze
+- Use `very_good_analysis` or equivalent
+
+---
+
+## 🛡️ 10. Drift Prevention Guardrails
+
+- Every PR must modify or add a test
+- No runtime `as` or type casts
+- Architecture reviewed weekly
+- Major changes go in `/docs/decisions/`
+
+---

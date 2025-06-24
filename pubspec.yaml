@@ -1,3 +1,30 @@
+# ──────────────────────────────────────────────────────────────────────
+# 🩺 NurseOS v3 – HIPAA-Compliant Nursing App
+# ----------------------------------------------------------------------
+# This pubspec defines all runtime and dev dependencies for NurseOS v3.
+# The project prioritizes security (HIPAA), reactive state (Riverpod),
+# testability (mock-first), and declarative UI (Flutter + Freezed).
+#
+# ✅ STRUCTURE:
+#   - UI:         Flutter + Material + Inter font + go_router
+#   - State:      flutter_riverpod + AsyncNotifier + codegen
+#   - Models:     freezed + json_serializable (with Firestore converters)
+#   - Firebase:   cloud_firestore + firebase_auth + firebase_core
+#   - Dev:        build_runner + very_good_analysis + golden test support
+#
+# 🔐 HIPAA Notes:
+#   - Never expose PHI in logs or debug prints
+#   - Avoid client-side caching of sensitive state
+#   - Use secure Firestore rules + auth layering
+#
+# 🛠️ Codegen Command:
+#   flutter pub run build_runner build --delete-conflicting-outputs
+#
+# 📂 Fonts & Assets:
+#   - InterVariable for modern system-aligned typography
+#   - .env for runtime toggles (e.g., useMockServices)
+# ──────────────────────────────────────────────────────────────────────
+
 name: nurseos_v3
 description: A HIPAA-ready nurse documentation app.
 publish_to: "none" # Private app; do not publish
@@ -22,10 +49,12 @@ dependencies:
 
   # State Management
   flutter_riverpod: ^2.5.1          # app-wide reactive state
+  riverpod_annotation: ^2.6.1       # automatically create providers, simplifying the process of managing application state
 
   # Models & Serialization
   freezed_annotation: ^3.0.0        # immutable data classes
   json_annotation: ^4.9.0           # JSON serialization helpers
+  collection: ^1.17.2               # Dart core utility helpers (ListEquality, map utilities, etc.)
 
   # Functional Patterns
   fpdart: ^1.1.0                    # Either, Option, etc.

@@ -1,3 +1,5 @@
+// lib/features/auth/presentation/login_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,7 +19,7 @@ class LoginScreen extends ConsumerWidget {
     final authState = ref.watch(authControllerProvider);
     debugPrint('[LoginScreen] authState status: $authState');
 
-    // 🔁 Listen to auth changes and redirect on successful login
+    // ✅ Schedule routing safely after successful login
     ref.listen<AsyncValue<UserModel?>>(
       authControllerProvider,
       (previous, next) {
@@ -25,19 +27,24 @@ class LoginScreen extends ConsumerWidget {
           data: (user) {
             if (user == null) return;
 
-            // ✅ Update default post-login route
             final route = user.role == UserRole.admin ? '/admin' : '/tasks';
 
-            // ⏳ Schedule redirect after build frame
+            // ✅ Use post-frame callback to avoid context errors
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              context.go(route);
+              if (context.mounted) {
+                context.go(route);
+              }
             });
           },
           error: (e, _) {
             // ❗ Show login failure
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Login failed: $e')),
-            );
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Login failed: $e')),
+                );
+              }
+            });
           },
         );
       },
@@ -60,8 +67,6 @@ class LoginScreen extends ConsumerWidget {
               obscureText: true,
             ),
             const SizedBox(height: 24),
-
-            // 🔃 Show spinner or login button
             authState.isLoading
                 ? const CircularProgressIndicator()
                 : ElevatedButton(

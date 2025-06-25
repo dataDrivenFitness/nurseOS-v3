@@ -1,47 +1,24 @@
-import 'dart:async';
+// lib/bootstrap.dart
+
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:go_router/go_router.dart';
+import 'package:nurseos_v3/core/theme/app_theme.dart';
+import 'package:nurseos_v3/core/theme/theme_controller.dart';
+import 'package:nurseos_v3/core/router/app_router.dart'; // ← use this
 
-import 'package:nurseos_v3/core/router/app_router.dart';
-import 'package:nurseos_v3/firebase_options.dart';
+class NurseOSApp extends ConsumerWidget {
+  const NurseOSApp({super.key});
 
-Future<void> bootstrap(FutureOr<Widget> Function(GoRouter) builder) async {
-  WidgetsFlutterBinding.ensureInitialized();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(appRouterProvider); // ← now using app_router
+    final themeMode = ref.watch(themeControllerProvider);
 
-  // 🔐 Load environment config (.env)
-  await dotenv.load(fileName: '.env');
-
-  // 🔥 Initialize Firebase (conditionally)
-  const useFirebase = bool.fromEnvironment('USE_FIREBASE', defaultValue: true);
-  if (useFirebase) {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
+    return MaterialApp.router(
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: themeMode,
+      routerConfig: router,
     );
   }
-
-  // 🧪 Setup Provider container for DI
-  final container = ProviderContainer();
-
-  // 🧭 Get the router from our provider
-  final router = container.read(appRouterProvider);
-
-  // 🏗 Build the app widget (await in case it's async)
-  final app = await builder(router);
-
-  // 🚨 Wrap in error boundary for global uncaught errors
-  runZonedGuarded(
-    () => runApp(
-      UncontrolledProviderScope(
-        container: container,
-        child: app,
-      ),
-    ),
-    (error, stack) {
-      debugPrint('🧨 Uncaught bootstrap error: $error\n$stack');
-      // TODO: Hook into Sentry/Crashlytics
-    },
-  );
 }

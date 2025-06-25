@@ -1,7 +1,11 @@
+// lib/features/auth/state/auth_controller.dart
+
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:nurseos_v3/features/auth/models/user_model.dart';
-import 'package:nurseos_v3/features/auth/services/auth_service_provider.dart';
+
+import '../models/user_model.dart';
 
 part 'auth_controller.g.dart';
 
@@ -9,31 +13,57 @@ part 'auth_controller.g.dart';
 class AuthController extends _$AuthController {
   @override
   Future<UserModel?> build() async {
-    final authService = ref.read(authServiceProvider);
-    final user = await authService.getCurrentUser();
-    debugPrint('[AuthController.build] user=$user');
-    return user;
+    final result = await AsyncValue.guard(() async {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return null;
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .withConverter(
+            fromFirestore: (snapshot, _) =>
+                UserModel.fromJson(snapshot.data()!),
+            toFirestore: (user, _) => user.toJson(),
+          )
+          .get();
+
+      return userDoc.data();
+    });
+
+    return result.value;
   }
 
   Future<void> signIn(String email, String password) async {
     state = const AsyncValue.loading();
 
-    final userValue = await AsyncValue.guard(() async {
-      final authService = ref.read(authServiceProvider);
-      return await authService.signIn(email, password);
+    final result = await AsyncValue.guard(() async {
+      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(credential.user!.uid)
+          .withConverter(
+            fromFirestore: (snapshot, _) =>
+                UserModel.fromJson(snapshot.data()!),
+            toFirestore: (user, _) => user.toJson(),
+          )
+          .get();
+
+      return userDoc.data();
     });
 
-    debugPrint('[AuthController.signIn] userValue=${userValue.value}');
-    state = userValue;
-
-    ref.invalidateSelf();
+    debugPrint('[AuthController.signIn] user=${result.value?.email}');
+    state = result;
   }
 
   Future<void> signOut() async {
     state = const AsyncValue.loading();
-    await ref.read(authServiceProvider).signOut();
+    await FirebaseAuth.instance.signOut();
     state = const AsyncValue.data(null);
 
-    ref.invalidateSelf();
+    ref.invalidateSelf(); // triggers build() again
   }
 }

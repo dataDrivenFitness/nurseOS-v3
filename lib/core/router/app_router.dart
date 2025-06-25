@@ -9,6 +9,9 @@ import '../../features/patient/presentation/patient_list_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/tasks/presentation/task_list_screen.dart';
 import '../../shared/widgets/app_shell.dart';
+import '../../features/profile/presentation/profile_screen.dart' as profile;
+import '../../features/patient/presentation/patient_list_screen.dart'
+    as patient;
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final rootNavigatorKey = GlobalKey<NavigatorState>(); // ✅ moved inside

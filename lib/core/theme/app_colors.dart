@@ -1,31 +1,23 @@
 import 'package:flutter/material.dart';
 
-/// NurseOS ThemeExtension for custom color tokens and Material 3 alignment.
-/// Supports dark/light modes and centralized brand expression.
+/// NurseOS Color Tokens — Refined for accessibility and cross-theme clarity
 @immutable
 class AppColors extends ThemeExtension<AppColors> {
-  // --- Base Material Tokens ---
-  final Color
-      primary; // Primary color for components (fallback if no brand token used)
-  final Color primaryVariant; // Variation of primary for gradients, shadows
-  final Color background; // Scaffold and screen backgrounds
-  final Color surface; // Card and container backgrounds
-  final Color onPrimary; // Text/icon on primary surfaces
-  final Color onSurface; // Text/icon on surface backgrounds
-
-  // --- Semantic Tokens ---
-  final Color danger; // Errors, alerts, DNR status
-  final Color success; // Confirmed, completed, resolved states
-  final Color warning; // Needs attention, flagged, pending
-
-  final Color text; // Primary readable text
-  final Color subdued; // Less important text, labels
-
-  // --- Brand Tokens (UX-aligned) ---
-  final Color brandPrimary; // Main interactive color — buttons, nav, FAB
-  final Color brandAccent; // Hover, icons, chips
-  final Color brandSecondary; // Emotional cues — patient labels, avatars
-  final Color brandNeutral; // UI containers — dividers, cards, surfaces
+  final Color primary;
+  final Color primaryVariant;
+  final Color background;
+  final Color surface;
+  final Color onPrimary;
+  final Color onSurface;
+  final Color danger;
+  final Color success;
+  final Color warning;
+  final Color text;
+  final Color subdued;
+  final Color brandPrimary;
+  final Color brandAccent;
+  final Color brandSecondary;
+  final Color brandNeutral;
 
   const AppColors({
     required this.primary,
@@ -45,7 +37,6 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.brandNeutral,
   });
 
-  /// Creates a new color set with any overridden field(s)
   @override
   AppColors copyWith({
     Color? primary,
@@ -83,7 +74,6 @@ class AppColors extends ThemeExtension<AppColors> {
     );
   }
 
-  /// Blends two AppColors sets (used for animations or theme switching)
   @override
   AppColors lerp(ThemeExtension<AppColors>? other, double t) {
     if (other is! AppColors) return this;
@@ -106,36 +96,34 @@ class AppColors extends ThemeExtension<AppColors> {
     );
   }
 
-  // 🌑 Dark Mode Theme Tokens
   static const dark = AppColors(
-    primary: Color(0xFF0057D8), // Fallback / Material3 tie-in
-    primaryVariant: Color(0xFF3981F7),
-    background: Color(0xFF0F172A), // Main scaffold background
-    surface: Color(0xFF1E293B), // Card/container color
-    onPrimary: Colors.white,
-    onSurface: Color(0xFFF8FAFC),
-    danger: Color(0xFFDC2626), // Red alert
-    success: Color(0xFF16A34A), // Success green
-    warning: Color(0xFFF59E0B), // Caution yellow
-    text: Color(0xFFF1F5F9),
-    subdued: Color(0xFF94A3B8),
-    brandPrimary: Color(0xFF0057D8), // Used in FABs, buttons, nav
-    brandAccent: Color(0xFF3981F7), // Icons, tags, links
-    brandSecondary: Color(0xFFF368B3), // Patient tags, roles
-    brandNeutral: Color(0xFF94A3B8), // Card outlines, dividers
+    primary: Color(0xFFA3BFFA),
+    primaryVariant: Color(0xFF728EFD),
+    background: Color(0xFF121620),
+    surface: Color(0xFF1E2533),
+    onPrimary: Colors.black,
+    onSurface: Color(0xFFE5E9FE),
+    danger: Color(0xFFEF5350),
+    success: Color(0xFF4CAF50),
+    warning: Color(0xFFFFA000),
+    text: Color(0xFFE5E9FE),
+    subdued: Color(0xFF8A96A8),
+    brandPrimary: Color(0xFFA3BFFA),
+    brandAccent: Color(0xFF728EFD),
+    brandSecondary: Color(0xFF607D8B),
+    brandNeutral: Color(0xFF2C3445),
   );
 
-  // ☀️ Light Mode (planned for future public portal or previews)
   static const light = AppColors(
     primary: Color(0xFF0057D8),
-    primaryVariant: Color(0xFF3981F7),
+    primaryVariant: Color(0xFF0041A3),
     background: Color(0xFFFFFFFF),
     surface: Color(0xFFF1F5F9),
     onPrimary: Colors.white,
     onSurface: Color(0xFF1E293B),
-    danger: Color(0xFFB91C1C),
-    success: Color(0xFF15803D),
-    warning: Color(0xFFEAB308),
+    danger: Color(0xFFD32F2F),
+    success: Color(0xFF388E3C),
+    warning: Color(0xFFF57C00),
     text: Color(0xFF1E293B),
     subdued: Color(0xFF64748B),
     brandPrimary: Color(0xFF0057D8),
@@ -145,9 +133,9 @@ class AppColors extends ThemeExtension<AppColors> {
   );
 }
 
-/// Global opacity tokens for overlays and backgrounds
+/// Global opacity tokens for soft text and UI layering
 class AppAlpha {
-  static final softLabel = (0.6 * 255).toInt(); // Semi-muted labels
-  static final riskChip = (0.1 * 255).toInt(); // Faint alert fill
-  static final dnrChip = (0.15 * 255).toInt(); // Subdued chip tone
+  static const softLabel = 153; // 0.6 * 255
+  static const riskChip = 25; // 0.1 * 255
+  static const dnrChip = 38; // 0.15 * 255
 }

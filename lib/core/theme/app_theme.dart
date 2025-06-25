@@ -1,49 +1,38 @@
 import 'package:flutter/material.dart';
-import 'app_colors.dart';
-import 'typography.dart';
+import 'package:nurseos_v3/core/theme/app_colors.dart';
 
 class AppTheme {
-  static ThemeData dark() {
-    return ThemeData(
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: AppColors.dark.background,
-      textTheme: AppTypography.textTheme,
-      useMaterial3: true,
-      splashFactory: NoSplash.splashFactory,
-      highlightColor: Colors.transparent,
-      splashColor: Colors.transparent,
-      colorScheme: const ColorScheme.dark().copyWith(
-        primary: AppColors.dark.primary,
-        onPrimary: AppColors.dark.onPrimary,
-        surface: AppColors.dark.surface,
-        onSurface: AppColors.dark.onSurface,
-        error: AppColors.dark.danger,
-      ),
-      extensions: const [
-        AppColors.dark,
-      ],
-    );
-  }
-
   static ThemeData light() {
     return ThemeData(
       brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.light.background,
-      textTheme: AppTypography.textTheme,
-      useMaterial3: true,
-      splashFactory: NoSplash.splashFactory,
-      highlightColor: Colors.transparent,
-      splashColor: Colors.transparent,
-      colorScheme: const ColorScheme.light().copyWith(
+      colorScheme: ColorScheme.light(
         primary: AppColors.light.primary,
-        onPrimary: AppColors.light.onPrimary,
         surface: AppColors.light.surface,
+        onPrimary: AppColors.light.onPrimary,
         onSurface: AppColors.light.onSurface,
-        error: AppColors.light.danger,
       ),
-      extensions: const [
+      extensions: <ThemeExtension<dynamic>>[
         AppColors.light,
       ],
+      useMaterial3: true,
+    );
+  }
+
+  static ThemeData dark() {
+    return ThemeData(
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: AppColors.dark.background,
+      colorScheme: ColorScheme.dark(
+        primary: AppColors.dark.primary,
+        surface: AppColors.dark.surface,
+        onPrimary: AppColors.dark.onPrimary,
+        onSurface: AppColors.dark.onSurface,
+      ),
+      extensions: <ThemeExtension<dynamic>>[
+        AppColors.dark,
+      ],
+      useMaterial3: true,
     );
   }
 }

@@ -12,7 +12,8 @@ class PatientCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = theme.colorScheme;
+    final colors = theme.extension<AppColors>()!;
+    final textTheme = theme.textTheme;
 
     final risk = patient.manualRiskOverride ?? RiskLevel.unknown;
 
@@ -20,6 +21,7 @@ class PatientCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       margin: EdgeInsets.zero,
       elevation: 2,
+      color: colors.surface,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -27,13 +29,13 @@ class PatientCard extends StatelessWidget {
           children: [
             Text(
               '${patient.firstName} ${patient.lastName}',
-              style: theme.textTheme.titleMedium,
+              style: textTheme.titleMedium?.copyWith(color: colors.text),
             ),
             const SizedBox(height: 4),
             Text(
               patient.primaryDiagnosis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: color.onSurface.withAlpha(AppAlpha.softLabel),
+              style: textTheme.bodySmall?.copyWith(
+                color: colors.onSurface.withAlpha(AppAlpha.softLabel),
               ),
             ),
             const SizedBox(height: 8),
@@ -42,7 +44,7 @@ class PatientCard extends StatelessWidget {
               children: [
                 Text(
                   patient.location,
-                  style: theme.textTheme.labelSmall,
+                  style: textTheme.labelSmall?.copyWith(color: colors.subdued),
                 ),
                 RiskLevelChip(risk: risk),
               ],

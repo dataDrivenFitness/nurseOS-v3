@@ -45,5 +45,13 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<!-- 🟢 Privacy Permissions for Camera & Gallery -->
+	<key>NSCameraUsageDescription</key>
+	<string>We use your camera to let you take a new profile photo. No data is stored without your permission.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We access your photo library so you can choose a profile image. NurseOS never accesses other media.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>We save cropped profile photos securely to your device, only when you approve changes.</string>
 </dict>
 </plist>

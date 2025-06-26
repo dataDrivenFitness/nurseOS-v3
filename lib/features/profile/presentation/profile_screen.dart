@@ -26,7 +26,6 @@ class ProfileScreen extends ConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.all(SpacingTokens.lg),
         children: [
-          // ── Identity Block ────────────────────────────────────────
           Row(
             children: [
               Container(
@@ -73,9 +72,11 @@ class ProfileScreen extends ConsumerWidget {
                         color: colors.text,
                       ),
                     ),
-                    Text(user.email,
-                        style: textTheme.bodyLarge
-                            ?.copyWith(color: colors.subdued)),
+                    Text(
+                      user.email,
+                      style:
+                          textTheme.bodyLarge?.copyWith(color: colors.subdued),
+                    ),
                     Text(
                       user.role.name,
                       style: textTheme.labelMedium
@@ -90,20 +91,13 @@ class ProfileScreen extends ConsumerWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  builder: (_) => const EditProfileSheet(),
-                );
-              },
+              onPressed: () =>
+                  context.push('/edit-profile?from=/profile'), // ✅ fixed
               icon: const Icon(Icons.edit),
               label: const Text('Edit profile'),
             ),
           ),
           const SizedBox(height: SpacingTokens.lg),
-
-          // ── Preferences ──────────────────────────────────────────
           SettingsSection(
             title: 'Preferences',
             children: [
@@ -156,10 +150,7 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ],
           ),
-
           const SizedBox(height: SpacingTokens.lg),
-
-          // ── Logout Button ────────────────────────────────────────
           FilledButton.icon(
             style: FilledButton.styleFrom(
               backgroundColor: colors.brandPrimary,
@@ -177,32 +168,6 @@ class ProfileScreen extends ConsumerWidget {
             label: const Text('Log out'),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class EditProfileSheet extends StatelessWidget {
-  const EditProfileSheet({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(SpacingTokens.lg),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Edit profile', style: TextStyle(fontSize: 18)),
-            const SizedBox(height: SpacingTokens.md),
-            const Text('(Coming soon)'),
-            const SizedBox(height: SpacingTokens.lg),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
-        ),
       ),
     );
   }

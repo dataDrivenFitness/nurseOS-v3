@@ -12,14 +12,16 @@ Patient makeStubPatient({required RiskLevel riskLevel}) {
     location: 'Room 101',
     admittedAt: DateTime.now(),
     createdAt: DateTime.now(),
-    primaryDiagnosis: 'Hypertension', // ✅ Ensure this is always passed
+    primaryDiagnosis: 'Hypertension', // ✅ add this!
     manualRiskOverride: riskLevel,
   );
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   for (final risk in RiskLevel.values.where((r) => r != RiskLevel.unknown)) {
-    testWidgets('PatientCard - ${risk.name}', (tester) async {
+    testWidgets('🧪 PatientCard - ${risk.name}', (tester) async {
       final patient = makeStubPatient(riskLevel: risk);
 
       await tester.pumpWidget(

@@ -1,5 +1,3 @@
-// lib/features/auth/presentation/login_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,7 +17,7 @@ class LoginScreen extends ConsumerWidget {
     final authState = ref.watch(authControllerProvider);
     debugPrint('[LoginScreen] authState status: $authState');
 
-    // ✅ Schedule routing safely after successful login
+    // ✅ Respect ?from= param on post-login redirect
     ref.listen<AsyncValue<UserModel?>>(
       authControllerProvider,
       (previous, next) {
@@ -27,9 +25,12 @@ class LoginScreen extends ConsumerWidget {
           data: (user) {
             if (user == null) return;
 
-            final route = user.role == UserRole.admin ? '/admin' : '/tasks';
+            final fromParam =
+                GoRouterState.of(context).uri.queryParameters['from'];
+            final defaultRoute =
+                user.role == UserRole.admin ? '/admin' : '/tasks';
+            final route = fromParam ?? defaultRoute;
 
-            // ✅ Use post-frame callback to avoid context errors
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (context.mounted) {
                 context.go(route);
@@ -37,7 +38,6 @@ class LoginScreen extends ConsumerWidget {
             });
           },
           error: (e, _) {
-            // ❗ Show login failure
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(

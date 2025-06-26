@@ -6,9 +6,15 @@ part of 'theme_controller.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$themeControllerHash() => r'39e3df3bad2f4d471eaa142380f14e4f75b154ef';
+String _$themeControllerHash() => r'e2d55a75ed10322cca887928293d5c807d9e5913';
 
-/// See also [ThemeController].
+/// Drives `MaterialApp.themeMode` across NurseOS.
+///
+/// ⚠️ Persistence stub:
+///   • In `build()` we’ll soon hydrate the saved value from
+///     `DisplayPreferencesRepository`.
+///
+/// Copied from [ThemeController].
 @ProviderFor(ThemeController)
 final themeControllerProvider =
     NotifierProvider<ThemeController, ThemeMode>.internal(

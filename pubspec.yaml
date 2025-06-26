@@ -27,71 +27,83 @@
 
 name: nurseos_v3
 description: A HIPAA-ready nurse documentation app.
-publish_to: "none" # Private app; do not publish
+publish_to: "none"
 version: 0.1.0
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
 
 # ──────────────────────────────────────────────
-# 🧩 App Dependencies
+# 🧩 App Dependencies – Runtime
 # ──────────────────────────────────────────────
 dependencies:
   flutter:
     sdk: flutter
 
-  # UI Enhancements
-  cupertino_icons: ^1.0.8           # iOS-style icons
-  shimmer: ^3.0.0                   # loading placeholders
+  # 🖼 UI & Platform
+  cupertino_icons: ^1.0.8           # iOS-style icons for native feel
+  shimmer: ^3.0.0                   # placeholder animations during loading
 
-  # Routing
-  go_router: ^15.2.3                # declarative navigation
+  # 🧭 Routing & Navigation
+  go_router: ^15.2.3                # declarative routing aligned with app state
 
-  # State Management
-  flutter_riverpod: ^2.5.1          # app-wide reactive state
-  riverpod_annotation: ^2.6.1       # automatically create providers, simplifying the process of managing application state
+  # 🌿 State Management
+  flutter_riverpod: ^2.5.1          # global app state container
+  riverpod_annotation: ^2.6.1       # codegen for Riverpod (Notifiers, AsyncNotifiers)
 
-  # Models & Serialization
-  freezed_annotation: ^3.0.0        # immutable data classes
-  json_annotation: ^4.9.0           # JSON serialization helpers
-  collection: ^1.17.2               # Dart core utility helpers (ListEquality, map utilities, etc.)
+  # 🧊 Models & Serialization
+  freezed_annotation: ^3.0.0        # immutable value models
+  json_annotation: ^4.9.0           # codegen for Firestore-compatible JSON
+  collection: ^1.17.2               # ListEquality, unmodifiableListView, etc.
 
-  # Functional Patterns
-  fpdart: ^1.1.0                    # Either, Option, etc.
+  # ✅ Functional Safety
+  fpdart: ^1.1.0                    # Option, Either, Try for predictable null/error handling
 
-  # Firebase Core Services
-  firebase_core: ^3.14.0            # required for all Firebase features
-  cloud_firestore: ^5.6.9           # secure data storage
-  firebase_auth: ^5.6.0             # email/password or federated login
+  # 🔥 Firebase Core (must call Firebase.initializeApp())
+  firebase_core: ^3.14.0            # core required by all Firebase modules
+  firebase_auth: ^5.6.0            # secure login, token refresh, email+password
+  cloud_firestore: ^5.6.9          # typed Firestore queries via withConverter
+  firebase_storage: ^12.4.7         # image uploads for avatars, patient media
 
-  # Environment Variables
-  flutter_dotenv: ^5.1.0            # .env file support
+  # 🔐 Env Config (toggle mock mode, env URLs)
+  flutter_dotenv: ^5.1.0            # safe access to .env vars at runtime
+
+  # 📸 Image Picker Tools
+  image_picker: ^1.0.7
+  image_cropper: ^9.1.0
 
 # ──────────────────────────────────────────────
-# 🧪 Dev Dependencies
+# 🧪 Dev Dependencies – Codegen, Testing, Analysis
 # ──────────────────────────────────────────────
 dev_dependencies:
   flutter_test:
-    sdk: flutter                   # standard test framework
+    sdk: flutter                   # built-in test support (unit, widget)
 
-  # Codegen (Freezed + JSON)
-  build_runner: ^2.4.6             # executes code generation
-  freezed: ^3.0.6                  # generates union/data classes
-  json_serializable: ^6.7.1        # generates .g.dart files
-  riverpod_generator: ^2.3.0
+  # 🔁 Codegen for Models, Providers
+  build_runner: ^2.4.6             # orchestrates *.g.dart generation
+  freezed: ^3.0.6                  # generates `copyWith`, unions
+  json_serializable: ^6.7.1        # model serialization for Firestore & local use
+  riverpod_generator: ^2.3.3       # auto-generates Notifier and AsyncNotifier providers
 
-  # Static Analysis
-  very_good_analysis: ^9.0.0       # recommended VGV rules
-  flutter_lints: ^6.0.0            # Dart 3-compatible linting
+  # ✅ Linting & Safety
+  very_good_analysis: ^9.0.0       # VGV default lint config for Dart 3+
+  flutter_lints: ^6.0.0            # stricter built-in lints
+
+  # 🧪 Golden Testing
+  golden_toolkit:
+    git:
+      url: https://github.com/eBay/flutter_glove_box.git
+      path: packages/golden_toolkit
+      ref: master                  # pull from master branch to stay updated
 
 # ──────────────────────────────────────────────
-# 🖼 Flutter Assets & Fonts
+# 🎨 Flutter Assets & Fonts
 # ──────────────────────────────────────────────
 flutter:
   uses-material-design: true
 
   assets:
-    - .env                         # environment config (useMockServices toggle)
+    - .env                         # used to toggle features like mock mode
 
   fonts:
     - family: InterVariable

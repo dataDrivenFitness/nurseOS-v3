@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 
 class ProfileAvatar extends StatelessWidget {
+  final File? file; // 🆕 Local image file (used before upload)
   final String? photoUrl;
   final String fallbackName;
   final double radius;
@@ -8,6 +10,7 @@ class ProfileAvatar extends StatelessWidget {
 
   const ProfileAvatar({
     super.key,
+    this.file,
     required this.photoUrl,
     required this.fallbackName,
     this.radius = 20,
@@ -18,14 +21,20 @@ class ProfileAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scale = MediaQuery.textScalerOf(context);
-    final hasPhoto = photoUrl != null && photoUrl!.startsWith('http');
     final initials = _getInitials(fallbackName);
+
+    ImageProvider? backgroundImage;
+    if (file != null) {
+      backgroundImage = FileImage(file!);
+    } else if (photoUrl != null && photoUrl!.startsWith('http')) {
+      backgroundImage = NetworkImage(photoUrl!);
+    }
 
     final avatar = CircleAvatar(
       radius: radius,
       backgroundColor: theme.colorScheme.primaryContainer,
-      backgroundImage: hasPhoto ? NetworkImage(photoUrl!) : null,
-      child: !hasPhoto
+      backgroundImage: backgroundImage,
+      child: backgroundImage == null
           ? Text(
               initials,
               style: theme.textTheme.labelLarge?.copyWith(

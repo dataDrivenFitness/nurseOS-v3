@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import 'auth_controller.dart';
-import '../models/user_model.dart';
+import 'package:nurseos_v3/features/auth/models/user_model.dart';
+import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
 
 class AuthRefreshNotifier extends ChangeNotifier {
   late final ProviderSubscription<AsyncValue<UserModel?>> _sub;
@@ -10,7 +9,9 @@ class AuthRefreshNotifier extends ChangeNotifier {
   AuthRefreshNotifier(Ref ref) {
     _sub = ref.listen<AsyncValue<UserModel?>>(
       authControllerProvider,
-      (_, __) {
+      (prev, next) {
+        // 🛑 Prevent GoRouter refresh if user is still loading or errored
+        if (next.isLoading || next.hasError) return;
         notifyListeners();
       },
     );

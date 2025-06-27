@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nurseos_v3/l10n/generated/app_localizations.dart';
 
 import '../../../core/theme/spacing.dart';
 import '../../../core/theme/app_colors.dart';
@@ -15,6 +16,7 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(userProfileProvider).value;
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
@@ -99,7 +101,7 @@ class ProfileScreen extends ConsumerWidget {
             child: TextButton.icon(
               onPressed: () => context.push('/edit-profile'),
               icon: const Icon(Icons.edit),
-              label: const Text('Edit profile'),
+              label: Text(l10n.editProfile),
             ),
           ),
 
@@ -107,7 +109,7 @@ class ProfileScreen extends ConsumerWidget {
 
           // ⚙️ Preferences Section
           SettingsSection(
-            title: 'Preferences',
+            title: l10n.preferences,
             children: [
               // 🌙 Dark Mode Toggle
               Consumer(
@@ -123,7 +125,7 @@ class ProfileScreen extends ConsumerWidget {
                       contentPadding: EdgeInsets.zero,
                       horizontalTitleGap: SpacingTokens.md,
                       leading: const Icon(Icons.brightness_6),
-                      title: const Text('Dark mode'),
+                      title: Text(l10n.darkMode),
                       trailing: Switch(
                         value: isDark,
                         onChanged: (val) => ref
@@ -135,23 +137,7 @@ class ProfileScreen extends ConsumerWidget {
                 },
               ),
 
-              // 🌐 Language (disabled)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: SpacingTokens.sm,
-                ),
-                child: ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  horizontalTitleGap: SpacingTokens.md,
-                  leading: const Icon(Icons.language),
-                  title: const Text('Language'),
-                  trailing: const Text('English'),
-                  enabled: false,
-                ),
-              ),
-
-              // 🖼️ Display Settings (placeholder)
+              // 🖼️ Display Settings
               Padding(
                 padding: const EdgeInsets.symmetric(
                   vertical: SpacingTokens.sm,
@@ -161,9 +147,25 @@ class ProfileScreen extends ConsumerWidget {
                   contentPadding: EdgeInsets.zero,
                   horizontalTitleGap: SpacingTokens.md,
                   leading: const Icon(Icons.tune),
-                  title: const Text('Display settings'),
+                  title: Text(l10n.displaySettings),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/display-settings'),
+                ),
+              ),
+
+              // 🌐 Language
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: SpacingTokens.sm,
+                ),
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  horizontalTitleGap: SpacingTokens.md,
+                  leading: const Icon(Icons.language),
+                  title: Text(l10n.language),
+                  trailing: Text(l10n.english),
+                  enabled: false,
                 ),
               ),
 
@@ -177,7 +179,7 @@ class ProfileScreen extends ConsumerWidget {
                   contentPadding: EdgeInsets.zero,
                   horizontalTitleGap: SpacingTokens.md,
                   leading: const Icon(Icons.text_fields),
-                  title: const Text('Accessibility'),
+                  title: Text(l10n.accessibility),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/accessibility'),
                 ),
@@ -202,7 +204,7 @@ class ProfileScreen extends ConsumerWidget {
               if (context.mounted) context.go('/login');
             },
             icon: const Icon(Icons.logout),
-            label: const Text('Log out'),
+            label: Text(l10n.logOut),
           ),
         ],
       ),

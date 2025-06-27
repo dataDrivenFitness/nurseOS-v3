@@ -61,16 +61,24 @@ dependencies:
 
   # 🔥 Firebase Core (must call Firebase.initializeApp())
   firebase_core: ^3.14.0            # core required by all Firebase modules
-  firebase_auth: ^5.6.0            # secure login, token refresh, email+password
-  cloud_firestore: ^5.6.9          # typed Firestore queries via withConverter
+  firebase_auth: ^5.6.0             # secure login, token refresh, email+password
+  cloud_firestore: ^5.6.9           # typed Firestore queries via withConverter
   firebase_storage: ^12.4.7         # image uploads for avatars, patient media
 
   # 🔐 Env Config (toggle mock mode, env URLs)
   flutter_dotenv: ^5.1.0            # safe access to .env vars at runtime
 
+  # 💾 Local Preferences (non-sensitive data only)
+  shared_preferences: ^2.2.2        # persist small items like font scale or theme
+
   # 📸 Image Picker Tools
-  image_picker: ^1.0.7
-  image_cropper: ^9.1.0
+  image_picker: ^1.0.7              # select images in gallery or use camera
+  image_cropper: ^9.1.0             # use image cropping tool
+
+  # 🌐 Localization
+  flutter_localizations:
+    sdk: flutter                   # built-in Material/Cupertino localizations
+  intl: ^0.20.2                    # formatters, translations
 
 # ──────────────────────────────────────────────
 # 🧪 Dev Dependencies – Codegen, Testing, Analysis
@@ -84,6 +92,9 @@ dev_dependencies:
   freezed: ^3.0.6                  # generates `copyWith`, unions
   json_serializable: ^6.7.1        # model serialization for Firestore & local use
   riverpod_generator: ^2.3.3       # auto-generates Notifier and AsyncNotifier providers
+
+  # 🌐 i18n Codegen
+  intl_utils: ^2.8.4               # generates app_localizations.dart from .arb
 
   # ✅ Linting & Safety
   very_good_analysis: ^9.0.0       # VGV default lint config for Dart 3+
@@ -101,6 +112,7 @@ dev_dependencies:
 # ──────────────────────────────────────────────
 flutter:
   uses-material-design: true
+  generate: true                   # Required for Flutter to recognize l10n.yaml
 
   assets:
     - .env                         # used to toggle features like mock mode

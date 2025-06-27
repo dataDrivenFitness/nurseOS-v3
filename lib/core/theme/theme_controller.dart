@@ -1,33 +1,73 @@
+// 📁 lib/core/theme/theme_controller.dart
+
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
 
 part 'theme_controller.g.dart';
 
-/// Drives `MaterialApp.themeMode` across NurseOS.
+/// Controls app-wide dark/light theme, persisted locally and to Firestore.
 ///
-/// ⚠️ Persistence stub:
-///   • In `build()` we’ll soon hydrate the saved value from
-///     `DisplayPreferencesRepository`.
+/// 🔹 SharedPreferences key: 'dark_mode'
+/// 🔸 Firestore doc path: users/{uid}/preferences/global → { darkMode: true }
+@Riverpod(keepAlive: true)
+class ThemeController extends AsyncNotifier<ThemeMode> {
+  static const _prefsKey = 'dark_mode';
 
-@Riverpod(keepAlive: true) // global state survives route changes
-class ThemeController extends _$ThemeController {
-  /// Initial theme — will switch to a saved user preference once we hydrate.
+  late final SharedPreferences _prefs;
+  late final FirebaseFirestore _firestore;
+  late final String _uid;
+
+  /// Hydrates saved theme mode — fast boot via SharedPreferences, then Firestore.
   @override
-  ThemeMode build() => ThemeMode.system;
+  Future<ThemeMode> build() async {
+    _prefs = await SharedPreferences.getInstance();
+    _firestore = FirebaseFirestore.instance;
 
-  /// Switches between light/dark directly from a UI toggle.
-  ///
-  /// • [isDark] comes straight from a `Switch`’s `onChanged` callback.
-  /// • We intentionally ignore ThemeMode.system here; the “system” option
-  ///   will live on its own row in Settings later if product wants it.
-  void toggleTheme(bool isDark) {
-    state = isDark ? ThemeMode.dark : ThemeMode.light;
+    final auth = ref.read(authControllerProvider).valueOrNull;
+    _uid = auth?.uid ?? '';
 
-    // TODO: await ref
-    //   .read(displayPreferencesRepoProvider)
-    //   .saveThemeMode(state);
+    if (_uid.isEmpty) {
+      debugPrint('⚠️ Skipping theme load — auth unavailable or uid empty');
+      return ThemeMode.system;
+    }
+
+    debugPrint('📥 Loading theme for uid="$_uid"');
+
+    // Try local cache first
+    final local = _prefs.getBool(_prefsKey);
+    if (local != null) return local ? ThemeMode.dark : ThemeMode.light;
+
+    // Fallback to Firestore
+    final doc = await _firestore.doc('users/$_uid/preferences/global').get();
+    final remote = doc.data()?['darkMode'];
+
+    if (remote is bool) {
+      await _prefs.setBool(_prefsKey, remote);
+      return remote ? ThemeMode.dark : ThemeMode.light;
+    }
+
+    return ThemeMode.system;
   }
 
-  /// Helper for UIs that need a simple boolean.
-  bool get isDark => state == ThemeMode.dark;
+  /// Toggles theme and saves to local + cloud.
+  Future<void> toggleTheme(bool isDark) async {
+    final newMode = isDark ? ThemeMode.dark : ThemeMode.light;
+    state = AsyncValue.data(newMode);
+
+    // Local write
+    await _prefs.setBool(_prefsKey, isDark);
+
+    // Cloud write
+    if (_uid.isNotEmpty) {
+      await _firestore
+          .doc('users/$_uid/preferences/global')
+          .set({'darkMode': isDark}, SetOptions(merge: true));
+    }
+  }
+
+  /// Exposes whether dark mode is active for toggles.
+  bool get isDark => state.valueOrNull == ThemeMode.dark;
 }

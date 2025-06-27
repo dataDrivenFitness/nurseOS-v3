@@ -1,0 +1,11 @@
+{
+  "@@locale": "en",
+  "editProfile": "Edit Profile",
+  "preferences": "Preferences",
+  "darkMode": "Dark Mode",
+  "language": "Language",
+  "english": "English",
+  "displaySettings": "Patient Display Settings",
+  "accessibility": "Accessibility",
+  "logOut": "Log Out"
+}

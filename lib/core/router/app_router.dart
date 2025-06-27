@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nurseos_v3/features/preferences/presentation/accessibility_settings_screen.dart';
 
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/state/auth_controller.dart';
@@ -80,6 +81,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               : const MaterialPage(child: EditProfileScreen());
         },
       ),
+      GoRoute(
+        path: '/accessibility',
+        builder: (_, __) => const AccessibilitySettingsScreen(),
+      ), // ✅ NEW
       ShellRoute(
         navigatorKey: shellNavigatorKey,
         builder: (_, __, child) => AppShell(child: child),

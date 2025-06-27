@@ -7,7 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../shared/widgets/nurse_scaffold.dart';
 import '../../../shared/widgets/settings_section.dart';
-import '../../profile/state/user_profile_controller.dart'; // ✅ new import
+import '../../profile/state/user_profile_controller.dart';
 import '../../auth/state/auth_controller.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -15,8 +15,7 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user =
-        ref.watch(userProfileProvider).value; // ✅ reads from profile provider
+    final user = ref.watch(userProfileProvider).value;
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
     final scaler = MediaQuery.textScalerOf(context);
@@ -28,6 +27,7 @@ class ProfileScreen extends ConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.all(SpacingTokens.lg),
         children: [
+          // 👤 User Header
           Row(
             children: [
               Container(
@@ -76,19 +76,23 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                     Text(
                       user.email,
-                      style:
-                          textTheme.bodyLarge?.copyWith(color: colors.subdued),
+                      style: textTheme.bodyLarge?.copyWith(
+                        color: colors.subdued,
+                      ),
                     ),
                     Text(
                       user.role.name,
-                      style: textTheme.labelMedium
-                          ?.copyWith(color: colors.subdued),
+                      style: textTheme.labelMedium?.copyWith(
+                        color: colors.subdued,
+                      ),
                     ),
                   ],
                 ),
               ),
             ],
           ),
+
+          // ✏️ Edit Profile Shortcut
           const SizedBox(height: SpacingTokens.md),
           Align(
             alignment: Alignment.centerLeft,
@@ -98,17 +102,22 @@ class ProfileScreen extends ConsumerWidget {
               label: const Text('Edit profile'),
             ),
           ),
+
           const SizedBox(height: SpacingTokens.lg),
+
+          // ⚙️ Preferences Section
           SettingsSection(
             title: 'Preferences',
             children: [
+              // 🌙 Dark Mode Toggle
               Consumer(
                 builder: (context, ref, _) {
                   final isDark =
                       ref.watch(themeControllerProvider) == ThemeMode.dark;
                   return Padding(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: SpacingTokens.sm),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: SpacingTokens.sm,
+                    ),
                     child: ListTile(
                       dense: true,
                       contentPadding: EdgeInsets.zero,
@@ -125,8 +134,12 @@ class ProfileScreen extends ConsumerWidget {
                   );
                 },
               ),
+
+              // 🌐 Language (disabled)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: SpacingTokens.sm),
+                padding: const EdgeInsets.symmetric(
+                  vertical: SpacingTokens.sm,
+                ),
                 child: ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
@@ -137,8 +150,12 @@ class ProfileScreen extends ConsumerWidget {
                   enabled: false,
                 ),
               ),
+
+              // 🖼️ Display Settings (placeholder)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: SpacingTokens.sm),
+                padding: const EdgeInsets.symmetric(
+                  vertical: SpacingTokens.sm,
+                ),
                 child: ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
@@ -149,9 +166,28 @@ class ProfileScreen extends ConsumerWidget {
                   onTap: () => context.push('/display-settings'),
                 ),
               ),
+
+              // 🔡 Accessibility Settings (text scale)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: SpacingTokens.sm,
+                ),
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  horizontalTitleGap: SpacingTokens.md,
+                  leading: const Icon(Icons.text_fields),
+                  title: const Text('Accessibility'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/accessibility'),
+                ),
+              ),
             ],
           ),
+
           const SizedBox(height: SpacingTokens.lg),
+
+          // 🚪 Sign Out Button
           FilledButton.icon(
             style: FilledButton.styleFrom(
               backgroundColor: colors.brandPrimary,

@@ -1,113 +1,98 @@
 # ✅ NurseOS v2 – Master Feature Checklist
 
-This checklist replaces the legacy roadmap. It tracks architecture compliance, mock/live coverage, UI polish, and feature testing across NurseOS v2.
+This checklist replaces the legacy roadmap and provides detailed tracking of all architectural, UI, and domain-level features across NurseOS v2.
 
 ---
 
-## 🧱 Core Architecture & System
+## 🧱 Core Architecture & Setup
 
 - [x] Modular folder structure (`core/`, `features/`, `shared/`)
-- [x] Riverpod v2 setup (AsyncNotifier, Notifier)
+- [x] Riverpod v2 setup (Notifier + AsyncNotifier)
 - [x] Firebase integration (Auth + Firestore)
-- [x] Firestore `.withConverter<T>()` usage only
-- [x] Firestore rules for per-user and role safety
-- [x] HIPAA-safe visual and data boundaries
-- [x] Theme system (dark/light via `ThemeController`)
-- [x] Env flags (`useMockServices`, `ENABLE_ANALYTICS`)
+- [x] Firestore rules for per-user safety
+- [x] Dark/light theming system
+- [x] GoRouter with auth refresh notifier
+- [x] HIPAA visual/data practices
+- [x] FontScaleController + MediaQuery injection
 
 ---
 
 ## 👥 Authentication & User State
 
-- [x] Email/password login
-- [x] AuthController (keepAlive: true)
-- [x] `UserModel` with role, XP, and badges
-- [x] Firestore-backed user document hydration
-- [x] Role-based route and screen protection (nurse/admin)
+- [x] Sign in/out flow
+- [x] AuthController with keepAlive
+- [x] UserModel with XP, badges, role
+- [x] User-level Firestore sync
+- [x] Role-based access guards (nurse, admin)
 
 ---
 
-## 👤 Profile & Preferences
+## 🧩 User Preferences
 
-- [x] Profile screen (name, avatar, email, role)
-- [x] Edit profile form (safe save, photo upload)
-- [x] User preferences (DisplaySettings model)
-- [x] Dark mode toggle
+- [x] DisplayPreferences model (freezed + enum)
+- [x] Firestore-backed persistence
+- [x] Toggle UI for display settings
+- [x] Theme toggle (dark/light)
+- [x] Font scaling toggle (textScaleFactor)
 - [ ] Language preferences
 - [ ] Notification preferences
-- [x] Firestore-backed persistence of preferences
 
 ---
 
-## 🧑‍⚕️ Core Care Flow
+## 🧑‍⚕️ Dashboard & Task System
+
+- [ ] Task screen becomes gamified dashboard
+- [ ] Display XP, level, and badges
+- [ ] Show pending tasks
+- [ ] Admin-only leaderboard (web only)
+- [ ] Floating Action Button for new entries
+
+---
+
+## 👤 Patient Care Flow
 
 - [ ] Patient list screen
 - [ ] Patient detail screen with scrollable cards
-- [ ] Vitals entry (with FAB)
-- [ ] Vitals history with graph and progressive disclosure
-- [ ] Head-to-toe assessment
-- [ ] Shift schedule screen with drag/drop interaction
-- [ ] Shift review with auto-summarized notes (GPT)
-- [ ] Care Plan read-only view
-- [ ] Visit notes (HIPAA-safe, linked to shift + patient)
-- [ ] EVV check-in with GPS and timestamp
-
----
-
-## 🤖 GPT + AI Assistant
-
-- [x] GPT-powered shift notes
-- [x] Editable AI-generated text with `wasAiGenerated`
-- [x] Audit log for GPT usage
-- [ ] Care plan drafting (Phase 7)
-- [ ] Note summarization via vector context (Phase 7)
-- [ ] AI trend detection (Phase 7)
+- [ ] Vitals entry screen
+- [ ] Vitals history + graph
+- [ ] Head-to-toe assessment screen
+- [ ] Care Plan screen
+- [ ] Add Care Plan entry
+- [ ] Note-taking with progressive disclosure
+- [ ] Shift scheduling with drag-and-drop interface
+- [ ] EVV (Electronic Visit Verification) with GPS logging
+- [ ] HIPAA-safe visit notes linked to shift and patient
 
 ---
 
 ## 🎮 Gamification System
 
-- [x] `AbstractXpRepository` (mock/live)
-- [x] XP increment on nurse actions (e.g. note save)
-- [ ] XP history or microinteractions
-- [ ] Badge system (triggers on milestones)
-- [ ] Admin-only leaderboard (web only)
+- [x] AbstractXpRepository (mock/live toggle)
+- [ ] XP triggers from nurse actions only
+- [ ] Badges triggered by shifts/tasks
+- [ ] XP history or feedback microinteractions
 
 ---
 
-## 🧪 Testing Suite (Unit, Widget, Golden)
+## 🧪 Testing Suite
 
-- [x] Unit tests for all repositories/controllers
-- [x] Widget tests for screen interactions
-- [x] Golden tests for visual states
-- [ ] Golden tests for type scaling (`MediaQuery.textScaleFactor`)
-- [ ] Triggerable golden tests for XP animations and FABs
-- [ ] Golden test baseline for NurseScaffold layout
-- [ ] AI-generated content test flows (with confirm/reject states)
-
----
-
-## 🧼 UI & UX Compliance
-
-- [x] Type scaling support across all `Text()`
-- [x] Progressive disclosure (Vitals, Notes)
-- [x] FAB support in task-like screens (Vitals, Notes)
-- [x] Theme-safe (light/dark)
-- [x] Animated feedback (submit, refresh, success)
-- [ ] Unified loading state shimmer across screens
+- [x] Unit tests for models and repos
+- [x] Widget tests for screens
+- [x] Golden tests for components
+- [x] Golden tests with type scaling
+- [ ] Triggerable tests for XP/badge animations
 
 ---
 
 ## 🚀 Release & Ops
 
-- [x] GitHub CI (analyze, test, golden, build)
-- [x] Version tagging with `tool/bump_version.sh`
-- [x] Firebase emulator coverage
-- [ ] Final QA + release signoff checklist
-- [x] Secure build: obfuscation, split debug info, CI lint rules
-- [x] `.env.dart` enforcement for `useMockServices`
+- [x] GitHub CI for analyze, test, format
+- [x] Build runner cache clean automation
+- [ ] Version tagging on releases
+- [ ] Final QA & release checklist
 
 ---
 
-# 📦 Release Track: In Progress (v2.2.x+)
-Check this file weekly. Mark new features with test, audit, or visual blockers. Sync with `Feature_Dev_Guide_v2-2.md` and `ARCHITECTURE.md` as needed.
+# 📦 Status: Actively in Progress
+
+Track each section weekly and update provider annotations, test coverage, and UI polish accordingly.

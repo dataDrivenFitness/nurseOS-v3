@@ -23,11 +23,12 @@ lib/
 
 ### Provider Responsibilities
 
-| Provider                  | Purpose                            |
-|---------------------------|------------------------------------|
-| `authControllerProvider`  | Auth session + login/logout only   |
-| `userProfileProvider`     | Profile info (name, avatar, role)  |
-| `AbstractXpRepository`    | Gamification XP badge logic        |
+| Provider                      | Purpose                            |
+|-------------------------------|------------------------------------|
+| `authControllerProvider`      | Auth session + login/logout only   |
+| `userProfileProvider`         | Profile info (name, avatar, role)  |
+| `fontScaleControllerProvider` | App-wide text scaling toggle       |
+| `AbstractXpRepository`        | Gamification XP badge logic        |
 
 ---
 
@@ -57,7 +58,8 @@ Each feature lives in `lib/features/{name}/` and includes:
 
 ## ✨ UI System
 
-- Typography scales via `MediaQuery.textScalerOf()`
+- Typography scales via `MediaQuery.textScalerOf(context)`  
+- App-wide override via `fontScaleControllerProvider`
 - Animations from `core/theme/animation_tokens.dart`
 - AppShell and route transitions defined via `GoRouter`
 
@@ -100,18 +102,11 @@ Every feature must include:
 - All repositories must support mock logic
 - Golden tests use `FakeFirebase` when mock enabled
 
-
 ---
 
 ## 🔄 GoRouter + Auth Refresh Handling
 
 NurseOS uses a custom `AuthRefreshNotifier` to ensure route evaluation triggers correctly on session change.
-
-### Why not `GoRouterRefreshStream`?
-
-Though `GoRouterRefreshStream` exists in v6+, it can break in CI or IDE environments due to unstable exports.
-
-Instead, NurseOS uses:
 
 ```dart
 class AuthRefreshNotifier extends ChangeNotifier {
@@ -132,11 +127,31 @@ class AuthRefreshNotifier extends ChangeNotifier {
 }
 ```
 
-Registered in router:
+In `router.dart`:
 
 ```dart
 refreshListenable: ref.watch(authRefreshNotifierProvider),
 ```
 
-This ensures route transitions occur reliably on login, logout, and user state restoration without coupling Firestore writes to routing behavior.
+---
 
+## 🧭 Font Scaling Integration
+
+### Provider
+```dart
+final fontScaleControllerProvider =
+    NotifierProvider<FontScaleController, double>(FontScaleController.new);
+```
+
+### Usage in App Root
+```dart
+final fontScale = ref.watch(fontScaleControllerProvider);
+MediaQuery(
+  data: MediaQuery.of(context).copyWith(textScaleFactor: fontScale),
+  child: ...
+)
+```
+
+Golden tests must override this provider and use a high scale value (e.g., `1.5`) to verify layout stability.
+
+---

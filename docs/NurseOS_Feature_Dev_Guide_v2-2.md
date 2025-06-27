@@ -1,129 +1,170 @@
-# 🧠 NurseOS Feature Development Guide – v2.2
+# 📘 NurseOS Feature Dev Guide v2.1 – Firebase Edition
 
-> Standards and lifecycle for building HIPAA-compliant, test-verified, gamified features in NurseOS.
+This update reflects our transition to a Firebase-integrated development model while preserving the modular, testable architecture defined in v2.0.
 
 ---
 
-## 📁 Feature Folder Structure
+## ✅ Feature Build Principles
 
-Each feature lives under:
+* Each feature module should support both:
 
-```
-lib/features/{feature_name}/
-```
+  * 🔁 **Mock mode** (default dev/test)
+  * 🔗 **Firebase live mode** (toggled via `.env.dart`)
+
+* All services must use interfaces for swappable backends (`AbstractNoteService`, etc.)
+
+---
+
+## 🧪 Updated Mock Management
+
+Still required for:
+
+* Vitals
+* Care Plans
+* Assessments
 
 **Must include:**
 
-- `controllers/` – Riverpod `Notifier` or `AsyncNotifier` logic
-- `models/` – `freezed` data classes with Firestore `.withConverter()`
-- `repository/` – `Abstract{Feature}Repository` + optional mock/live impls
-- `screens/` – Top-level UI views (wrapped in `.when()`)
-- `widgets/` – Reusable components specific to this feature
+* `MockScenarioBuilder`
+* `mock_constants.dart` UIDs
+* Toggled success/failure logic
 
 ---
 
-## 🔁 Development Lifecycle
+## 🔐 Firebase-Enabled Features
 
-1. **Design UX**
-   - Reference `nurseos_ux_recommendations_v2.md`
-2. **Create Feature Directory**
-   - Use `flutter create .` idioms
-3. **Define Freezed Models**
-   - Include: `createdAt`, `updatedAt`, `createdBy`, `modifiedBy`
-4. **Abstract Repository**
-   - Interface: `Abstract{Feature}Repository`
-5. **Notifier Layer**
-   - Must use `Notifier` or `AsyncNotifier`
-   - All state must be testable
-6. **Build Screens**
-   - Wrap all async logic in `.when()`
-   - Animate using `animation_tokens.dart`
-7. **Write Tests**
-   - Unit, widget, golden, scaling
-8. **Wire Gamification (if applicable)**
-   - Use `grantXp()` in `AbstractXpRepository`
+| Feature         | Source          | Notes                         |
+| --------------- | --------------- | ----------------------------- |
+| Auth            | Firebase Auth   | Email/pass only (no SSO yet)  |
+| Shift Notes     | Firestore       | Use `wasAiGenerated` + audit  |
+| Sentiment Notes | Firestore       | Stored in `notes/` collection |
+| Patient Records | Firestore       | With `assignedNurses[]` field |
+| GPT Integration | Still mock-only | All output must be editable   |
+| Shift Scheduling | Firestore       | Requires `/shifts/` + caregiver roles |
+| Visit Check-ins (EVV) | Firestore  | GPS and timestamp stored in `/visits/` |
+| Progress Notes | Firestore       | HIPAA-safe, linked to `visitId` |
 
 ---
 
-## 🧪 Required Tests
+## 🔄 Firebase-Pending Modules (Read-Only Prep)
 
-| Type         | Scope                                       |
-|--------------|---------------------------------------------|
-| ✅ Unit       | Repo + Notifier logic                       |
-| ✅ Widget     | All user interactions                       |
-| ✅ Golden     | UI state including FABs and animations      |
-| ✅ Scaling    | `Text()` must respect `MediaQuery.textScaleFactorOf` |
+| Feature    | Status       | Notes                                         |
+| ---------- | ------------ | --------------------------------------------- |
+| Vitals     | 🔒 Read-Only | Firestore structure aligned, write blocked    |
+| Care Plans | 🔒 Read-Only | Static structure only, no checklist logic yet |
 
----
-
-## 🔐 Firestore Integration Rules
-
-- Use `.withConverter<T>()` — no raw `.data()` or `.map()`
-- All models must contain:
-  - `createdAt`
-  - `updatedAt`
-  - `createdBy`
-  - `modifiedBy`
+> These modules include Firebase-read hooks but retain `mock_*` for editing and testing until validation is complete.
 
 ---
 
-## 🛡 HIPAA & Security Compliance
+## 📁 Updated File Requirements
 
-- ❌ No Firebase code in widgets
-- ✅ All PHI lives in secure Firestore paths
-- ✅ `guardFirebaseInitialization()` is required in `main.dart`
-- ❌ No GPT/AI usage with PHI
+### /services/
 
----
+* Add `firebase_*_service.dart` files
+* Interfaces must remain in `abstract_*_service.dart`
 
-## 🧠 Gamification Rules
+### /state/
 
-| Rule | Description |
-|------|-------------|
-| 🎯 XP Source | `grantXp()` in `AbstractXpRepository` |
-| 👩‍⚕️ Action | Only nurse-driven actions trigger XP |
-| ❌ No XP | For retries, automation, or non-nurse actions |
-| 📊 Tracking | Stored under `users/` and `leaderboards/` |
+* Use `.env.dart` flag: `useMockServices`
+* Providers must swap between mock and live
 
----
+### /models/
 
-## 🎨 UI Guidelines
+* `ShiftModel`, `VisitModel`, `ProgressNoteModel` must all use `.withConverter<T>()`
+* Role field required on all Firestore write-bound models (e.g., `createdBy`, `assignedTo`)
 
-- Use **Progressive Disclosure** for secondary info (e.g., notes, history)
-- FABs required for major flows (e.g., vitals, notes)
-- Animate UI via `animation_tokens.dart`
-- Support dark mode, light mode, and mock mode (`AppEnv.isMock`)
+### /mock\_data/
+
+* Still required for all dev/test flows
+* Must support full patient lifecycle
 
 ---
 
-## 🔁 Mock Mode Standards
+## 🧭 Platform Support (Revised)
 
-- Toggled via `AppEnv.isMock`
-- Repositories must provide mock fallbacks
-- Golden tests use `FakeFirebase` when applicable
+| Platform | Status   | Notes                                                  |
+| -------- | -------- | ------------------------------------------------------ |
+| iOS      | ✅ Active | Primary UI design and release target                   |
+| Android  | 🟡 Beta  | Supported for dev testing, Firebase-ready modules only |
+| Web      | ❌ Off    | Deferred (Phase 8+)                                    |
 
----
-
-## 🚫 Prohibited Patterns
-
-| ❌ Anti-Pattern | 🚫 Description |
-|----------------|----------------|
-| Logic in UI    | No state/data fetch in widget builds |
-| Mutable UI     | No mutable state in widgets           |
-| Skipped tests  | No `TODO` or skipped tests in prod    |
+> Developers may test mock and Firebase services on Android devices/emulators. Final production UX remains iOS-optimized.
 
 ---
 
-## 🧭 Provider Usage Guide
+## 🧠 GPT Use Policy (Reaffirmed)
 
-### `authControllerProvider`
-- Used for:
-  - Auth state
-  - Login/logout
-  - Route access control
+* GPT outputs must:
 
-### `userProfileProvider`
-- Used for:
-  - Display/edit of profile fields (name, photo)
-  - Avoids Firestore updates triggering router
-  - Preferred in all profile UIs
+  * Be stored via a `firebase_shift_note_repository.dart` with metadata
+  * Never be directly written to Firestore from GPT
+  * Be flagged `wasAiGenerated = true`
+  * Trigger a log in `audit_log/`
+
+* Editable confirmation UI is required before saving
+
+---
+
+*Firebase-powered. Modular-first. Still nurse-safe.*
+
+---
+
+## 🔁 Repository Return Type Enforcement
+
+* All repositories must return `Either<Failure, T>` for consistency and retry-safe UI.
+* This applies to:
+  - PatientRepository
+  - VitalsRepository
+  - ShiftNoteRepository
+  - Future features (CarePlans, Tasks)
+
+---
+
+## 🎮 XP Hook Placement
+
+* XP logic should currently live inside the `.save()` method of feature repositories (e.g., `MockPatientRepository.save()`).
+* This preserves modularity and aligns with event-driven XP attribution (based on nurse actions).
+
+---
+
+## 🧠 Persistent Riverpod Providers – NurseOS v2 Pattern
+
+### When to Use `@Riverpod(keepAlive: true)`
+
+Use `keepAlive: true` when the provider manages **global or cross-screen state** that must:
+- Survive screen transitions
+- Be globally available (theme, auth, routing)
+- Avoid reset/rebuild due to lack of listeners
+
+---
+
+### ✅ Required for These Providers
+
+| Provider               | Reason |
+|------------------------|--------|
+| `AuthController`       | Tracks logged-in nurse across all screens |
+| `ThemeController`      | Ensures stable UI mode (light/dark) |
+| `FontScaleController`  | Applies app-wide text scaling for accessibility |
+| `RouteNotifier`        | Maintains navigation guards and deep-link state |
+
+---
+
+### 🔁 Optional for These (Only if state used across screens)
+
+| Provider                      | When to use `keepAlive` |
+|-------------------------------|--------------------------|
+| `UserPreferencesController`   | If language, notification, or accessibility settings are shared |
+| `ShiftSessionController`      | If shift timing/session data must persist across tabs |
+| `AppUpdateNotifier`           | If update prompts are shown from multiple entry points |
+
+---
+
+### ❌ Avoid `keepAlive` for:
+- Screen-local forms (Vitals entry, Patient notes)
+- One-off UI state (FAB visibility, toggles scoped to one view)
+- Any provider used in only one widget tree
+
+---
+
+> 📌 **Enforcement**: All new global providers must be reviewed for `keepAlive` scope and explicitly tagged in code and `Feature_Dev_Guide_v2-2.md`.

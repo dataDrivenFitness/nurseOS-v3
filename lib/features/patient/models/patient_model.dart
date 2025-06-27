@@ -1,8 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../utils/risk_utils.dart';
 import 'package:nurseos_v3/shared/converters/timestamp_converter.dart';
-import '../utils/risk_utils.dart';
 
 part 'patient_model.freezed.dart';
 part 'patient_model.g.dart';

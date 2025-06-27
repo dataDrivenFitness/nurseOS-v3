@@ -5,7 +5,7 @@ class AppTheme {
   static ThemeData light() {
     return ThemeData(
       brightness: Brightness.light,
-      scaffoldBackgroundColor: AppColors.light.background,
+      scaffoldBackgroundColor: AppColors.light.surface,
       colorScheme: ColorScheme.light(
         primary: AppColors.light.primary,
         surface: AppColors.light.surface,

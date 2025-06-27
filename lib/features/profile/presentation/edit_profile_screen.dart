@@ -2,15 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nurseos_v3/core/theme/text_styles.dart';
 import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
+import 'package:nurseos_v3/features/profile/state/user_profile_controller.dart';
 import 'package:nurseos_v3/shared/widgets/nurse_scaffold.dart';
 
 import 'edit_profile_form.dart';
 
-class EditProfileScreen extends ConsumerWidget {
+class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
+}
+
+class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
+  bool _invalidated = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_invalidated) {
+      // Only invalidate once per screen entry
+      _invalidated = true;
+      Future.microtask(() => ref.invalidate(userProfileProvider));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final userAsync = ref.watch(authControllerProvider);
 
     return NurseScaffold(

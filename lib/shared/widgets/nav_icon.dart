@@ -1,36 +1,64 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/icon_sizes.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:nurseos_v3/core/theme/opacity_tokens.dart';
+
+// 🎨 Tunable visual constants
+const double _iconSize = 28;
+const double _capsuleVerticalPadding = 6;
+const double _capsuleHorizontalPadding = 20;
+const double _badgeSize = 8;
 
 class NavIcon extends StatelessWidget {
   final IconData icon;
   final bool isSelected;
+  final bool badge;
 
   const NavIcon({
     super.key,
     required this.icon,
     required this.isSelected,
+    this.badge = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>() ?? AppColors.dark;
-    final iconColor = isSelected ? colors.brandPrimary : colors.subdued;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      height: 40,
-      width: 80, //pill width
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: isSelected
-            ? colors.brandPrimary.withOpacity(0.10)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(24),
+      padding: const EdgeInsets.symmetric(
+        horizontal: _capsuleHorizontalPadding,
+        vertical: _capsuleVerticalPadding,
       ),
-      child: Icon(
-        icon,
-        size: isSelected ? IconSizes.navSelected : IconSizes.navUnselected,
-        color: iconColor,
+      decoration: isSelected
+          ? BoxDecoration(
+              color: colorScheme.primary.withAlpha(20),
+              borderRadius: BorderRadius.circular(100),
+            )
+          : null,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Icon(
+            icon,
+            size: _iconSize,
+            color: isSelected
+                ? colorScheme.primary
+                : colorScheme.onSurface
+                    .withValues(alpha: OpacityTokens.disabledState / 255),
+          ),
+          if (badge)
+            Positioned(
+              top: -2,
+              right: -2,
+              child: Container(
+                width: _badgeSize,
+                height: _badgeSize,
+                decoration: BoxDecoration(
+                  color: colorScheme.error,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

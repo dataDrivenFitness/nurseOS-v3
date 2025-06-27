@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nurseos_v3/features/auth/models/user_model.dart';
 import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
 

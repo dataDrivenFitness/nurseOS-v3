@@ -6,13 +6,11 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:nurseos_v3/features/auth/models/user_model.dart';
 
 final userProfileProvider =
-    AsyncNotifierProvider<UserProfileController, UserModel>(
+    AsyncNotifierProvider.autoDispose<UserProfileController, UserModel>(
   UserProfileController.new,
 );
 
-/// 🧠 Handles display data like name/photo — NOT login or session state.
-/// Keeps router stable even on user updates.
-class UserProfileController extends AsyncNotifier<UserModel> {
+class UserProfileController extends AutoDisposeAsyncNotifier<UserModel> {
   @override
   Future<UserModel> build() async {
     final currentUser = FirebaseAuth.instance.currentUser;
@@ -32,7 +30,6 @@ class UserProfileController extends AsyncNotifier<UserModel> {
     return user;
   }
 
-  /// ✏️ Updates Firestore + optionally avatar
   Future<void> updateUser({
     required String firstName,
     required String lastName,
@@ -75,7 +72,6 @@ class UserProfileController extends AsyncNotifier<UserModel> {
 
       await userDocRef.update(updates);
 
-      // 🔁 Fetch updated profile
       final fresh = await userDocRef.get();
       final model = fresh.data();
       if (model == null) throw Exception('Update failed to persist');

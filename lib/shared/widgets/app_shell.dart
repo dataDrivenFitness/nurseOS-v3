@@ -48,12 +48,12 @@ class AppShell extends StatelessWidget {
               label: '',
             ),
             BottomNavigationBarItem(
-              icon: NavIcon(icon: Icons.group_outlined, isSelected: false),
+              icon: NavIcon(icon: Icons.group, isSelected: false),
               activeIcon: NavIcon(icon: Icons.group, isSelected: true),
               label: '',
             ),
             BottomNavigationBarItem(
-              icon: NavIcon(icon: Icons.person_outline, isSelected: false),
+              icon: NavIcon(icon: Icons.person, isSelected: false),
               activeIcon: NavIcon(icon: Icons.person, isSelected: true),
               label: '',
             ),

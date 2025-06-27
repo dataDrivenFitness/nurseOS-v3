@@ -1,60 +1,79 @@
 
-# NurseOS UX Enhancements: Strategic Upgrade Guide
+# NurseOS UX Recommendations v2
 
-This document outlines modern UX improvements that may slightly diverge from NurseOS’s original minimalist tone, but would significantly enhance usability, perceived performance, and clarity if implemented intentionally.
-
----
-
-## ✅ UX Enhancements Worth Considering
-
-### 1. Microinteractions
-- **What:** Subtle animations (e.g., tap feedback, shimmer while loading, success checkmarks)
-- **Why:** Reinforces user actions, improves perceived speed
-- **Use it for:** Form submissions, vital entry, refresh actions
-- **Risks:** Overuse can feel decorative. Keep it minimal.
+Design + Interaction Guidelines for all new feature development
 
 ---
 
-### 2. Floating Action Buttons (FAB)
-- **What:** A persistent button (bottom-right) for high-priority actions
-- **Why:** Offers one-tap access to frequent actions without crowding the UI
-- **Use it for:** "Add Vitals", "New Patient", or "Quick Note"
-- **Risks:** May clash with minimalism if overused
+## ✅ Type
+
+- Use MediaQuery to scale all Text()
+- Test with 0.8x, 1x, 1.3x, 2x sizes
+- Minimum text size: 13px
+- Maximum line length: ~72 chars
 
 ---
 
-### 3. Card-Based Navigation
-- **What:** Replace traditional nav/tab bars with tappable cards or sections
-- **Why:** Prioritizes hierarchy, gives clean visual segmentation (especially mobile-first)
-- **Use it for:** Patient overviews, dashboards
-- **Risks:** More layout planning needed, not ideal for all screens
+## ✅ Buttons
+
+- Use FilledButton for primary
+- Use OutlinedButton or TextButton for secondary
+- Use SegmentedButton for filters or modes
 
 ---
 
-### 4. Dynamic Type Scaling
-- **What:** Support for OS-level font scaling
-- **Why:** Improves accessibility for nurses with different needs (e.g., low-light or aging users)
-- **Use it for:** All `Text()` widgets via `MediaQuery.textScaleFactorOf(context)`
-- **Risks:** Can break layouts if implemented late
+## ✅ Icons
+
+- Use cupertino_icons or Material symbols
+- Minimum tap target: 48px
+- Icons must support dark mode
 
 ---
 
-### 5. Progressive Disclosure
-- **What:** Expandable sections to reveal more info on tap
-- **Why:** Keeps interfaces scannable and digestible
-- **Use it for:** Vitals history, assessments, notes
-- **Risks:** Don’t hide urgent/critical data behind taps
+## ✅ Layout
+
+- Use Slivers in scrollable lists
+- Use Cards for patient-level items
+- Prefer 8pt spacing scale
 
 ---
 
-## 💡 Strategic Suggestions
+## ✅ Animations
 
-- Roll out upgrades **gradually by screen** (e.g., start with login or vitals entry)
-- Create `animation_tokens.dart` for unified motion durations, curves
-- Test all features in **both light and dark mode**
-- Maintain high **contrast** and **tap targets** per accessibility standards
+- Use animation_tokens.dart for microinteractions
+- Transition patterns: fade, slide, scale
+- Avoid bouncing or long delays
 
 ---
 
-### Tags
-#NurseOS #UXDesign #HealthcareApp #Minimalism #DarkMode #MotionDesign
+## ✅ Floating Action Button
+
+- Use only where nurse is initiating data
+- Show FAB on Vitals, Notes, Checklists
+- Hide FAB on read-only views
+
+---
+
+## ✅ Progressive Disclosure
+
+- Use for Notes, History, Alerts
+- Collapse long text under "... more"
+- Avoid expanding >3 items at once
+
+---
+
+## ✅ Alerts
+
+- Show critical alerts inline (no popups)
+- Use color tokens from theme
+- Animate appearance with fade-in or scale-in
+
+---
+
+## ✅ Theming
+
+- All screens must support light/dark
+- Use core/colors.dart for palette
+- Do not hardcode hex values
+
+---

@@ -1,114 +1,142 @@
-# NurseOS v2 Architecture – Unified Blueprint
+# 🏛️ NurseOS Architecture v2
 
-A lightweight, test-driven, HIPAA-safe Flutter rebuild of NurseOS using Clean Architecture, Riverpod, and Firestore-first modularity.
-
----
-
-## 🧱 1. Layered Architecture
-
-```
-UI Widgets ─┬─ Riverpod Feature Notifiers ─┬─ Repositories ─┬─ Data Sources (Firebase / REST)
-            │                            │                 └─ Abstracted Firestore
-            │                            └─ Domain Models (Freezed)
-            └─ Design System Components
-```
+This document outlines the modular, testable, HIPAA-compliant architecture for the NurseOS app. All implementation must follow these patterns for consistency and maintainability.
 
 ---
 
-## 📁 2. Folder Structure
+## 📁 Folder Structure
 
 ```
 lib/
-  core/        ← env, theme, tokens, global logic
-  features/    ← one per slice (e.g., patient, gamification, auth)
-  shared/      ← widgets, design atoms
-test/          ← unit, widget, golden tests
+├── core/       # Env, themes, typography, constants
+├── features/   # One folder per feature (e.g., auth, profile, vitals)
+├── shared/     # Shared UI widgets, utils, design tokens
 ```
 
 ---
 
-## ✍️ 3. Naming Conventions
+## 🔄 State Management
 
-| Item           | Convention                |
-|----------------|---------------------------|
-| Models         | `SomethingModel`          |
-| Providers      | `somethingProvider`       |
-| AsyncNotifiers | `SomethingController`     |
-| Screens        | `SomethingScreen`         |
+- Uses **Riverpod v2** with `AsyncNotifier` and `Notifier`
+- All business logic isolated in Notifier classes
+- No direct Firebase access in widgets
 
----
+### Provider Responsibilities
 
-## 🔁 4. State Management
-
-- Riverpod v2 (AsyncNotifier / Notifier only)
-- All async logic wrapped with `AsyncValue.guard()` and `.when()`
-- No `setState` in production widgets
+| Provider                  | Purpose                            |
+|---------------------------|------------------------------------|
+| `authControllerProvider`  | Auth session + login/logout only   |
+| `userProfileProvider`     | Profile info (name, avatar, role)  |
+| `AbstractXpRepository`    | Gamification XP badge logic        |
 
 ---
 
-## 🔌 5. Firestore & Data Layer
+## 🧩 Feature Modules
 
-- Use `.withConverter<T>()` — no raw Maps
-- Access Firestore only inside `FirebaseXRepository` files
-- One aggregate root per collection (e.g., `patients/`, `users/`)
+Each feature lives in `lib/features/{name}/` and includes:
+
+| Folder        | Role                                              |
+|---------------|---------------------------------------------------|
+| `models/`     | `freezed` models with Firestore converters        |
+| `repository/` | Abstract interface + mock/live impl               |
+| `controllers/`| Riverpod Notifier logic                           |
+| `screens/`    | Entry point screens for the feature               |
+| `widgets/`    | Feature-specific reusable components              |
 
 ---
 
-## 🔐 6. GoRouter + Auth Integration
+## 💾 Firestore Strategy
 
-- Uses `AuthRefreshNotifier` (ChangeNotifier) to listen to `authControllerProvider`
-- Ensures `GoRouter` refreshes on sign in/out or restore
-- Safer than `GoRouterRefreshStream`
+- All models use `.withConverter<T>()`
+- No `.data()` or `.map()` in widgets or controllers
+- Required metadata fields:
+  - `createdAt`, `updatedAt`
+  - `createdBy`, `modifiedBy`
+
+---
+
+## ✨ UI System
+
+- Typography scales via `MediaQuery.textScalerOf()`
+- Animations from `core/theme/animation_tokens.dart`
+- AppShell and route transitions defined via `GoRouter`
+
+---
+
+## 🧪 Testing Standards
+
+Every feature must include:
+
+| Type     | Required? | Description                                  |
+|----------|-----------|----------------------------------------------|
+| Unit     | ✅         | All controller and repo logic                |
+| Widget   | ✅         | Screen flows and edge cases                  |
+| Golden   | ✅         | Visuals including animated and default state |
+| Scaling  | ✅         | All `Text()` honors text scale factor        |
+
+---
+
+## 🛡 HIPAA Compliance Requirements
+
+- No PHI in widget tree or GPT prompts
+- Firestore writes validated via backend rules
+- PHI stored only in secure collections
+- `guardFirebaseInitialization()` used at app boot
+
+---
+
+## 🧠 Gamification Support
+
+- XP stored in `users/{uid}/xp` or `leaderboards/`
+- Use `AbstractXpRepository` for all grants
+- No XP for retries or automation
+- Leaderboard is admin-only (no mobile view)
+
+---
+
+## 🧪 Mock Mode & Testability
+
+- Controlled via `AppEnv.isMock`
+- All repositories must support mock logic
+- Golden tests use `FakeFirebase` when mock enabled
+
+
+---
+
+## 🔄 GoRouter + Auth Refresh Handling
+
+NurseOS uses a custom `AuthRefreshNotifier` to ensure route evaluation triggers correctly on session change.
+
+### Why not `GoRouterRefreshStream`?
+
+Though `GoRouterRefreshStream` exists in v6+, it can break in CI or IDE environments due to unstable exports.
+
+Instead, NurseOS uses:
 
 ```dart
 class AuthRefreshNotifier extends ChangeNotifier {
   late final ProviderSubscription<AsyncValue<UserModel?>> _sub;
+
   AuthRefreshNotifier(Ref ref) {
     _sub = ref.listen<AsyncValue<UserModel?>>(
       authControllerProvider,
       (_, __) => notifyListeners(),
     );
   }
-  @override void dispose() { _sub.close(); super.dispose(); }
+
+  @override
+  void dispose() {
+    _sub.close();
+    super.dispose();
+  }
 }
 ```
 
----
+Registered in router:
 
-## 🎨 7. Theming & Design System
+```dart
+refreshListenable: ref.watch(authRefreshNotifierProvider),
+```
 
-- Dark theme first
-- Use `AppColors`, `SpacingTokens`, `TextStyles`
-- No literal `Colors.*`; only theme extensions
-- Font scaling via `MediaQuery.textScalerOf(context)`
+This ensures route transitions occur reliably on login, logout, and user state restoration without coupling Firestore writes to routing behavior.
 
----
-
-## 🧪 8. Testing Strategy
-
-| Type       | Requirement            |
-|------------|------------------------|
-| Unit       | Every model/repo       |
-| Widget     | Every screen interaction |
-| Golden     | Reusable components    |
-| Coverage   | ≥ 30% before release   |
-
----
-
-## 🚀 9. CI/CD & Tooling
-
-- GitHub Actions:
-  - `flutter analyze`, `flutter test`, `dart format`
-- Pre-commit: format + analyze
-- Use `very_good_analysis` or equivalent
-
----
-
-## 🛡️ 10. Drift Prevention Guardrails
-
-- Every PR must modify or add a test
-- No runtime `as` or type casts
-- Architecture reviewed weekly
-- Major changes go in `/docs/decisions/`
-
----

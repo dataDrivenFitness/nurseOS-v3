@@ -1,75 +1,104 @@
-## ⚠️ Firestore Initialization Guard (Runtime)
 
-> Preventing `NotInitializedError` in Flutter + Firebase apps  
-> _(Added 2025-06-22 after patient-list crash)_
+# Firestore Initialization Guard – NurseOS v2
 
-### 1 Block until Firebase is ready
+> Ensures that Firebase is initialized exactly once before use, and blocks app logic if initialization fails.
+
+---
+
+## ✅ Purpose
+
+Prevents runtime errors from uninitialized Firebase services. Enforces a single, async-safe guard for app startup.
+
+---
+
+## 🛠️ Usage
 
 ```dart
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  runApp(const ProviderScope(child: NurseOSApp()));
-}
+await guardFirebaseInitialization();
 ```
 
-*Nothing in the widget tree runs before `initializeApp` finishes.*
+Call this before any `ProviderScope`, `runApp()`, or Firestore access.
 
 ---
 
-### 2 Never touch `FirebaseFirestore.instance` in a top-level variable
-
-| ❌ Anti-pattern (crashes) | ✅ Safe pattern |
-|--------------------------|----------------|
-| `final patientsRef = FirebaseFirestore.instance.collection('patients');` | `CollectionReference patientsRef() => FirebaseFirestore.instance.collection('patients');` |
-| `static final coll = …` inside a model | `CollectionReference coll(FirebaseFirestore db) => db.collection('…');` |
-| Singleton grabs the instance in its constructor | Pass `FirebaseFirestore db` into the constructor |
-
-**Rule of thumb:**  
-> *If code runs at **import-time**, it must **not** hit Firestore.*
-
----
-
-### 3 Repository template
+## 🔐 Guard Logic
 
 ```dart
-class FirebasePatientRepository {
-  CollectionReference<Patient> get _patients => typedPatientsCollection();
-
-  Future<List<Patient>> getAllPatients() async {
-    final snap = await _patients.get();
-    return snap.docs.map((d) => d.data()).toList();
+Future<void> guardFirebaseInitialization() async {
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+  } catch (e, st) {
+    // Optional: log to Crashlytics or print
+    throw FirebaseInitException('Firebase failed to initialize', e, st);
   }
 }
 ```
 
-*Getter defers Firestore access until after init.*
-
 ---
 
-### 4 Test checklist before every commit
+## 🔒 FirebaseInitException
 
-- [ ] **Grep** for `FirebaseFirestore.instance` outside functions/methods.
-- [ ] **Cold-start** the app; verify no `NotInitializedError` in console.
-- [ ] **Unit test**: repository methods succeed with emulator running.
+```dart
+class FirebaseInitException implements Exception {
+  final String message;
+  final Object? cause;
+  final StackTrace? stackTrace;
 
----
+  FirebaseInitException(this.message, [this.cause, this.stackTrace]);
 
-_Keep this guard in mind whenever adding a new model, helper, or service._
-
-
-<!-- v2.1 update – Jun 22 -->
-
-## 🔒 CI Safety Enhancement (Suggested)
-
-* Add a pre-commit grep rule to detect bad Firestore access:
-
-```sh
-grep -r 'FirebaseFirestore.instance' lib/ | grep -v '() =>'
+  @override
+  String toString() => 'FirebaseInitException: $message\n$cause\n$stackTrace';
+}
 ```
 
-* Block commits if instance access appears outside of a method or function.
+---
 
-_This rule protects against `NotInitializedError` caused by import-time Firebase access._
+## 🔁 Retry Pattern (Optional)
+
+Wrap the call in a retry loop if needed for flaky devices:
+
+```dart
+await retry(
+  () => guardFirebaseInitialization(),
+  retryIf: (e) => e is FirebaseInitException,
+  maxAttempts: 3,
+);
+```
+
+---
+
+## 🧪 Testing Notes
+
+- Unit test failure paths with simulated bad config
+- Wrap with `runZonedGuarded` in main entry point
+
+---
+
+## 🚫 Anti-Patterns
+
+- ❌ Don’t call `Firebase.initializeApp()` more than once
+- ❌ Don’t initialize Firebase in widget build methods
+
+---
+
+## 🧩 Location
+
+File lives at:
+
+```
+lib/core/firebase/guard_firebase.dart
+```
+
+---
+
+## ✅ Required By
+
+- `main.dart`
+- `test/bootstrap.dart`
+- All features depending on Firestore, Auth, or Functions
+
+---

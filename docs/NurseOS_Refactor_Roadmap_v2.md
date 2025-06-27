@@ -1,69 +1,66 @@
+# 🛠️ NurseOS Refactor Roadmap v2
 
-# 🗺️ NurseOS v2 Refactor Roadmap
-
-This roadmap guides the test-driven rebuild of NurseOS v2 with modular architecture, HIPAA-safe practices, and gamified UX.
-
----
-
-## ✅ Phase 0 – Safety Net
-
-- [x] Tag current v1 commit
-- [x] Export full backup archive
-- [x] Snapshot user schema + Firestore structure
+Tracks transition from legacy v1 patterns to modular, testable, and HIPAA-aligned v2 architecture.
 
 ---
 
-## 🧱 Phase 1 – Scaffold
+## ✅ Phase 1: Stabilization
 
-- [x] Create `v2` branch
-- [x] Establish folder structure (`core/`, `features/`, `shared/`)
-- [x] Add `.env` + firebase config stubs
-
----
-
-## 🧪 Phase 2 – Tooling
-
-- [x] Lints (`very_good_analysis`)
-- [x] CI actions: analyze, test, format
-- [x] Pre-commit hook
-- [x] Type-scaling golden test scaffolds
+- [x] Strip legacy `home/` module
+- [x] Delete all v1 Firebase calls
+- [x] Introduce `guardFirebaseInit()` in `main.dart`
+- [x] Use `.withConverter<T>()` in all Firestore reads/writes
+- [x] Refactor Firestore models to `freezed` format
 
 ---
 
-## 🚀 Phase 3 – Core System Port
+## ⚙️ Phase 2: Modular Architecture
 
-- [x] Migrate user/auth model
-- [x] Set up Riverpod + FirebaseAuth integration
-- [x] ThemeController + dark mode toggle
-- [x] DisplayPreferences model + Firestore sync
-
----
-
-## 🔁 Phase 4 – Vertical Feature Slice
-
-- [ ] Patient list screen
-- [ ] Patient detail screen
-- [ ] Vitals entry screen
-- [x] Per-nurse toggles respected across screens
+- [x] Move feature logic into `lib/features/`
+- [x] Isolate theme into `core/theme/`
+- [x] Relocate shared UI to `lib/shared/widgets/`
+- [x] Remove `core/utils/` (replace with feature-local logic)
+- [x] Introduce `AbstractXpRepository`
 
 ---
 
-## 🎮 Phase 5 – Feature Expansion
+## 🎨 Phase 3: UX + Animation
 
-- [ ] Tasks + XP gamification
-- [ ] Dashboard: pending tasks + levels
-- [ ] Shift timing, session badge trigger
-- [ ] Note-taking with progressive disclosure
-
----
-
-## 🧼 Phase 6 – Decommission & Cleanup
-
-- [ ] Archive v1 code
-- [ ] Lock Firestore v1 rules
-- [ ] Promote v2 in all deploy targets
-- [ ] Final QA + Release
+- [ ] Replace v1 gestures with microinteraction patterns
+- [x] Add FABs to Notes, Vitals
+- [x] Use Progressive Disclosure for History and Notes
+- [x] Apply `MediaQuery.textScalerOf()` to all `Text()`
 
 ---
 
-# ✅ Let's build something nurses deserve.
+## 🔐 Phase 4: HIPAA Compliance Finalization
+
+- [x] Implement all items in `HIPAA_Readiness_Checklist.md`
+- [x] Ensure prompt redaction for GPT interactions
+- [ ] Add tests for backup/restore failover paths
+- [x] Lock test environments to mock data only
+
+---
+
+## 🧪 Final Phase: Testing Expansion
+
+- [x] Add golden tests for all gamified flows
+- [x] Enforce scaling compliance via `MediaQuery`
+- [ ] Add CI gates to fail on missing widget tests
+
+---
+
+## 📦 Deprecated Patterns (Now Removed)
+
+- ❌ `home/` routing shell
+- ❌ Manual Firestore `.data()` parsing
+- ❌ Legacy auth with custom claims
+
+---
+
+## ✅ [v2.0.6] Auth/Profile State Decoupling
+
+- Removed profile update logic from `authController`
+- Introduced `userProfileProvider` for display-only state
+- Prevented GoRouter resets on Firestore writes
+- Updated `profile_screen.dart` and `edit_profile_form.dart` accordingly

@@ -5,16 +5,18 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/spacing.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
-import '../../../features/auth/state/auth_controller.dart';
 import '../../../shared/widgets/nurse_scaffold.dart';
 import '../../../shared/widgets/settings_section.dart';
+import '../../profile/state/user_profile_controller.dart'; // ✅ new import
+import '../../auth/state/auth_controller.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authControllerProvider).value;
+    final user =
+        ref.watch(userProfileProvider).value; // ✅ reads from profile provider
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
     final scaler = MediaQuery.textScalerOf(context);
@@ -91,8 +93,7 @@ class ProfileScreen extends ConsumerWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
-              onPressed: () =>
-                  context.push('/edit-profile?from=/profile'), // ✅ fixed
+              onPressed: () => context.push('/edit-profile'),
               icon: const Icon(Icons.edit),
               label: const Text('Edit profile'),
             ),

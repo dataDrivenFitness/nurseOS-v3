@@ -1,81 +1,104 @@
-# NurseOS Gamification Reference
 
-## 🎯 Purpose
+# Gamification Reference – NurseOS v2
 
-Design a motivational system that supports nurse engagement and performance without adding pressure or competition to their daily workflow.
+> Defines XP, badges, levels, and enforcement logic for gamification features within NurseOS v2.
 
-## 🧩 Core Gamification Elements
+---
 
-### 1. XP & Levels (Mobile App)
+## 🎯 Goals
 
-* **XP (Experience Points)**: Earned for completing tasks, logging notes, shift reviews.
-* **Leveling System**: Visual level indicators to show long-term growth.
-* **UI Locations**:
+- Encourage consistent documentation and patient care
+- Reward timely task completion and app engagement
+- Create healthy competition (admin-only visibility)
 
-  * Dashboard: XP bar + current level summary
-  * Profile: Full XP count, level breakdown, badge history
+---
 
-### 2. Badges (Coming Soon)
+## ✅ Core Concepts
 
-* Milestone-based (e.g., "10 shifts completed", "First patient handoff")
-* Shown on profile only
-* No public visibility or ranking
+### 🧠 XP (Experience Points)
 
-## 🚫 What We Avoid
+- Only nurse-initiated actions can trigger XP
+- XP stored under `users/{uid}.xp` and updated via Cloud Functions
 
-* No public comparisons
-* No leaderboard visibility on mobile
-* No XP penalties
+#### Example Triggers:
+| Action                   | XP |
+|--------------------------|----|
+| Submit vitals            | 5  |
+| Add patient note         | 10 |
+| Complete checklist item  | 3  |
+| Resolve alert            | 15 |
+| Submit patient summary   | 20 |
 
-## 📊 Leaderboards (Admin Console Only)
+---
 
-* Available **only** via the NurseOS Web Admin Console
-* Purpose: recognize top performers, identify patterns
+### 🏅 Badges
 
-### Leaderboard Views
+Badges represent milestones or rare behaviors. Stored in:
+```
+users/{uid}/badges/
+```
 
-* **Top Nurses This Week**
-* **By Unit / Department**
-* **All-Time XP Rankings**
+#### Examples:
+- `earlyBird` – 3+ actions before 8 AM for 5 days
+- `sharpScribe` – 100 notes submitted
+- `calmResponder` – 25 alerts resolved without escalation
 
-### Filters / Options
+---
 
-* Date range
-* Role / unit
-* Shift type
+### 🧱 Firestore Structure
 
-### Firebase Setup
+```plaintext
+users/
+  {uid}/
+    xp: int
+    level: int
+    badges/
+      {badgeId}: { awardedAt: Timestamp }
 
-* **users/** collection:
+leaderboards/
+  weekly/
+    {weekId}/
+      {uid}: { xp: int }
+```
 
-  * `xp` (int)
-  * `level` (int)
-  * `unit`, `role` (optional for filtering)
-* **leaderboards/** collection (optional precomputed rankings)
+> Leaderboard is read-only on mobile. Visible only in admin portal.
 
-### Firestore Rule Example
+---
 
-```js
-match /leaderboards/{doc} {
-  allow read: if request.auth.token.role == 'admin';
+## 🛠️ Abstract XP Repository
+
+Use `AbstractXpRepository` with mock/live implementation.
+
+```dart
+abstract class AbstractXpRepository {
+  Future<void> grantXp(String userId, XpAction action);
 }
 ```
 
-## ✅ UX Notes
+- Live version uses HTTPS Callable Functions (`functions.grantXp`)
+- Mock version supports `useMock` toggle
 
-* Maintain a supportive tone
-* Prioritize reflection, not competition
-* Use badges and XP for encouragement only
+---
 
+## 💥 Constraints
 
-<!-- v2.1 update – Jun 22 -->
+- XP logic is server-side only
+- No XP for system-generated events or retries
+- Badge logic validated daily via scheduled Cloud Function
 
-## 🧠 Updated XP Hook Strategy
+---
 
-* XP should be incremented **within `save()` methods** of patient-related repositories.
-* Ensure XP hooks are:
-  - Triggered only in Firebase-backed mode
-  - Disabled in mock mode (to prevent double-counting)
-  - Testable via `MockXpRepository`
+## ✅ Testing Rules
 
-*XP tracking must remain invisible and motivational — not tied to scorekeeping or nurse evaluation.*
+- All XP triggers must be testable via unit test and UI simulation
+- Gamified UI elements (e.g., badge popup) must have golden test
+- XP animation uses `animation_tokens.dart` and is test-triggerable
+
+---
+
+## 🚫 Anti-Patterns
+
+- ❌ No XP updates from client-side logic
+- ❌ Don’t display leaderboard on mobile
+
+---

@@ -1,3 +1,5 @@
+// lib/features/auth/presentation/login_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,7 +19,7 @@ class LoginScreen extends ConsumerWidget {
     final authState = ref.watch(authControllerProvider);
     debugPrint('[LoginScreen] authState status: $authState');
 
-    // ✅ Respect ?from= param on post-login redirect
+    // ✅ Schedule routing safely after successful login
     ref.listen<AsyncValue<UserModel?>>(
       authControllerProvider,
       (previous, next) {
@@ -25,11 +27,13 @@ class LoginScreen extends ConsumerWidget {
           data: (user) {
             if (user == null) return;
 
-            final fromParam =
-                GoRouterState.of(context).uri.queryParameters['from'];
-            final defaultRoute =
-                user.role == UserRole.admin ? '/admin' : '/tasks';
-            final route = fromParam ?? defaultRoute;
+            final shouldEditProfile = user.firstName.trim().isEmpty;
+
+            final route = shouldEditProfile
+                ? '/edit-profile?replace=true'
+                : user.role == UserRole.admin
+                    ? '/admin'
+                    : '/tasks';
 
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (context.mounted) {

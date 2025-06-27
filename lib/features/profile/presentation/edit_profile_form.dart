@@ -1,14 +1,15 @@
-// lib/features/profile/presentation/edit_profile_form.dart
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nurseos_v3/shared/widgets/profile_avatar.dart';
+
 import '../../../core/theme/animation_tokens.dart';
 import '../../../core/theme/typography.dart';
-import '../../../shared/widgets/profile_avatar.dart';
 import '../../../shared/utils/image_picker_utils.dart';
 import '../../auth/models/user_model.dart';
-import '../../auth/state/auth_controller.dart';
+import '../../profile/state/user_profile_controller.dart'; // ✅ new import
 
 class EditProfileForm extends ConsumerStatefulWidget {
   final UserModel user;
@@ -22,6 +23,7 @@ class EditProfileForm extends ConsumerStatefulWidget {
 class _EditProfileFormState extends ConsumerState<EditProfileForm>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
+
   late TextEditingController _firstNameController;
   late TextEditingController _lastNameController;
 
@@ -52,14 +54,14 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm>
   }
 
   void _checkDirty() {
-    final modified =
+    final isModified =
         _firstNameController.text.trim() != widget.user.firstName ||
             _lastNameController.text.trim() != widget.user.lastName ||
             _newAvatar != null;
 
-    if (modified != _isDirty) {
-      setState(() => _isDirty = modified);
-      modified ? _showSave() : _hideSave();
+    if (isModified != _isDirty) {
+      setState(() => _isDirty = isModified);
+      isModified ? _showSave() : _hideSave();
     }
   }
 
@@ -78,6 +80,7 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm>
       context: context,
       isCircular: true,
     );
+
     if (picked != null) {
       setState(() => _newAvatar = picked);
       _checkDirty();
@@ -87,12 +90,11 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm>
   Future<void> _onSave() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final notifier = ref.read(authControllerProvider.notifier);
+    final notifier = ref.read(userProfileProvider.notifier); // ✅ new notifier
     final firstName = _firstNameController.text.trim();
     final lastName = _lastNameController.text.trim();
 
     try {
-      debugPrint('[EditProfile] Saving...');
       await notifier.updateUser(
         firstName: firstName,
         lastName: lastName,
@@ -111,8 +113,7 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm>
         _isDirty = false;
       });
 
-      await Future.delayed(const Duration(milliseconds: 150));
-      context.go('/profile');
+      context.go('/profile'); // ✅ always navigate cleanly
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

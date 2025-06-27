@@ -1,95 +1,58 @@
 
-# ✅ NurseOS v2 – Master Feature Checklist
+# NurseOS Master Feature Checklist – v2
 
-This checklist replaces the legacy roadmap and provides detailed tracking of all architectural, UI, and domain-level features across NurseOS v2.
-
----
-
-## 🧱 Core Architecture & Setup
-
-- [x] Modular folder structure (`core/`, `features/`, `shared/`)
-- [x] Riverpod v2 setup (Notifier + AsyncNotifier)
-- [x] Firebase integration (Auth + Firestore)
-- [x] Firestore rules for per-user safety
-- [x] Dark/light theming system
-- [x] GoRouter with auth refresh notifier
-- [x] HIPAA visual/data practices
+> This document tracks the implementation status of all major features in NurseOS v2, ensuring HIPAA compliance, mock/test coverage, and alignment with architecture standards.
 
 ---
 
-## 👥 Authentication & User State
+## 🧩 Core Features
 
-- [x] Sign in/out flow
-- [x] AuthController with keepAlive
-- [x] UserModel with XP, badges, role
-- [x] User-level Firestore sync
-- [x] Firestore document hydration on login
-- [x] Role-based access guards (nurse, admin)
-
----
-
-## 🧩 User Preferences
-
-- [x] DisplayPreferences model (freezed + enum)
-- [x] Firestore-backed persistence
-- [x] Toggle UI for display settings
-- [x] Theme toggle (dark/light)
-- [ ] Language preferences
-- [ ] Notification preferences
+| Feature           | Status     | Mock Mode | Tests | HIPAA-OK | Notes                         |
+|------------------|------------|-----------|-------|----------|-------------------------------|
+| Auth (email)     | ✅ Done    | ✅        | ✅    | ✅       | Custom claims enforced        |
+| Patient Chart    | 🟡 In Dev  | ✅        | 🟡    | ✅       | Needs Firestore guard         |
+| Vitals           | ✅ Done    | ✅        | ✅    | ✅       | FAB-enabled                    |
+| Notes            | ✅ Done    | ✅        | ✅    | ✅       | GPT suggestion UI active      |
+| Checklists       | 🔲 Planned | 🔲        | 🔲    | ✅       | Triggers XP                   |
+| Alerts           | 🟡 In Dev  | ✅        | 🟡    | ✅       | Microanimation needed         |
+| Gamification     | ✅ Done    | ✅        | ✅    | ✅       | No leaderboard on mobile      |
+| GPT Integration  | ✅ Done    | ✅        | ✅    | ✅       | De-identified only            |
+| Dark Mode        | ✅ Done    | N/A       | ✅    | ✅       | Themed via core/colors.dart   |
+| Animation Tokens | ✅ Done    | N/A       | ✅    | ✅       | Used in microinteractions     |
 
 ---
 
-## 🧑‍⚕️ Dashboard & Task System
+## 🛡️ Compliance Flags
 
-- [ ] Task screen becomes gamified dashboard
-- [ ] Display XP, level, and badges
-- [ ] Show pending tasks
-- [ ] Admin-only leaderboard (web only)
-- [ ] Floating Action Button for new entries
-
----
-
-## 👤 Patient Care Flow
-
-- [ ] Patient list screen
-- [ ] Patient detail screen with scrollable cards
-- [ ] Vitals entry screen
-- [ ] Vitals history + graph
-- [ ] Head-to-toe assessment screen
-- [ ] Care Plan screen
-- [ ] Add Care Plan entry
-- [ ] Note-taking with progressive disclosure
+- [x] Firebase init guarded
+- [x] No direct Firebase in widgets
+- [x] All prompts de-identified
+- [x] Role-based access enforced
 
 ---
 
-## 🎮 Gamification System
+## 🧪 Test Audit
 
-- [x] AbstractXpRepository (mock/live toggle)
-- [ ] XP triggers from nurse actions only
-- [ ] Badges triggered by shifts/tasks
-- [ ] XP history or feedback microinteractions
-
----
-
-## 🧪 Testing Suite
-
-- [x] Unit tests for models and repos
-- [x] Widget tests for screens
-- [x] Golden tests for components
-- [ ] Golden tests with type scaling
-- [ ] Triggerable tests for XP/badge animations
+- [x] All major features have widget + unit tests
+- [x] Golden tests added for FAB and animations
+- [x] Type scaling verified via MediaQuery in tests
 
 ---
 
-## 🚀 Release & Ops
+## 🔍 Review Schedule
 
-- [x] GitHub CI for analyze, test, format
-- [x] Build runner cache clean automation
-- [ ] Version tagging on releases
-- [ ] Final QA & release checklist
+| Section       | Owner         | Last Review     |
+|---------------|---------------|-----------------|
+| Auth & Access | Backend Lead  | 2025-06-15      |
+| UI/UX         | Design Lead   | 2025-06-22      |
+| Data Layer    | App Architect | 2025-06-19      |
 
 ---
 
-# 📦 Status: Actively in Progress
+## 🚫 Deprecated (Do Not Reinstate)
 
-Track each section weekly and update provider annotations, test coverage, and UI polish accordingly.
+- Old `home/` UI pattern
+- Manual XP triggers from UI
+- Any direct Firestore in screens
+
+---

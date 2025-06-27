@@ -1,161 +1,80 @@
-> ⚠️ UPDATE NOTE: This document has been synced to NurseOS v2 architecture.
-> UPDATED: Synced collection naming and `useMockServices` guidance with v2 blueprint. Revalidated firestore converter logic.
 
-...
+# Firebase Integration Strategy – NurseOS v2
 
-# 🔥 NurseOS Firebase Integration Strategy (June 2025)
-
-This document outlines the integration strategy for connecting NurseOS to Firebase Firestore and Firebase Auth while maintaining modularity, HIPAA readiness, and offline mock compatibility.
+> All Firebase interactions are abstracted, tested, and compliant with HIPAA policies. No direct Firebase calls are allowed in UI layers.
 
 ---
 
-## ✅ Firebase Project Setup
+## ✅ Core Principles
 
-1. **Enable Services:**
-   - Firebase Auth (Email/Password)
-   - Cloud Firestore
+- 🔒 **HIPAA-Compliant Design**
+  - All Firebase access is routed through secure repositories.
+  - Use of Firestore, Authentication, and Functions reviewed under BAA.
 
-2. **iOS Configuration:**
-   - Register app in Firebase Console
-   - Download `GoogleService-Info.plist` → place in `/ios/Runner/`
+- 🧱 **Layer Separation**
+  - `data/` layer only: No Firebase code in `features/` or `shared/` layers.
+  - Riverpod providers bridge repositories and feature logic.
 
-3. **Required Packages:**
-   ```yaml
-   firebase_core: ^2.30.0
-   firebase_auth: ^4.17.0
-   cloud_firestore: ^5.8.0
-   ```
+- 🧪 **Test Coverage**
+  - Every repository is backed by unit tests and mock implementations.
+  - Use mock toggles (`useMock`) in all feature modules.
 
 ---
 
-## 🔁 Mock vs. Firebase Toggle
+## 🔧 Authentication
 
-**Source:** `lib/env.dart`
-```dart
-const bool useMockServices = false;
-```
-
-**Effect:** All services in `/services/` will switch between:
-- `MockXxxService`
-- `FirebaseXxxService`
-…based on this flag.
+- Uses **Firebase Authentication** (email/password, SSO optional)
+- Custom claims injected via Firebase Admin SDK to enforce RBAC
+- Reauth enforced for sensitive ops (e.g., data export, deletions)
 
 ---
 
-## 🧱 Firestore Schema (Core Collections)
+## 🔥 Firestore Usage
 
-### `patients/{patientId}`
-```json
-{
-  "name": "John Doe",
-  "dob": "1970-01-01",
-  "pronouns": "he/him",
-  "assignedNurses": ["nurse_001"],
-  "riskFlags": ["fall"],
-  "createdBy": "nurse_001",
-  "createdAt": "2025-06-15T10:00Z"
-}
-```
+- Structured via `withConverter<T>()` for all models (no manual `.data()` or `.map()` calls)
+- Collections:
+  - `users/` – nurse metadata, XP, roles
+  - `patients/` – chart, vitals, notes
+  - `logs/` – audit and session logs
+  - `leaderboards/` – gamification metrics (admin view only)
 
-### `patients/{id}/shift_notes/{noteId}`
-```json
-{
-  "content": "...",
-  "wasAiGenerated": true,
-  "createdBy": "nurse_001",
-  "createdAt": "2025-06-15T18:30Z"
-}
-```
-
-### `patients/{id}/vitals/{entryId}`
-```json
-{
-  "temperature": 98.6,
-  "pulse": 72,
-  "systolic": 120,
-  "diastolic": 80,
-  "respiratoryRate": 16,
-  "oxygenSaturation": 98,
-  "recordedBy": "nurse_001",
-  "recordedAt": "2025-06-15T18:45Z"
-}
-```
+- All documents include `createdAt`, `updatedAt`, `createdBy`, `modifiedBy`
 
 ---
 
-## 🔐 Firestore Security Rules (Planned)
+## 🛠️ Firebase Functions
 
-```js
-match /patients/{patientId} {
-  allow read, write: if request.auth != null
-    && request.auth.uid in resource.data.assignedNurses;
-}
-match /patients/{patientId}/shift_notes/{noteId} {
-  allow write: if request.auth != null
-    && request.auth.uid == request.resource.data.createdBy;
-}
-```
+- All role-sensitive logic (e.g., `grantXp`, `softDeletePatient`) uses Cloud Functions
+- Callable Functions return validated DTOs only
+- No direct writes from client to protected collections
 
 ---
 
-## 🧪 Testing with Firebase Emulator
+## 🧩 Integration Rules
 
-1. Install Firebase CLI
-2. Run:
-   ```sh
-   firebase emulators:start
-   ```
-3. In `.env.dart`, toggle:
-   ```dart
-   const bool useMockServices = false; // uses Firebase
-   ```
+- All Firebase init is done in `lib/core/firebase/`
+- Firebase is initialized in a guarded way using:
+  ```dart
+  await guardFirebaseInitialization();
+  ```
+- No Firestore instances in UI or `Notifier` classes – use `RepositoryProvider`
 
 ---
 
-## 🛠 Strategy for Safe Rollout
+## 🧪 Testing Firebase Code
 
-- Start each feature in **mock-only mode**
-- Validate with real data using `FirebaseXxxService`
-- Maintain full swapability via abstract interfaces
-- Never allow direct Firestore access in UI or state layers
-
----
-
-## 🧾 Audit Logging (Planned)
-
-### `audit_log/{logId}`
-```json
-{
-  "event": "gpt_note_generated",
-  "patientId": "abc123",
-  "noteId": "note456",
-  "triggeredBy": "nurse_001",
-  "timestamp": "..."
-}
-```
+- Use `FakeFirebaseFirestore` and `MockFirebaseAuth` in tests
+- All repositories must test:
+  - CRUD behavior
+  - Auth logic
+  - Error handling and retries
 
 ---
 
-## 🧠 Key Guidelines
+## 🚨 Security
 
-| Principle | Rule |
-|----------|------|
-| Service Isolation | Always use abstract interfaces |
-| State Safety | Never call Firestore in widgets |
-| Mock Safety | Keep mock logic in `mock_*_service.dart` |
-| HIPAA Awareness | No PHI in logs, GPT, or test literals |
+- Firebase rules versioned in `/firebase/rules/`
+- CI pipeline runs `firebase emulators:exec` for rule validation
+- Role enforcement is duplicated in both Firestore Rules and backend functions
 
 ---
-
-*Firebase is powerful — but we stay mock-first, audit-safe, and patient-focused.*
-
-<!-- v2.1 update – Jun 22 -->
-
-## 🔄 Updated Mock Enforcement
-
-* The `useMockServices` toggle must affect **all repositories and services**, not just data sources.
-* This includes:
-  - `AuthService`
-  - `GPTService` / note generation
-  - XP-related writes
-* In production builds, `.env` pre-load is optional — but in testing, always await `.env` before initializing Firebase to prevent init errors.

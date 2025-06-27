@@ -1,15 +1,14 @@
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/user_model.dart';
 
 part 'auth_controller.g.dart';
 
+/// ✅ This controller now only manages login/logout and auth status.
+/// All profile logic (names, photos) has moved to `user_profile_controller.dart`.
 @Riverpod(keepAlive: true)
 class AuthController extends _$AuthController {
   @override
@@ -21,7 +20,7 @@ class AuthController extends _$AuthController {
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUser.uid)
-          .withConverter(
+          .withConverter<UserModel>(
             fromFirestore: (snap, _) => UserModel.fromJson(snap.data()!),
             toFirestore: (user, _) => user.toJson(),
           )
@@ -33,6 +32,7 @@ class AuthController extends _$AuthController {
     return result.value;
   }
 
+  /// 🔐 Email/password login — updates state and triggers downstream routing
   Future<void> signIn(String email, String password) async {
     state = const AsyncValue.loading();
 
@@ -43,7 +43,7 @@ class AuthController extends _$AuthController {
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(cred.user!.uid)
-          .withConverter(
+          .withConverter<UserModel>(
             fromFirestore: (snap, _) => UserModel.fromJson(snap.data()!),
             toFirestore: (user, _) => user.toJson(),
           )
@@ -56,60 +56,11 @@ class AuthController extends _$AuthController {
     state = result;
   }
 
+  /// 🔓 Sign-out and reset session state
   Future<void> signOut() async {
     state = const AsyncValue.loading();
     await FirebaseAuth.instance.signOut();
     state = const AsyncValue.data(null);
-    ref.invalidateSelf();
-  }
-
-  Future<void> updateUser({
-    required String firstName,
-    required String lastName,
-    File? photoFile,
-  }) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
-      throw Exception('No signed-in user');
-    }
-
-    final uid = currentUser.uid;
-    final userDocRef = FirebaseFirestore.instance.collection('users').doc(uid);
-
-    String? newPhotoUrl;
-
-    try {
-      if (photoFile != null) {
-        final storageRef = FirebaseStorage.instance.ref().child('avatars/$uid');
-
-        final uploadSnap = await storageRef.putFile(
-          photoFile,
-          SettableMetadata(contentType: 'image/jpeg'),
-        );
-
-        newPhotoUrl = await uploadSnap.ref.getDownloadURL();
-      }
-
-      final updates = <String, dynamic>{
-        'firstName': firstName,
-        'lastName': lastName,
-        if (newPhotoUrl != null) 'photoUrl': newPhotoUrl,
-      };
-
-      await userDocRef.update(updates);
-
-      // ✅ PATCH: update state directly to avoid triggering router redirect
-      final previous = state.value!;
-      final updated = previous.copyWith(
-        firstName: firstName,
-        lastName: lastName,
-        photoUrl: newPhotoUrl ?? previous.photoUrl,
-      );
-
-      state = AsyncValue.data(updated);
-    } catch (e, st) {
-      debugPrint('[AuthController.updateUser] upload failed: $e / $st');
-      rethrow;
-    }
+    ref.invalidateSelf(); // refresh all dependent auth state
   }
 }

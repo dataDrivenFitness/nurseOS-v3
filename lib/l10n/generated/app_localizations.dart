@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
+import 'app_localizations_es.dart';
 
 // ignore_for_file: type=lint
 
@@ -92,51 +93,54 @@ abstract class AppLocalizations {
   ];
 
   /// A list of this localizations delegate's supported locales.
-  static const List<Locale> supportedLocales = <Locale>[Locale('en')];
+  static const List<Locale> supportedLocales = <Locale>[
+    Locale('en'),
+    Locale('es')
+  ];
 
-  /// No description provided for @editProfile.
+  /// Label for edit profile button
   ///
   /// In en, this message translates to:
   /// **'Edit Profile'**
   String get editProfile;
 
-  /// No description provided for @preferences.
+  /// Header for user preferences screen
   ///
   /// In en, this message translates to:
   /// **'Preferences'**
   String get preferences;
 
-  /// No description provided for @darkMode.
+  /// Toggle for dark mode theme
   ///
   /// In en, this message translates to:
   /// **'Dark Mode'**
   String get darkMode;
 
-  /// No description provided for @language.
+  /// Label for language selection
   ///
   /// In en, this message translates to:
   /// **'Language'**
   String get language;
 
-  /// No description provided for @english.
+  /// Option label for English
   ///
   /// In en, this message translates to:
   /// **'English'**
   String get english;
 
-  /// No description provided for @displaySettings.
+  /// Section title for patient display preferences
   ///
   /// In en, this message translates to:
   /// **'Patient Display Settings'**
   String get displaySettings;
 
-  /// No description provided for @accessibility.
+  /// Section title for accessibility settings
   ///
   /// In en, this message translates to:
   /// **'Accessibility'**
   String get accessibility;
 
-  /// No description provided for @logOut.
+  /// Logout button label
   ///
   /// In en, this message translates to:
   /// **'Log Out'**
@@ -154,7 +158,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en'].contains(locale.languageCode);
+      <String>['en', 'es'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -165,6 +169,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   switch (locale.languageCode) {
     case 'en':
       return AppLocalizationsEn();
+    case 'es':
+      return AppLocalizationsEs();
   }
 
   throw FlutterError(

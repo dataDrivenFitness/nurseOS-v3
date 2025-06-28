@@ -155,3 +155,7 @@ MediaQuery(
 Golden tests must override this provider and use a high scale value (e.g., `1.5`) to verify layout stability.
 
 ---
+
+## 📤 Data Transfer
+
+See [Document Transfer Protocol](doc_transfer_protocol.md) for secure patient data export guidelines.

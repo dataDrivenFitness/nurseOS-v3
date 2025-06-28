@@ -1,22 +1,25 @@
+// 📁 lib/features/profile/screens/profile_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:nurseos_v3/l10n/generated/app_localizations.dart';
+import 'package:nurseos_v3/l10n/l10n.dart';
 
 import '../../../core/theme/spacing.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../shared/widgets/nurse_scaffold.dart';
 import '../../../shared/widgets/settings_section.dart';
-import '../../profile/state/user_profile_controller.dart';
 import '../../auth/state/auth_controller.dart';
+import '../../preferences/controllers/locale_controller.dart';
+import '../../profile/state/user_profile_controller.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
     final user = ref.watch(userProfileProvider).value;
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
@@ -25,11 +28,16 @@ class ProfileScreen extends ConsumerWidget {
 
     if (user == null) return const SizedBox.shrink();
 
+    final locale =
+        ref.watch(localeControllerProvider).valueOrNull ?? const Locale('en');
+    final themeAsync = ref.watch(themeControllerProvider);
+    final isDark = themeAsync.valueOrNull == ThemeMode.dark;
+
     return NurseScaffold(
       child: ListView(
         padding: const EdgeInsets.all(SpacingTokens.lg),
         children: [
-          // 👤 User Header
+          // ─── User Info ──────────────────────────────
           Row(
             children: [
               Container(
@@ -37,14 +45,11 @@ class ProfileScreen extends ConsumerWidget {
                 height: 80,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Theme.of(context).dividerColor,
-                    width: 1.5,
-                  ),
+                  border: Border.all(color: theme.dividerColor, width: 1.5),
                 ),
                 child: CircleAvatar(
-                  radius: 40,
                   backgroundColor: colors.brandPrimary,
+                  radius: 40,
                   child: ClipOval(
                     child: Image.network(
                       user.photoUrl ?? '',
@@ -69,33 +74,27 @@ class ProfileScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '${user.firstName} ${user.lastName}',
-                      style: textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: colors.text,
-                      ),
-                    ),
-                    Text(
-                      user.email,
-                      style: textTheme.bodyLarge?.copyWith(
-                        color: colors.subdued,
-                      ),
-                    ),
-                    Text(
-                      user.role.name,
-                      style: textTheme.labelMedium?.copyWith(
-                        color: colors.subdued,
-                      ),
-                    ),
+                    Text('${user.firstName} ${user.lastName}',
+                        style: textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: colors.text,
+                        )),
+                    Text(user.email,
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: colors.subdued,
+                        )),
+                    Text(user.role.name,
+                        style: textTheme.labelMedium?.copyWith(
+                          color: colors.subdued,
+                        )),
                   ],
                 ),
               ),
             ],
           ),
-
-          // ✏️ Edit Profile Shortcut
           const SizedBox(height: SpacingTokens.md),
+
+          // ─── Edit Profile ───────────────────────────
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
@@ -104,44 +103,35 @@ class ProfileScreen extends ConsumerWidget {
               label: Text(l10n.editProfile),
             ),
           ),
-
           const SizedBox(height: SpacingTokens.lg),
 
-          // ⚙️ Preferences Section
+          // ─── Preferences ────────────────────────────
           SettingsSection(
             title: l10n.preferences,
             children: [
-              // 🌙 Dark Mode Toggle
-              Consumer(
-                builder: (context, ref, _) {
-                  final isDark =
-                      ref.watch(themeControllerProvider) == ThemeMode.dark;
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: SpacingTokens.sm,
-                    ),
-                    child: ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      horizontalTitleGap: SpacingTokens.md,
-                      leading: const Icon(Icons.brightness_6),
-                      title: Text(l10n.darkMode),
-                      trailing: Switch(
-                        value: isDark,
-                        onChanged: (val) => ref
+              // 🔄 Dark Mode Toggle
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: SpacingTokens.sm),
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  horizontalTitleGap: SpacingTokens.md,
+                  leading: const Icon(Icons.brightness_6),
+                  title: Text(l10n.darkMode),
+                  trailing: Switch(
+                    value: isDark,
+                    onChanged: themeAsync.hasValue
+                        ? (val) => ref
                             .read(themeControllerProvider.notifier)
-                            .toggleTheme(val),
-                      ),
-                    ),
-                  );
-                },
+                            .toggleTheme(val)
+                        : null,
+                  ),
+                ),
               ),
 
-              // 🖼️ Display Settings
+              // 🖥️ Display Settings
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: SpacingTokens.sm,
-                ),
+                padding: const EdgeInsets.symmetric(vertical: SpacingTokens.sm),
                 child: ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
@@ -153,27 +143,9 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
 
-              // 🌐 Language
+              // ♿ Accessibility Settings
               Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: SpacingTokens.sm,
-                ),
-                child: ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  horizontalTitleGap: SpacingTokens.md,
-                  leading: const Icon(Icons.language),
-                  title: Text(l10n.language),
-                  trailing: Text(l10n.english),
-                  enabled: false,
-                ),
-              ),
-
-              // 🔡 Accessibility Settings (text scale)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: SpacingTokens.sm,
-                ),
+                padding: const EdgeInsets.symmetric(vertical: SpacingTokens.sm),
                 child: ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
@@ -184,12 +156,38 @@ class ProfileScreen extends ConsumerWidget {
                   onTap: () => context.push('/accessibility'),
                 ),
               ),
+
+              // 🌐 Language Selector
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: SpacingTokens.sm),
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  horizontalTitleGap: SpacingTokens.md,
+                  leading: const Icon(Icons.language),
+                  title: Text(l10n.language),
+                  trailing: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: locale.languageCode,
+                      onChanged: (code) async {
+                        if (code == null) return;
+                        await ref
+                            .read(localeControllerProvider.notifier)
+                            .updateLocale(Locale(code));
+                      },
+                      items: const [
+                        DropdownMenuItem(value: 'en', child: Text('English')),
+                        DropdownMenuItem(value: 'es', child: Text('Español')),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
-
           const SizedBox(height: SpacingTokens.lg),
 
-          // 🚪 Sign Out Button
+          // 🚪 Logout
           FilledButton.icon(
             style: FilledButton.styleFrom(
               backgroundColor: colors.brandPrimary,

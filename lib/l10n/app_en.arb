@@ -1,0 +1,37 @@
+{
+  "@@locale": "en",
+
+  "editProfile": "Edit Profile",
+  "preferences": "Preferences",
+  "darkMode": "Dark Mode",
+  "language": "Language",
+  "english": "English",
+  "displaySettings": "Patient Display Settings",
+  "accessibility": "Accessibility",
+  "logOut": "Log Out",
+
+  "@editProfile": {
+    "description": "Label for edit profile button"
+  },
+  "@preferences": {
+    "description": "Header for user preferences screen"
+  },
+  "@darkMode": {
+    "description": "Toggle for dark mode theme"
+  },
+  "@language": {
+    "description": "Label for language selection"
+  },
+  "@english": {
+    "description": "Option label for English"
+  },
+  "@displaySettings": {
+    "description": "Section title for patient display preferences"
+  },
+  "@accessibility": {
+    "description": "Section title for accessibility settings"
+  },
+  "@logOut": {
+    "description": "Logout button label"
+  }
+}

@@ -1,4 +1,4 @@
-# 📘 NurseOS Feature Dev Guide v2.1 – Firebase Edition
+# 📘 NurseOS Feature Dev Guide v2.2 – Firebase Edition
 
 This update reflects our transition to a Firebase-integrated development model while preserving the modular, testable architecture defined in v2.0.
 
@@ -168,3 +168,15 @@ Use `keepAlive: true` when the provider manages **global or cross-screen state**
 ---
 
 > 📌 **Enforcement**: All new global providers must be reviewed for `keepAlive` scope and explicitly tagged in code and `Feature_Dev_Guide_v2-2.md`.
+
+---
+
+## 🔔 Notifications
+
+See [Reminder & Notification Strategy](reminder_notification_strategy.md) for implementation guidance.
+
+---
+
+## 📤 Document Transfer
+
+See [Document Transfer Protocol](doc_transfer_protocol.md) for secure export and sharing practices.

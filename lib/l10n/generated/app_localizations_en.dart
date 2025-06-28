@@ -9,6 +9,36 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get nurse => 'Nurse';
+
+  @override
+  String get patients => 'Patients';
+
+  @override
+  String get assignedPatients => 'Assigned Patients';
+
+  @override
+  String get noPatientsAssigned => 'No patients assigned.';
+
+  @override
+  String get failedToLoadPatients => 'Failed to load patients.';
+
+  @override
+  String get login => 'Log In';
+
+  @override
+  String get loginFailed => 'Login failed';
+
+  @override
+  String get loginSubtitle => 'Secure login for healthcare professionals';
+
+  @override
+  String get email => 'Email';
+
+  @override
+  String get password => 'Password';
+
+  @override
   String get editProfile => 'Edit Profile';
 
   @override

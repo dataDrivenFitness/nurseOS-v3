@@ -2,6 +2,7 @@
 import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart'; // ← FirebaseException
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -14,9 +15,7 @@ import 'package:nurseos_v3/core/providers/shared_prefs_provider.dart';
 abstract class AbstractLocaleRepository {
   Future<Locale?> getLocale(String uid);
   Future<void> setLocale(String uid, Locale locale);
-
-  /// 🔴 NEW: live Firestore stream → Locale
-  Stream<Locale> watchLocale(String uid);
+  Stream<Locale> watchLocale(String uid); // live updates
 }
 
 /* ──────────────────────────────────────────────────────────────
@@ -36,11 +35,11 @@ class FirebaseLocaleRepository implements AbstractLocaleRepository {
   Future<Locale?> getLocale(String uid) async {
     if (uid.isEmpty) throw ArgumentError('UID is required');
 
-    // 1️⃣ Local cache first
+    // ① local cache
     final cached = _prefs.getString(_prefsKey);
     if (cached?.isNotEmpty == true) return Locale(cached!);
 
-    // 2️⃣ Firestore fallback
+    // ② Firestore fallback
     final code = (await _doc(uid).get()).data()?['locale'];
     if (code is String && code.isNotEmpty) {
       await _prefs.setString(_prefsKey, code);
@@ -59,12 +58,20 @@ class FirebaseLocaleRepository implements AbstractLocaleRepository {
   }
 
   /*───────────────────────────────────────────────────────────
-                 🔴  Live Firestore stream
+                   Live Firestore stream
   ───────────────────────────────────────────────────────────*/
   @override
   Stream<Locale> watchLocale(String uid) {
     return _doc(uid)
         .snapshots()
+        .handleError((e, st) {
+          // 🛡️  Ignore post-logout permission error
+          if (e is FirebaseException && e.code == 'permission-denied') {
+            // no-op
+          } else {
+            Error.throwWithStackTrace(e, st); // bubble up unexpected errors
+          }
+        })
         .map((snap) => snap.data()?['locale'])
         .where((code) => code is String && code.isNotEmpty)
         .map<Locale>((code) => Locale(code as String));

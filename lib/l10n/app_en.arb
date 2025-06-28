@@ -1,36 +1,92 @@
 {
   "@@locale": "en",
 
-  "editProfile": "Edit Profile",
-  "preferences": "Preferences",
-  "darkMode": "Dark Mode",
-  "language": "Language",
-  "english": "English",
-  "displaySettings": "Patient Display Settings",
-  "accessibility": "Accessibility",
-  "logOut": "Log Out",
+  "nurse": "Nurse",
+  "@nurse": {
+    "description": "Title used before a nurse's name, e.g., Nurse Carolyn"
+  },
 
+  "patients": "Patients",
+  "@patients": {
+    "description": "Plural noun used in UI titles like 'Nurse Carolyn's Patients'"
+  },
+
+  "assignedPatients": "Assigned Patients",
+  "@assignedPatients": {
+    "description": "Fallback title when user name is unavailable"
+  },
+
+  "noPatientsAssigned": "No patients assigned.",
+  "@noPatientsAssigned": {
+    "description": "Message shown when patient list is empty"
+  },
+
+  "failedToLoadPatients": "Failed to load patients.",
+  "@failedToLoadPatients": {
+    "description": "Message shown when patient loading fails"
+  },
+
+  "login": "Log In",
+  "@login": {
+    "description": "Button label for logging in"
+  },
+
+  "loginFailed": "Login failed",
+  "@loginFailed": {
+    "description": "Error message shown when login fails"
+  },
+
+  "loginSubtitle": "Secure login for healthcare professionals",
+  "@loginSubtitle": {
+    "description": "Subtitle for the login screen"
+  },
+
+  "email": "Email",
+  "@email": {
+    "description": "Label for email field"
+  },
+
+  "password": "Password",
+  "@password": {
+    "description": "Label for password field"
+  },
+
+  "editProfile": "Edit Profile",
   "@editProfile": {
     "description": "Label for edit profile button"
   },
+
+  "preferences": "Preferences",
   "@preferences": {
     "description": "Header for user preferences screen"
   },
+
+  "darkMode": "Dark Mode",
   "@darkMode": {
     "description": "Toggle for dark mode theme"
   },
+
+  "language": "Language",
   "@language": {
     "description": "Label for language selection"
   },
+
+  "english": "English",
   "@english": {
     "description": "Option label for English"
   },
+
+  "displaySettings": "Patient Display Settings",
   "@displaySettings": {
     "description": "Section title for patient display preferences"
   },
+
+  "accessibility": "Accessibility",
   "@accessibility": {
     "description": "Section title for accessibility settings"
   },
+
+  "logOut": "Log Out",
   "@logOut": {
     "description": "Logout button label"
   }

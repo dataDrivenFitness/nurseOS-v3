@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../shared/widgets/nurse_scaffold.dart';
 import '../../../shared/widgets/settings_section.dart';
+import '../../../shared/widgets/profile_avatar.dart'; // 🆕
 import '../../auth/state/auth_controller.dart';
 import '../../preferences/controllers/locale_controller.dart';
 import '../../profile/state/user_profile_controller.dart';
@@ -21,10 +22,10 @@ class ProfileScreen extends ConsumerWidget {
     final l10n = context.l10n;
 
     /* 🔄 live Firestore providers */
-    final user = ref.watch(userProfileStreamProvider).value; // ← live
-    final locale = ref.watch(localeStreamProvider).valueOrNull ??
-        const Locale('en'); // ← live
-    final themeAsync = ref.watch(themeModeStreamProvider); // ← live
+    final user = ref.watch(userProfileStreamProvider).value;
+    final locale =
+        ref.watch(localeStreamProvider).valueOrNull ?? const Locale('en');
+    final themeAsync = ref.watch(themeModeStreamProvider);
     final isDark = themeAsync.valueOrNull == ThemeMode.dark;
 
     if (user == null) return const SizedBox.shrink();
@@ -41,34 +42,12 @@ class ProfileScreen extends ConsumerWidget {
           // ─── User Info ──────────────────────────────
           Row(
             children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: theme.dividerColor, width: 1.5),
-                ),
-                child: CircleAvatar(
-                  backgroundColor: colors.brandPrimary,
-                  radius: 40,
-                  child: ClipOval(
-                    child: Image.network(
-                      user.photoUrl ?? '',
-                      fit: BoxFit.cover,
-                      width: 80,
-                      height: 80,
-                      errorBuilder: (_, __, ___) => Center(
-                        child: Text(
-                          '${user.firstName[0]}${user.lastName[0]}',
-                          style: textTheme.titleLarge?.copyWith(
-                            fontSize: 32 * scaler.scale(1),
-                            color: colors.onPrimary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+              ProfileAvatar(
+                // 🆕 safer avatar
+                photoUrl: user.photoUrl,
+                fallbackName: '${user.firstName} ${user.lastName}',
+                radius: 40,
+                showBorder: true,
               ),
               const SizedBox(width: SpacingTokens.md),
               Expanded(
@@ -169,12 +148,12 @@ class ProfileScreen extends ConsumerWidget {
                   title: Text(l10n.language),
                   trailing: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
-                      value: locale.languageCode, // auto-updated
+                      value: locale.languageCode,
                       onChanged: (code) async {
                         if (code == null) return;
                         await ref
                             .read(localeControllerProvider.notifier)
-                            .updateLocale(Locale(code)); // still writes
+                            .updateLocale(Locale(code));
                       },
                       items: const [
                         DropdownMenuItem(value: 'en', child: Text('English')),

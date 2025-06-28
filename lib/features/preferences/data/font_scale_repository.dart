@@ -1,6 +1,6 @@
 // 📁 lib/features/preferences/data/font_scale_repository.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
+import 'package:firebase_core/firebase_core.dart'; // ← FirebaseException
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,9 +14,7 @@ import 'package:nurseos_v3/core/providers/shared_prefs_provider.dart';
 abstract class AbstractFontScaleRepository {
   Future<double?> getFontScale(String uid);
   Future<void> setFontScale(String uid, double scale);
-
-  /// 🆕  Live Firestore stream
-  Stream<double> watchFontScale(String uid);
+  Stream<double> watchFontScale(String uid); // live updates
 }
 
 /* ──────────────────────────────────────────────────────────────
@@ -30,14 +28,15 @@ class FirebaseFontScaleRepository implements AbstractFontScaleRepository {
 
   static const _prefsKey = 'fontScale';
 
-  /// Canonical doc: users/{uid}/preferences/global
+  /// users/{uid}/preferences/global
   DocumentReference<Map<String, dynamic>> _doc(String uid) =>
       _firestore.doc('users/$uid/preferences/global');
 
   @override
   Future<double?> getFontScale(String uid) async {
     if (uid.isEmpty) throw ArgumentError('UID required');
-    // ① Fast local read
+
+    // ① local cache
     final local = _prefs.getDouble(_prefsKey);
     if (local != null) return local;
 
@@ -59,15 +58,23 @@ class FirebaseFontScaleRepository implements AbstractFontScaleRepository {
   }
 
   /*─────────────────────────────
-          🆕  Live stream
+          Live Firestore stream
   ─────────────────────────────*/
   @override
   Stream<double> watchFontScale(String uid) {
     return _doc(uid)
         .snapshots()
+        .handleError((e, st) {
+          // 🛡️  Ignore the single permission-denied event after logout
+          if (e is FirebaseException && e.code == 'permission-denied') {
+            // no-op
+          } else {
+            Error.throwWithStackTrace(e, st); // bubble up anything else
+          }
+        })
         .map((snap) => snap.data()?['fontScale'])
         .where((raw) => raw is num)
-        .map((raw) => (raw as num).toDouble());
+        .map<double>((raw) => (raw as num).toDouble());
   }
 }
 

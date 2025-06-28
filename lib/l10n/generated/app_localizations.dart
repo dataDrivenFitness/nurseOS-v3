@@ -98,6 +98,66 @@ abstract class AppLocalizations {
     Locale('es')
   ];
 
+  /// Title used before a nurse's name, e.g., Nurse Carolyn
+  ///
+  /// In en, this message translates to:
+  /// **'Nurse'**
+  String get nurse;
+
+  /// Plural noun used in UI titles like 'Nurse Carolyn's Patients'
+  ///
+  /// In en, this message translates to:
+  /// **'Patients'**
+  String get patients;
+
+  /// Fallback title when user name is unavailable
+  ///
+  /// In en, this message translates to:
+  /// **'Assigned Patients'**
+  String get assignedPatients;
+
+  /// Message shown when patient list is empty
+  ///
+  /// In en, this message translates to:
+  /// **'No patients assigned.'**
+  String get noPatientsAssigned;
+
+  /// Message shown when patient loading fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load patients.'**
+  String get failedToLoadPatients;
+
+  /// Button label for logging in
+  ///
+  /// In en, this message translates to:
+  /// **'Log In'**
+  String get login;
+
+  /// Error message shown when login fails
+  ///
+  /// In en, this message translates to:
+  /// **'Login failed'**
+  String get loginFailed;
+
+  /// Subtitle for the login screen
+  ///
+  /// In en, this message translates to:
+  /// **'Secure login for healthcare professionals'**
+  String get loginSubtitle;
+
+  /// Label for email field
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get email;
+
+  /// Label for password field
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get password;
+
   /// Label for edit profile button
   ///
   /// In en, this message translates to:

@@ -1,37 +1,93 @@
 {
   "@@locale": "es",
 
-  "editProfile": "Editar perfil",
-  "preferences": "Preferencias",
-  "darkMode": "Modo oscuro",
-  "language": "Idioma",
-  "english": "Inglés",
-  "displaySettings": "Configuración de visualización del paciente",
-  "accessibility": "Accesibilidad",
-  "logOut": "Cerrar sesión",
+  "nurse": "Enfermera",
+  "@nurse": {
+    "description": "Título utilizado antes del nombre de una enfermera, por ejemplo, Enfermera Carolyn"
+  },
 
+  "patients": "Pacientes",
+  "@patients": {
+    "description": "Sustantivo plural utilizado en títulos como 'Enfermera Carolyn's Pacientes'"
+  },
+
+  "assignedPatients": "Pacientes asignados",
+  "@assignedPatients": {
+    "description": "Título alternativo cuando el nombre del usuario no está disponible"
+  },
+
+  "noPatientsAssigned": "No hay pacientes asignados.",
+  "@noPatientsAssigned": {
+    "description": "Mensaje mostrado cuando la lista de pacientes está vacía"
+  },
+
+  "failedToLoadPatients": "No se pudieron cargar los pacientes.",
+  "@failedToLoadPatients": {
+    "description": "Mensaje mostrado cuando falla la carga de pacientes"
+  },
+
+  "login": "Iniciar sesión",
+  "@login": {
+    "description": "Etiqueta del botón para iniciar sesión"
+  },
+
+  "loginFailed": "Error al iniciar sesión",
+  "@loginFailed": {
+    "description": "Mensaje de error que se muestra cuando falla el inicio de sesión"
+  },
+
+  "loginSubtitle": "Inicio de sesión seguro para profesionales de la salud",
+  "@loginSubtitle": {
+    "description": "Subtítulo para la pantalla de inicio de sesión"
+  },
+
+  "email": "Correo electrónico",
+  "@email": {
+    "description": "Etiqueta para el campo de correo electrónico"
+  },
+
+  "password": "Contraseña",
+  "@password": {
+    "description": "Etiqueta para el campo de contraseña"
+  },
+
+  "editProfile": "Editar perfil",
   "@editProfile": {
-    "description": "Label for edit profile button"
+    "description": "Etiqueta del botón para editar el perfil"
   },
+
+  "preferences": "Preferencias",
   "@preferences": {
-    "description": "Header for user preferences screen"
+    "description": "Encabezado para la pantalla de preferencias del usuario"
   },
+
+  "darkMode": "Modo oscuro",
   "@darkMode": {
-    "description": "Toggle for dark mode theme"
+    "description": "Conmutador para el tema de modo oscuro"
   },
+
+  "language": "Idioma",
   "@language": {
-    "description": "Label for language selection"
+    "description": "Etiqueta para la selección de idioma"
   },
+
+  "english": "Inglés",
   "@english": {
-    "description": "Option label for English"
+    "description": "Etiqueta de opción para inglés"
   },
+
+  "displaySettings": "Configuración de visualización de pacientes",
   "@displaySettings": {
-    "description": "Section title for patient display preferences"
+    "description": "Título de sección para las preferencias de visualización de pacientes"
   },
+
+  "accessibility": "Accesibilidad",
   "@accessibility": {
-    "description": "Section title for accessibility settings"
+    "description": "Título de sección para la configuración de accesibilidad"
   },
+
+  "logOut": "Cerrar sesión",
   "@logOut": {
-    "description": "Logout button label"
+    "description": "Etiqueta del botón para cerrar sesión"
   }
 }

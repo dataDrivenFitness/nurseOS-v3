@@ -8,6 +8,7 @@ import 'package:nurseos_v3/core/theme/spacing.dart';
 import 'package:nurseos_v3/features/auth/models/user_model.dart';
 import 'package:nurseos_v3/core/models/user_role.dart';
 import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
+import 'package:nurseos_v3/l10n/generated/app_localizations.dart'; // ✅
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -45,6 +46,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!; // ✅
     final authState = ref.watch(authControllerProvider);
     final colors = Theme.of(context).extension<AppColors>()!;
     final scaler = MediaQuery.textScalerOf(context);
@@ -55,20 +57,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         next.whenOrNull(
           data: (user) {
             if (user == null) return;
-
             final route = user.firstName.trim().isEmpty
                 ? '/edit-profile?replace=true'
                 : user.role == UserRole.admin
                     ? '/admin'
                     : '/tasks';
-
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (context.mounted) context.go(route);
             });
           },
           error: (e, _) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Login failed: $e')),
+              SnackBar(content: Text('${l10n.loginFailed}: $e')),
             );
           },
         );
@@ -95,36 +95,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                   ),
                   Text(
-                    'Secure login for healthcare professionals',
+                    l10n.loginSubtitle,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: colors.subdued,
                         ),
                   ),
                   const SizedBox(height: SpacingTokens.lg),
-
-                  // ─── Email ──────────────────────────────
                   TextField(
                     controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email),
+                    decoration: InputDecoration(
+                      labelText: l10n.email,
+                      prefixIcon: const Icon(Icons.email),
                     ),
                     keyboardType: TextInputType.emailAddress,
                   ),
                   const SizedBox(height: SpacingTokens.md),
-
-                  // ─── Password ───────────────────────────
                   TextField(
                     controller: _passwordController,
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: Icon(Icons.lock),
+                    decoration: InputDecoration(
+                      labelText: l10n.password,
+                      prefixIcon: const Icon(Icons.lock),
                     ),
                     obscureText: true,
                   ),
                   const SizedBox(height: SpacingTokens.xl),
-
-                  // ─── Login Button ───────────────────────
                   authState.isLoading
                       ? const CircularProgressIndicator()
                       : SizedBox(
@@ -140,7 +134,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         .signIn(email, password);
                                   }
                                 : null,
-                            child: const Text('Log In'),
+                            child: Text(l10n.login),
                           ),
                         ),
                 ],

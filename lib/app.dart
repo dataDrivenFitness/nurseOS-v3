@@ -6,44 +6,29 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
-import 'core/theme/theme_controller.dart';
+import 'core/theme/theme_controller.dart'; // ✅ still used
 import 'features/preferences/controllers/font_scale_controller.dart';
 import 'features/preferences/controllers/locale_controller.dart';
 import 'l10n/generated/app_localizations.dart';
 
-/// NurseOSApp is the root widget for the entire app.
-/// It applies reactive font scaling, theming, and localization
-/// using Riverpod's state management.
 class NurseOSApp extends ConsumerWidget {
   const NurseOSApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // ──────────────────────────────────────────────────────────────
-    // STEP 1: Observe all core settings reactively
-    // ──────────────────────────────────────────────────────────────
     final router = ref.watch(appRouterProvider);
-    final fontScaleAsync = ref.watch(fontScaleControllerProvider);
-    final themeAsync = ref.watch(themeControllerProvider);
-    final localeAsync = ref.watch(localeControllerProvider);
+    final fontScaleAsync = ref.watch(fontScaleStreamProvider);
+    final themeStreamAsync = ref.watch(themeModeStreamProvider); // ✅ replaced
+    final localeAsync = ref.watch(localeStreamProvider);
 
-    // ──────────────────────────────────────────────────────────────
-    // STEP 2: Await font scale first — required for MediaQuery setup
-    // ──────────────────────────────────────────────────────────────
     return fontScaleAsync.when(
-      loading: () => const SplashScreen(),
+      loading: () => const _SplashScreen(),
       error: (err, _) => _errorApp('Font scale load failed: $err'),
       data: (fontScale) {
-        // ──────────────────────────────────────────────────────────
-        // STEP 3: Await theme setup before rendering the full app
-        // ──────────────────────────────────────────────────────────
-        return themeAsync.when(
-          loading: () => const SplashScreen(),
+        return themeStreamAsync.when(
+          loading: () => const _SplashScreen(),
           error: (err, _) => _errorApp('Theme load failed: $err'),
           data: (themeMode) {
-            // ──────────────────────────────────────────────────────
-            // STEP 4: Wait for locale (reactive) and build app shell
-            // ──────────────────────────────────────────────────────
             final resolvedLocale =
                 localeAsync.valueOrNull ?? const Locale('en');
 
@@ -58,8 +43,6 @@ class NurseOSApp extends ConsumerWidget {
                 darkTheme: AppTheme.dark(),
                 themeMode: themeMode,
                 routerConfig: router,
-
-                // ──────────────── Localization Setup ────────────────
                 localizationsDelegates: const [
                   AppLocalizations.delegate,
                   GlobalMaterialLocalizations.delegate,
@@ -75,7 +58,6 @@ class NurseOSApp extends ConsumerWidget {
     );
   }
 
-  /// Fallback widget when initialization fails
   MaterialApp _errorApp(String message) {
     return MaterialApp(
       home: Scaffold(body: Center(child: Text(message))),
@@ -83,9 +65,8 @@ class NurseOSApp extends ConsumerWidget {
   }
 }
 
-/// Simple loading screen during font/theme/locale setup
-class SplashScreen extends StatelessWidget {
-  const SplashScreen({super.key});
+class _SplashScreen extends StatelessWidget {
+  const _SplashScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -5,6 +5,25 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:nurseos_v3/features/auth/models/user_model.dart';
 
+/// Reactive stream — live updates to profile
+final userProfileStreamProvider = StreamProvider<UserModel>((ref) {
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  if (uid == null) {
+    throw Exception('No user session');
+  }
+
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(uid)
+      .withConverter<UserModel>(
+        fromFirestore: (snap, _) => UserModel.fromJson(snap.data()!),
+        toFirestore: (user, _) => user.toJson(),
+      )
+      .snapshots()
+      .map((doc) => doc.data()!);
+});
+
+/// One-time load + update interface for EditProfileForm
 final userProfileProvider =
     AsyncNotifierProvider.autoDispose<UserProfileController, UserModel>(
   UserProfileController.new,

@@ -2,30 +2,28 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
 import 'package:nurseos_v3/features/preferences/data/font_scale_repository.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-/// Controls app-wide text scaling across NurseOS.
-///
-/// Uses SharedPreferences for fast boot and Firestore for cloud sync.
+part 'font_scale_controller.g.dart';
+
+/// Controls app-wide text scaling (read-once + writes).
 class FontScaleController extends AsyncNotifier<double> {
-  AbstractFontScaleRepository? _repository;
+  AbstractFontScaleRepository? _repo;
   String? _uid;
 
   @override
   Future<double> build() async {
     final auth = ref.watch(authControllerProvider).valueOrNull;
-
-    // Anonymous fallback
     if (auth == null || auth.uid.isEmpty) {
-      debugPrint('⚠️ Skipping font scale load — auth unavailable or uid empty');
+      debugPrint('⚠️  Skipping font scale load — no user');
       return 1.0;
     }
 
     _uid ??= auth.uid;
-    _repository ??= ref.read(fontScaleRepositoryProvider);
+    _repo ??= ref.read(fontScaleRepositoryProvider);
 
     try {
-      final saved = await _repository!.getFontScale(_uid!);
-      return saved ?? 1.0;
+      return (await _repo!.getFontScale(_uid!)) ?? 1.0;
     } catch (e, st) {
       debugPrint('❌ Font scale load failed: $e');
       debugPrintStack(stackTrace: st);
@@ -33,15 +31,13 @@ class FontScaleController extends AsyncNotifier<double> {
     }
   }
 
-  /// Sets new scale and persists it locally and in Firestore.
+  /*───────────────────────────────
+            Public updater
+  ───────────────────────────────*/
   Future<void> updateScale(double newScale) async {
-    final repo = _repository;
+    final repo = _repo;
     final uid = _uid;
-
-    if (repo == null || uid == null || uid.isEmpty) {
-      debugPrint('⚠️ Cannot update font scale — repo or uid is null');
-      return;
-    }
+    if (repo == null || uid == null || uid.isEmpty) return;
 
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
@@ -51,6 +47,29 @@ class FontScaleController extends AsyncNotifier<double> {
   }
 }
 
-/// Async Riverpod provider for font scale.
+/// Allows widgets to *write*.
 final fontScaleControllerProvider =
     AsyncNotifierProvider<FontScaleController, double>(FontScaleController.new);
+
+/// 🆕 Live Firestore stream → UI reacts instantly.
+@Riverpod(keepAlive: true)
+Stream<double> fontScaleStream(FontScaleStreamRef ref) async* {
+  final auth = await ref.watch(authControllerProvider.future);
+  final uid = auth?.uid ?? '';
+
+  if (uid.isEmpty) {
+    yield 1.0; // guest fallback
+    return;
+  }
+
+  final repo = ref.watch(fontScaleRepositoryProvider);
+
+  // Emit cached value first for fast paint
+  final cached = await repo.getFontScale(uid);
+  yield cached ?? 1.0;
+
+  // Then forward real-time Firestore updates
+  await for (final scale in repo.watchFontScale(uid)) {
+    yield scale;
+  }
+}

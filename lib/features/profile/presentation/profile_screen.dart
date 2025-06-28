@@ -1,5 +1,4 @@
 // 📁 lib/features/profile/screens/profile_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,18 +19,20 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final user = ref.watch(userProfileProvider).value;
+
+    /* 🔄 live Firestore providers */
+    final user = ref.watch(userProfileStreamProvider).value; // ← live
+    final locale = ref.watch(localeStreamProvider).valueOrNull ??
+        const Locale('en'); // ← live
+    final themeAsync = ref.watch(themeModeStreamProvider); // ← live
+    final isDark = themeAsync.valueOrNull == ThemeMode.dark;
+
+    if (user == null) return const SizedBox.shrink();
+
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
     final scaler = MediaQuery.textScalerOf(context);
     final textTheme = theme.textTheme;
-
-    if (user == null) return const SizedBox.shrink();
-
-    final locale =
-        ref.watch(localeControllerProvider).valueOrNull ?? const Locale('en');
-    final themeAsync = ref.watch(themeControllerProvider);
-    final isDark = themeAsync.valueOrNull == ThemeMode.dark;
 
     return NurseScaffold(
       child: ListView(
@@ -168,12 +169,12 @@ class ProfileScreen extends ConsumerWidget {
                   title: Text(l10n.language),
                   trailing: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
-                      value: locale.languageCode,
+                      value: locale.languageCode, // auto-updated
                       onChanged: (code) async {
                         if (code == null) return;
                         await ref
                             .read(localeControllerProvider.notifier)
-                            .updateLocale(Locale(code));
+                            .updateLocale(Locale(code)); // still writes
                       },
                       items: const [
                         DropdownMenuItem(value: 'en', child: Text('English')),

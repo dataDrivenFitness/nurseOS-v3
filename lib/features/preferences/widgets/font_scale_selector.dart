@@ -1,5 +1,4 @@
 // 📁 lib/shared/widgets/font_scale_selector.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nurseos_v3/features/preferences/controllers/font_scale_controller.dart';
@@ -9,7 +8,8 @@ class FontScaleSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scaleAsync = ref.watch(fontScaleControllerProvider);
+    // 🔄 live Firestore value
+    final scaleAsync = ref.watch(fontScaleStreamProvider); // ← changed
     final controller = ref.read(fontScaleControllerProvider.notifier);
 
     return scaleAsync.when(
@@ -25,7 +25,7 @@ class FontScaleSelector extends ConsumerWidget {
             max: 2.0,
             divisions: 6,
             label: '${(currentScale * 100).round()}%',
-            onChanged: controller.updateScale,
+            onChanged: controller.updateScale, // still writes as before
           ),
           Text(
             'Preview Text (Scale: ${currentScale.toStringAsFixed(2)})',

@@ -1,12 +1,12 @@
 // 📁 lib/features/preferences/data/font_scale_repository.dart
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:nurseos_v3/core/env/env.dart';
-import 'package:nurseos_v3/core/providers/shared_prefs_provider.dart'; // ✅ single source
+import 'package:nurseos_v3/core/providers/shared_prefs_provider.dart';
 
 /* ──────────────────────────────────────────────────────────────
    Abstraction
@@ -14,6 +14,9 @@ import 'package:nurseos_v3/core/providers/shared_prefs_provider.dart'; // ✅ si
 abstract class AbstractFontScaleRepository {
   Future<double?> getFontScale(String uid);
   Future<void> setFontScale(String uid, double scale);
+
+  /// 🆕  Live Firestore stream
+  Stream<double> watchFontScale(String uid);
 }
 
 /* ──────────────────────────────────────────────────────────────
@@ -25,39 +28,46 @@ class FirebaseFontScaleRepository implements AbstractFontScaleRepository {
   final SharedPreferences _prefs;
   final FirebaseFirestore _firestore;
 
-  static const _prefsKey = 'font_scale';
+  static const _prefsKey = 'fontScale';
+
+  /// Canonical doc: users/{uid}/preferences/global
+  DocumentReference<Map<String, dynamic>> _doc(String uid) =>
+      _firestore.doc('users/$uid/preferences/global');
 
   @override
   Future<double?> getFontScale(String uid) async {
-    debugPrint('📥 getFontScale uid=$uid');
-
-    if (uid.isEmpty) throw ArgumentError('UID required for getFontScale');
-
-    // 1️⃣ Local cache
+    if (uid.isEmpty) throw ArgumentError('UID required');
+    // ① Fast local read
     final local = _prefs.getDouble(_prefsKey);
     if (local != null) return local;
 
-    // 2️⃣ Firestore fallback
-    final doc = await _firestore.doc('users/$uid/preferences/global').get();
-    final remote = doc.data()?['font_scale'];
-
-    if (remote is num) {
-      final scale = remote.toDouble();
-      await _prefs.setDouble(_prefsKey, scale);
-      return scale;
+    // ② Firestore fallback
+    final raw = (await _doc(uid).get()).data()?['fontScale'];
+    if (raw is num) {
+      final value = raw.toDouble();
+      await _prefs.setDouble(_prefsKey, value);
+      return value;
     }
-
     return null;
   }
 
   @override
   Future<void> setFontScale(String uid, double scale) async {
-    if (uid.isEmpty) throw ArgumentError('UID required for setFontScale');
+    if (uid.isEmpty) throw ArgumentError('UID required');
+    await _prefs.setDouble(_prefsKey, scale);
+    await _doc(uid).set({'fontScale': scale}, SetOptions(merge: true));
+  }
 
-    await _prefs.setDouble(_prefsKey, scale); // local
-    await _firestore
-        .doc('users/$uid/preferences/global')
-        .set({'font_scale': scale}, SetOptions(merge: true)); // remote
+  /*─────────────────────────────
+          🆕  Live stream
+  ─────────────────────────────*/
+  @override
+  Stream<double> watchFontScale(String uid) {
+    return _doc(uid)
+        .snapshots()
+        .map((snap) => snap.data()?['fontScale'])
+        .where((raw) => raw is num)
+        .map((raw) => (raw as num).toDouble());
   }
 }
 
@@ -70,7 +80,6 @@ final fontScaleRepositoryProvider =
     throw UnimplementedError('MockFontScaleRepository not implemented');
   }
 
-  // 🔹 Global sharedPrefsProvider now used everywhere
   final prefs = ref.watch(sharedPreferencesProvider);
   final firestore = FirebaseFirestore.instance;
 

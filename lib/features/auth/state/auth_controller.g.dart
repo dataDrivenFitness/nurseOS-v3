@@ -6,12 +6,9 @@ part of 'auth_controller.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$authControllerHash() => r'1009b1782addbe4e33c042b0339a8f010243e7df';
+String _$authControllerHash() => r'f06d491d2d46254e18493a888a162c4be393bb6e';
 
-/// ✅ This controller now only manages login/logout and auth status.
-/// All profile logic (names, photos) has moved to `user_profile_controller.dart`.
-///
-/// Copied from [AuthController].
+/// See also [AuthController].
 @ProviderFor(AuthController)
 final authControllerProvider =
     AsyncNotifierProvider<AuthController, UserModel?>.internal(

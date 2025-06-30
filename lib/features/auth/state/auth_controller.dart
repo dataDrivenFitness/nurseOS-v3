@@ -88,9 +88,6 @@ class AuthController extends _$AuthController {
 /*───────────────────────────────────────────────────────────────
   signOut() – teardown order is important
 ───────────────────────────────────────────────────────────────*/
-  /*───────────────────────────────────────────────────────────
-  signOut() – emit null, sign out, refresh self
-───────────────────────────────────────────────────────────*/
   Future<void> signOut() async {
     // 1️⃣  Notify listeners that auth is gone (UI navigates to /login)
     state = const AsyncValue.data(null);

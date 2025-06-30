@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nurseos_v3/core/providers/shared_prefs_provider.dart';
 import 'package:nurseos_v3/features/preferences/data/display_preferences_repository.dart';
 import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
 
-part 'theme_controller.g.dart';
+/// 🔁 Theme controller using SharedPreferences + Firestore, works pre/post-auth.
+final themeControllerProvider =
+    AsyncNotifierProvider<ThemeController, ThemeMode>(ThemeController.new);
 
-@Riverpod(keepAlive: true)
 class ThemeController extends AsyncNotifier<ThemeMode> {
   static const _prefsKey = 'dark_mode';
 
@@ -19,14 +20,15 @@ class ThemeController extends AsyncNotifier<ThemeMode> {
   Future<ThemeMode> build() async {
     _prefs = ref.read(sharedPreferencesProvider);
     _repo = ref.read(displayPreferencesRepositoryProvider);
+
     final auth = await ref.watch(authControllerProvider.future);
     _uid = auth?.uid ?? '';
 
-    // Local load
     final local = _prefs.getBool(_prefsKey);
-    if (local != null) return local ? ThemeMode.dark : ThemeMode.light;
+    if (local != null) {
+      return local ? ThemeMode.dark : ThemeMode.light;
+    }
 
-    // Firestore fallback
     final remote = await _repo.getThemeMode(_uid);
     if (remote != null) {
       await _prefs.setBool(_prefsKey, remote == ThemeMode.dark);
@@ -36,33 +38,38 @@ class ThemeController extends AsyncNotifier<ThemeMode> {
     return ThemeMode.system;
   }
 
-  /// 🔁 Used by ProfileScreen toggle
   Future<void> toggleTheme(bool isDark) {
     return updateThemeMode(isDark ? ThemeMode.dark : ThemeMode.light);
   }
 
-  /// ✅ Public method for explicit setting (testable)
   Future<void> updateThemeMode(ThemeMode newMode) async {
     state = AsyncValue.data(newMode);
     await _prefs.setBool(_prefsKey, newMode == ThemeMode.dark);
+
     if (_uid.isNotEmpty) {
       await _repo.setThemeMode(_uid, newMode);
     }
   }
 }
 
-@Riverpod(keepAlive: true)
-Stream<ThemeMode> themeModeStream(ThemeModeStreamRef ref) async* {
+/// 🔁 Reactive dual-source theme stream, based on login state.
+final themeModeStreamProvider = StreamProvider<ThemeMode>((ref) async* {
+  final prefs = ref.read(sharedPreferencesProvider);
   final auth = await ref.watch(authControllerProvider.future);
   final uid = auth?.uid ?? '';
 
   if (uid.isEmpty) {
-    yield ThemeMode.system;
+    final cached = prefs.getBool(ThemeController._prefsKey);
+    if (cached == true) {
+      yield ThemeMode.dark;
+    } else if (cached == false) {
+      yield ThemeMode.light;
+    } else {
+      yield ThemeMode.system;
+    }
     return;
   }
 
   final repo = ref.watch(displayPreferencesRepositoryProvider);
-  await for (final mode in repo.watchThemeMode(uid)) {
-    yield mode;
-  }
-}
+  yield* repo.watchThemeMode(uid);
+});

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nurseos_v3/shared/widgets/app_loader.dart';
 import 'package:nurseos_v3/shared/widgets/profile_avatar.dart';
 
 import '../../../core/theme/animation_tokens.dart';
@@ -114,7 +115,7 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm>
     final userAsync = ref.watch(userProfileStreamProvider);
 
     return userAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(child: AppLoader()),
       error: (e, _) => Center(child: Text('Error: $e')),
       data: (user) {
         // ⚠️  Only populate controllers once per user load

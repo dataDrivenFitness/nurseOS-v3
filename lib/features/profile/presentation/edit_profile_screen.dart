@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nurseos_v3/shared/widgets/app_loader.dart';
 
 import '../../../core/theme/text_styles.dart';
 import '../../../shared/widgets/nurse_scaffold.dart';
@@ -17,7 +18,7 @@ class EditProfileScreen extends ConsumerWidget {
 
     return profileAsync.when(
       loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: AppLoader()),
       ),
       error: (e, _) => Scaffold(
         appBar: AppBar(

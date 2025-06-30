@@ -1,45 +1,61 @@
+// test/features/auth/presentation/login_screen_test.dart
+//
+// Ensures the form calls signIn() with the typed credentials.
+
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:nurseos_v3/core/theme/theme_controller.dart';
+import 'package:nurseos_v3/core/theme/app_theme.dart'; // ⬅️ theme with AppColors
+import 'package:nurseos_v3/features/preferences/controllers/font_scale_controller.dart';
+import 'package:nurseos_v3/features/preferences/controllers/locale_controller.dart';
+import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
 import 'package:nurseos_v3/features/auth/presentation/login_screen.dart';
-import 'package:nurseos_v3/features/auth/services/auth_service_provider.dart';
-import 'package:nurseos_v3/features/auth/services/mock_auth_service.dart';
+import 'package:nurseos_v3/l10n/generated/app_localizations.dart';
+
+import '../../../utils/test_fakes.dart';
 
 void main() {
   testWidgets('LoginScreen allows sign in with email and password',
-      (WidgetTester tester) async {
-    // Set up mock auth service
-    final mockService = MockAuthService();
+      (tester) async {
+    final capturing = CapturingAuthController();
 
-    // Override the auth controller provider
-    final container = ProviderContainer(overrides: [
-      authServiceProvider.overrideWithValue(mockService),
-    ]);
-
-    // Pump the login screen
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: const MaterialApp(home: LoginScreen()),
+      ProviderScope(
+        overrides: [
+          fontScaleStreamProvider
+              .overrideWith((_) => Stream<double>.value(1.0)),
+          themeModeStreamProvider
+              .overrideWith((_) => Stream<ThemeMode>.value(ThemeMode.light)),
+          localeControllerProvider.overrideWith(FakeLocaleController.new),
+          authControllerProvider.overrideWith(() => capturing),
+        ],
+        child: MaterialApp(
+          // 👉 supply localisation + custom theme so null-bangs don't fire
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: AppTheme.light(), // contains AppColors extension
+          home: const LoginScreen(),
+        ),
       ),
     );
 
-    // Find input fields and login button by keys
+    // wait for the first frame (localisation load) to finish
+    await tester.pumpAndSettle();
+
     final emailField = find.byKey(const Key('emailField'));
     final passwordField = find.byKey(const Key('passwordField'));
     final loginButton = find.byKey(const Key('loginButton'));
 
-    // Enter valid email and password
     await tester.enterText(emailField, 'nurse@example.com');
     await tester.enterText(passwordField, 'testpassword');
-
-    // Tap login button
+    await tester.pump();
     await tester.tap(loginButton);
     await tester.pumpAndSettle();
 
-    // Confirm that input fields still exist after interaction (i.e., no crash)
-    expect(emailField, findsOneWidget);
-    expect(passwordField, findsOneWidget);
-    expect(loginButton, findsOneWidget);
+    expect(capturing.emailCaptured, 'nurse@example.com');
+    expect(capturing.passwordCaptured, 'testpassword');
   });
 }

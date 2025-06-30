@@ -1,15 +1,24 @@
 // 📁 lib/app.dart
+//
+//  V2 refactor highlights
+//  • Removes duplicated _SplashScreen widget.
+//  • Uses BootSplash for all three async loading stages so boot splash
+//    respects system dark-mode setting.
+//  • No other behavioural changes.
+// ─────────────────────────────────────────────────────────────────────────────
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
-import 'core/theme/theme_controller.dart';
+import 'core/theme/app_theme.dart';
 import 'features/preferences/controllers/font_scale_controller.dart';
 import 'features/preferences/controllers/locale_controller.dart';
 import 'features/auth/state/auth_controller.dart';
 import 'l10n/generated/app_localizations.dart';
+import 'shared/widgets/boot_splash.dart'; // 🆕
+import 'core/theme/theme_controller.dart';
 
 class NurseOSApp extends ConsumerWidget {
   const NurseOSApp({super.key});
@@ -32,15 +41,15 @@ class NurseOSApp extends ConsumerWidget {
 
     /* ─── Layered Async loading chain ───────────────────── */
     return fontScaleAsync.when(
-      loading: () => const _SplashScreen(),
+      loading: () => const BootSplash(), // 🆕 dark-aware
       error: (e, _) => _errorApp('Font scale load failed: $e'),
       data: (fontScale) {
         return themeAsync.when(
-          loading: () => const _SplashScreen(),
+          loading: () => const BootSplash(), // 🆕
           error: (e, _) => _errorApp('Theme load failed: $e'),
           data: (themeMode) {
             return localeAsync.when(
-              loading: () => const _SplashScreen(),
+              loading: () => const BootSplash(), // 🆕
               error: (e, _) => _errorApp('Locale load failed: $e'),
               data: (resolvedLocale) {
                 return MediaQuery(
@@ -49,7 +58,7 @@ class NurseOSApp extends ConsumerWidget {
                   ),
                   child: MaterialApp.router(
                     title: 'NurseOS v3',
-                    locale: resolvedLocale, // ✅ now updates pre-login
+                    locale: resolvedLocale,
                     theme: AppTheme.light(),
                     darkTheme: AppTheme.dark(),
                     themeMode: themeMode,
@@ -71,16 +80,7 @@ class NurseOSApp extends ConsumerWidget {
     );
   }
 
+  /// Fallback mini-app shown when an async chain fails hard.
   MaterialApp _errorApp(String msg) =>
       MaterialApp(home: Scaffold(body: Center(child: Text(msg))));
-}
-
-/* ─── Top-level splash (fixed) ───────────────────────────── */
-class _SplashScreen extends StatelessWidget {
-  const _SplashScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) => const MaterialApp(
-        home: Scaffold(body: Center(child: CircularProgressIndicator())),
-      );
 }

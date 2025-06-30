@@ -8,7 +8,8 @@ import 'package:nurseos_v3/core/theme/spacing.dart';
 import 'package:nurseos_v3/features/auth/models/user_model.dart';
 import 'package:nurseos_v3/core/models/user_role.dart';
 import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
-import 'package:nurseos_v3/l10n/generated/app_localizations.dart'; // ✅
+import 'package:nurseos_v3/l10n/generated/app_localizations.dart';
+import 'package:nurseos_v3/shared/widgets/app_loader.dart'; // ✅
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -49,7 +50,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final l10n = AppLocalizations.of(context)!; // ✅
     final authState = ref.watch(authControllerProvider);
     final colors = Theme.of(context).extension<AppColors>()!;
-    final scaler = MediaQuery.textScalerOf(context);
+    //final scaler = MediaQuery.textScalerOf(context);  **FIXME**
 
     ref.listen<AsyncValue<UserModel?>>(
       authControllerProvider,
@@ -102,6 +103,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: SpacingTokens.lg),
                   TextField(
+                    key: const Key('emailField'),
                     controller: _emailController,
                     decoration: InputDecoration(
                       labelText: l10n.email,
@@ -111,6 +113,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: SpacingTokens.md),
                   TextField(
+                    key: const Key('passwordField'),
                     controller: _passwordController,
                     decoration: InputDecoration(
                       labelText: l10n.password,
@@ -120,10 +123,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: SpacingTokens.xl),
                   authState.isLoading
-                      ? const CircularProgressIndicator()
+                      ? const AppLoader()
                       : SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
+                            key: const Key('loginButton'),
                             onPressed: _canSubmit
                                 ? () {
                                     final email = _emailController.text.trim();

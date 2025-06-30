@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nurseos_v3/shared/widgets/app_loader.dart';
 
 class AsyncValueWidget<T> extends StatelessWidget {
   final AsyncValue<T> value;
@@ -19,8 +20,7 @@ class AsyncValueWidget<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     return value.when(
       data: data,
-      loading: () =>
-          loading ?? const Center(child: CircularProgressIndicator()),
+      loading: () => loading ?? const Center(child: AppLoader()),
       error: (e, _) =>
           error ??
           Center(

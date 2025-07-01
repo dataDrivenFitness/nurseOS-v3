@@ -11,7 +11,7 @@ class MockPatientRepository implements PatientRepository {
   Future<Either<Failure, List<Patient>>> getAllPatients() async {
     await Future.delayed(const Duration(milliseconds: 200));
     debugPrint('🧪 MockPatientRepository.getAllPatients()');
-    return Right(mockPatients); // ⬅️ from patient_mocks.dart
+    return Right(mockPatients);
   }
 
   @override
@@ -36,5 +36,12 @@ class MockPatientRepository implements PatientRepository {
     await Future.delayed(const Duration(milliseconds: 100));
     debugPrint('/ MockPatientRepository.delete() called for $id');
     return const Right(null);
+  }
+
+  /// 🔁 Simulates real-time patient list stream (static for now)
+  @override
+  Stream<Either<Failure, List<Patient>>> watchAllPatients() async* {
+    debugPrint('🧪 MockPatientRepository.watchAllPatients()');
+    yield Right(mockPatients);
   }
 }

@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import '../utils/risk_utils.dart';
+import 'package:nurseos_v3/features/patient/models/patient_risk.dart';
 import 'package:nurseos_v3/shared/converters/timestamp_converter.dart';
 
 part 'patient_model.freezed.dart';

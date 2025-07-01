@@ -1,44 +1,23 @@
-import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nurseos_v3/features/patient/models/patient_model.dart';
 import 'package:nurseos_v3/features/patient/data/patient_repository_provider.dart';
+import 'package:nurseos_v3/core/error/failure.dart';
 
-class PatientController extends AsyncNotifier<List<Patient>> {
+/// 📦 PatientController using Firestore stream with Riverpod v2
+class PatientController extends AutoDisposeStreamNotifier<List<Patient>> {
   @override
-  FutureOr<List<Patient>> build() async {
-    final repo = ref.read(patientRepositoryProvider);
+  Stream<List<Patient>> build() {
+    final repo = ref.watch(patientRepositoryProvider);
 
-    // Handle "repo not ready" (user not yet loaded)
     if (repo == null) {
-      // Could throw, or just return empty while loading.
-      // If you want to "wait," throw AsyncLoading and let Riverpod handle it.
-      // But returning [] prevents UI from breaking:
-      return [];
+      return const Stream.empty();
     }
 
-    final result = await repo.getAllPatients();
-    return result.match(
-      (failure) => throw failure,
-      (patients) => patients,
-    );
-  }
-
-  Future<void> refreshPatients() async {
-    state = const AsyncValue.loading();
-
-    final repo = ref.read(patientRepositoryProvider);
-    if (repo == null) {
-      // Stay loading if repo not available yet.
-      state = const AsyncValue.loading();
-      return;
-    }
-
-    state = await AsyncValue.guard(() async {
-      final result = await repo.getAllPatients();
-      return result.match(
-        (failure) => throw failure,
-        (patients) => patients,
-      );
-    });
+    return repo.watchAllPatients().map(
+          (either) => either.match(
+            (failure) => throw failure,
+            (patients) => patients,
+          ),
+        );
   }
 }

@@ -34,8 +34,9 @@ This checklist replaces the legacy roadmap and provides detailed tracking of all
 - [x] Toggle UI for display settings
 - [x] Theme toggle (dark/light)
 - [x] Font scaling toggle (textScaleFactor)
-- [ ] Language preferences
+- [x] Language preferences
 - [ ] Notification preferences
+- [x] Splash screen respects dark mode
 
 ---
 

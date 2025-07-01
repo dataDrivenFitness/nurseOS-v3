@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:nurseos_v3/features/patient/utils/risk_utils.dart';
+import 'package:nurseos_v3/features/patient/models/patient_risk.dart';
 
 class RiskLevelChip extends StatelessWidget {
   final RiskLevel risk;

@@ -1,5 +1,5 @@
 import 'package:nurseos_v3/features/patient/models/patient_model.dart';
-import 'package:nurseos_v3/features/patient/utils/risk_utils.dart';
+import 'package:nurseos_v3/features/patient/models/patient_risk.dart';
 
 final mockPatients = [
   Patient(

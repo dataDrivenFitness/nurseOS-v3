@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nurseos_v3/features/patient/models/patient_risk.dart';
 import 'package:nurseos_v3/features/patient/presentation/widgets/patient_card.dart';
 import 'package:nurseos_v3/features/patient/models/patient_model.dart';
-import 'package:nurseos_v3/features/patient/utils/risk_utils.dart';
 
 Patient makeStubPatient({required RiskLevel riskLevel}) {
   return Patient(

@@ -88,4 +88,24 @@ class FirebasePatientRepository implements PatientRepository {
       return Left(Failure.unexpected(e.toString()));
     }
   }
+
+  /// 🔄 Watches all patients in real-time with Firestore snapshots.
+  /// Emits changes immediately and wraps result in Either.
+  @override
+  Stream<Either<Failure, List<Patient>>> watchAllPatients() async* {
+    try {
+      await for (final snapshot in _patients.snapshots()) {
+        final patients = snapshot.docs.map((doc) => doc.data()).toList();
+        yield Right(patients);
+      }
+    } on FirebaseException catch (e, stack) {
+      debugPrint('❌ Firestore stream error: ${e.message}');
+      debugPrint('$stack');
+      yield Left(Failure.unexpected(e.message ?? 'Firestore stream error'));
+    } catch (e, stack) {
+      debugPrint('❌ Unexpected stream error: $e');
+      debugPrint('$stack');
+      yield Left(Failure.unexpected(e.toString()));
+    }
+  }
 }

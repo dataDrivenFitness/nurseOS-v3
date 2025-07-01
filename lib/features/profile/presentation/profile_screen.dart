@@ -1,4 +1,5 @@
 // 📁 lib/features/profile/screens/profile_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,7 +10,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../shared/widgets/nurse_scaffold.dart';
 import '../../../shared/widgets/settings_section.dart';
-import '../../../shared/widgets/profile_avatar.dart'; // 🆕
+import '../../../shared/widgets/profile_avatar.dart';
 import '../../auth/state/auth_controller.dart';
 import '../../preferences/controllers/locale_controller.dart';
 import '../../profile/state/user_profile_controller.dart';
@@ -21,7 +22,6 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
 
-    /* 🔄 live Firestore providers */
     final user = ref.watch(userProfileStreamProvider).value;
     final locale =
         ref.watch(localeStreamProvider).valueOrNull ?? const Locale('en');
@@ -32,7 +32,6 @@ class ProfileScreen extends ConsumerWidget {
 
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
-    final scaler = MediaQuery.textScalerOf(context);
     final textTheme = theme.textTheme;
 
     return NurseScaffold(
@@ -43,7 +42,6 @@ class ProfileScreen extends ConsumerWidget {
           Row(
             children: [
               ProfileAvatar(
-                // 🆕 safer avatar
                 photoUrl: user.photoUrl,
                 fallbackName: '${user.firstName} ${user.lastName}',
                 radius: 40,
@@ -89,7 +87,6 @@ class ProfileScreen extends ConsumerWidget {
           SettingsSection(
             title: l10n.preferences,
             children: [
-              // 🔄 Dark Mode Toggle
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: SpacingTokens.sm),
                 child: ListTile(
@@ -108,8 +105,6 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-
-              // 🖥️ Display Settings
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: SpacingTokens.sm),
                 child: ListTile(
@@ -122,8 +117,6 @@ class ProfileScreen extends ConsumerWidget {
                   onTap: () => context.push('/display-settings'),
                 ),
               ),
-
-              // ♿ Accessibility Settings
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: SpacingTokens.sm),
                 child: ListTile(
@@ -136,8 +129,6 @@ class ProfileScreen extends ConsumerWidget {
                   onTap: () => context.push('/accessibility'),
                 ),
               ),
-
-              // 🌐 Language Selector
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: SpacingTokens.sm),
                 child: ListTile(
@@ -167,7 +158,7 @@ class ProfileScreen extends ConsumerWidget {
           ),
           const SizedBox(height: SpacingTokens.lg),
 
-          // 🚪 Logout
+          // ─── Logout (styled pill, centered) ──────────────
           FilledButton.icon(
             style: FilledButton.styleFrom(
               backgroundColor: colors.brandPrimary,
@@ -176,13 +167,22 @@ class ProfileScreen extends ConsumerWidget {
                 vertical: SpacingTokens.md,
                 horizontal: SpacingTokens.lg,
               ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(SpacingTokens.xl),
+              ),
             ),
             onPressed: () async {
               await ref.read(authControllerProvider.notifier).signOut();
               if (context.mounted) context.go('/login');
             },
             icon: const Icon(Icons.logout),
-            label: Text(l10n.logOut),
+            label: Text(
+              l10n.logOut,
+              style: textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: colors.onPrimary,
+              ),
+            ),
           ),
         ],
       ),

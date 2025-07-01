@@ -4,23 +4,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nurseos_v3/core/theme/app_colors.dart';
-import 'package:nurseos_v3/core/theme/spacing.dart';
+import 'package:nurseos_v3/core/theme/spacing.dart'; // Defines SpacingTokens.{sm,md,lg,xl}
 import 'package:nurseos_v3/features/auth/models/user_model.dart';
 import 'package:nurseos_v3/core/models/user_role.dart';
 import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
 import 'package:nurseos_v3/l10n/generated/app_localizations.dart';
-import 'package:nurseos_v3/shared/widgets/app_loader.dart'; // ✅
+import 'package:nurseos_v3/shared/widgets/app_loader.dart';
+import 'package:nurseos_v3/shared/widgets/buttons/primary_button.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({Key? key}) : super(key: key);
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  // Controllers for the two TextFields
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  // Track whether both fields are non-empty
   bool _canSubmit = false;
 
   @override
@@ -30,11 +34,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _passwordController.addListener(_validate);
   }
 
+  // Recompute _canSubmit whenever either field changes
   void _validate() {
-    final isValid = _emailController.text.trim().isNotEmpty &&
-        _passwordController.text.trim().isNotEmpty;
-    if (isValid != _canSubmit) {
-      setState(() => _canSubmit = isValid);
+    final emailNotEmpty = _emailController.text.trim().isNotEmpty;
+    final passNotEmpty = _passwordController.text.trim().isNotEmpty;
+    final next = emailNotEmpty && passNotEmpty;
+    if (next != _canSubmit) {
+      setState(() => _canSubmit = next);
     }
   }
 
@@ -47,17 +53,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!; // ✅
-    final authState = ref.watch(authControllerProvider);
+    final l10n = AppLocalizations.of(context)!;
     final colors = Theme.of(context).extension<AppColors>()!;
-    //final scaler = MediaQuery.textScalerOf(context);  **FIXME**
+    final authState = ref.watch(authControllerProvider);
 
+    // Listen for login success or error
     ref.listen<AsyncValue<UserModel?>>(
       authControllerProvider,
-      (prev, next) {
+      (previous, next) {
         next.whenOrNull(
           data: (user) {
             if (user == null) return;
+            // Determine where to route next
             final route = user.firstName.trim().isEmpty
                 ? '/edit-profile?replace=true'
                 : user.role == UserRole.admin
@@ -67,9 +74,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               if (context.mounted) context.go(route);
             });
           },
-          error: (e, _) {
+          error: (error, _) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('${l10n.loginFailed}: $e')),
+              SnackBar(content: Text('${l10n.loginFailed}: $error')),
             );
           },
         );
@@ -86,6 +93,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Branding
                   const Icon(Icons.medical_services, size: 64),
                   const SizedBox(height: SpacingTokens.md),
                   Text(
@@ -102,6 +110,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                   ),
                   const SizedBox(height: SpacingTokens.lg),
+
+                  // Email input
                   TextField(
                     key: const Key('emailField'),
                     controller: _emailController,
@@ -110,8 +120,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       prefixIcon: const Icon(Icons.email),
                     ),
                     keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
                   ),
                   const SizedBox(height: SpacingTokens.md),
+
+                  // Password input
                   TextField(
                     key: const Key('passwordField'),
                     controller: _passwordController,
@@ -120,26 +133,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       prefixIcon: const Icon(Icons.lock),
                     ),
                     obscureText: true,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) {
+                      if (_canSubmit) _submit();
+                    },
                   ),
                   const SizedBox(height: SpacingTokens.xl),
+
+                  // Show loader while signing in, else show PrimaryButton
                   authState.isLoading
                       ? const AppLoader()
-                      : SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            key: const Key('loginButton'),
-                            onPressed: _canSubmit
-                                ? () {
-                                    final email = _emailController.text.trim();
-                                    final password =
-                                        _passwordController.text.trim();
-                                    ref
-                                        .read(authControllerProvider.notifier)
-                                        .signIn(email, password);
-                                  }
-                                : null,
-                            child: Text(l10n.login),
-                          ),
+                      : PrimaryButton(
+                          key: const Key('loginButton'),
+                          label: l10n.login,
+                          onPressed: _canSubmit ? _submit : null,
                         ),
                 ],
               ),
@@ -148,5 +155,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ),
       ),
     );
+  }
+
+  /// Reads controllers and fires the signIn() call.
+  void _submit() {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    ref.read(authControllerProvider.notifier).signIn(email, password);
   }
 }

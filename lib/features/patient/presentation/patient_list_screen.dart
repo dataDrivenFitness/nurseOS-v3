@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nurseos_v3/features/patient/presentation/widgets/patient_card.dart';
+import 'package:nurseos_v3/features/patient/presentation/widgets/patient_add_card.dart';
 import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
 import 'package:nurseos_v3/shared/widgets/nurse_scaffold.dart';
 import '../../../shared/widgets/error/error_retry_tile.dart';
@@ -39,40 +40,39 @@ class PatientListScreen extends ConsumerWidget {
           );
         },
         data: (list) {
-          if (list.isEmpty) {
-            debugPrint('[UI] State: Empty');
-            return const Center(
-              key: Key('patient_list_empty'),
-              child: Text('No patients assigned.'),
-            );
-          }
+          debugPrint(
+              '[UI] State: ${list.isEmpty ? "Empty" : "Loaded with ${list.length} patients"}');
 
-          debugPrint('[UI] State: Loaded with ${list.length} patients');
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                child: Text(
-                  title,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Theme.of(context).colorScheme.onSurface,
+          return ListView.builder(
+            key: const Key('patient_list'),
+            padding: const EdgeInsets.all(16),
+            itemCount: list.isEmpty ? 2 : list.length + 1,
+            itemBuilder: (context, index) {
+              if (list.isEmpty) {
+                if (index == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 32.0),
+                    child: Center(
+                      child: Text(
+                        'No patients assigned.',
+                        style: Theme.of(context).textTheme.bodyLarge,
                       ),
-                ),
-              ),
-              Expanded(
-                child: ListView.builder(
-                  key: const Key('patient_list'),
-                  padding: const EdgeInsets.all(16),
-                  itemCount: list.length,
-                  itemBuilder: (_, index) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: PatientCard(patient: list[index]),
-                  ),
-                ),
-              ),
-            ],
+                    ),
+                  );
+                } else {
+                  return const PatientAddCard();
+                }
+              }
+
+              if (index < list.length) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: PatientCard(patient: list[index]),
+                );
+              }
+
+              return const PatientAddCard();
+            },
           );
         },
       ),

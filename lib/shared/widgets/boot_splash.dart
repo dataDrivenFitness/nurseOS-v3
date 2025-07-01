@@ -1,15 +1,7 @@
 // lib/shared/widgets/boot_splash.dart
-//
-// ─────────────────────────────────────────────────────────────────────────────
-//  NurseOS v2 • Boot-time splash wrapper
-//  ------------------------------------
-//  * Shown **before** the main MaterialApp.router exists.
-//  * Hosts both light & dark palettes so the device-level theme is honoured.
-//  * Delegates all visuals to the shared SplashScreen (single source of truth).
-// ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
-import 'package:nurseos_v3/shared/screens/splash_screen.dart';
+import 'package:nurseos_v3/shared/widgets/app_loader.dart';
 import '../../core/theme/app_theme.dart';
 
 class BootSplash extends StatelessWidget {
@@ -17,11 +9,21 @@ class BootSplash extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.system,
-      home: const SplashScreen(), // ← centres AppLoader()
+    return WidgetsApp(
+      color: Colors.transparent, // prevents hard white default
+      builder: (context, _) => MediaQuery(
+        data: const MediaQueryData(),
+        child: Theme(
+          data: WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+                  Brightness.dark
+              ? AppTheme.dark()
+              : AppTheme.light(),
+          child: const Scaffold(
+            body: Center(child: AppLoader()),
+          ),
+        ),
+      ),
+      debugShowCheckedModeBanner: false,
     );
   }
 }

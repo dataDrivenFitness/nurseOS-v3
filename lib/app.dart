@@ -1,10 +1,8 @@
 // 📁 lib/app.dart
 //
 //  V2 refactor highlights
-//  • Removes duplicated _SplashScreen widget.
-//  • Uses BootSplash for all three async loading stages so boot splash
-//    respects system dark-mode setting.
-//  • No other behavioural changes.
+//  • Uses custom SplashScreen instead of BootSplash for dark mode sensitivity
+//  • SplashScreen now respects app theme settings, not just system settings
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter/material.dart';
@@ -17,7 +15,7 @@ import 'features/preferences/controllers/font_scale_controller.dart';
 import 'features/preferences/controllers/locale_controller.dart';
 import 'features/auth/state/auth_controller.dart';
 import 'l10n/generated/app_localizations.dart';
-import 'shared/widgets/boot_splash.dart'; // 🆕
+import 'shared/screens/splash_screen.dart'; // 🆕 Use your custom splash screen
 import 'core/theme/theme_controller.dart';
 
 class NurseOSApp extends ConsumerWidget {
@@ -41,15 +39,15 @@ class NurseOSApp extends ConsumerWidget {
 
     /* ─── Layered Async loading chain ───────────────────── */
     return fontScaleAsync.when(
-      loading: () => const BootSplash(), // 🆕 dark-aware
+      loading: () => const SplashScreen(), // 🆕 dark-aware custom splash
       error: (e, _) => _errorApp('Font scale load failed: $e'),
       data: (fontScale) {
         return themeAsync.when(
-          loading: () => const BootSplash(), // 🆕
+          loading: () => const SplashScreen(), // 🆕
           error: (e, _) => _errorApp('Theme load failed: $e'),
           data: (themeMode) {
             return localeAsync.when(
-              loading: () => const BootSplash(), // 🆕
+              loading: () => const SplashScreen(), // 🆕
               error: (e, _) => _errorApp('Locale load failed: $e'),
               data: (resolvedLocale) {
                 return MediaQuery(

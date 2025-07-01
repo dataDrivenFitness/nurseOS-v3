@@ -12,26 +12,27 @@ final themeControllerProvider =
 class ThemeController extends AsyncNotifier<ThemeMode> {
   static const _prefsKey = 'dark_mode';
 
-  late final SharedPreferences _prefs;
-  late final DisplayPreferencesRepository _repo;
-  late final String _uid;
+  SharedPreferences? _prefs; // Make nullable to prevent reinitialization
+  DisplayPreferencesRepository? _repo;
+  String _uid = '';
 
   @override
   Future<ThemeMode> build() async {
-    _prefs = ref.read(sharedPreferencesProvider);
-    _repo = ref.read(displayPreferencesRepositoryProvider);
+    // Only initialize if not already initialized
+    _prefs ??= ref.read(sharedPreferencesProvider);
+    _repo ??= ref.read(displayPreferencesRepositoryProvider);
 
     final auth = await ref.watch(authControllerProvider.future);
     _uid = auth?.uid ?? '';
 
-    final local = _prefs.getBool(_prefsKey);
+    final local = _prefs!.getBool(_prefsKey);
     if (local != null) {
       return local ? ThemeMode.dark : ThemeMode.light;
     }
 
-    final remote = await _repo.getThemeMode(_uid);
+    final remote = await _repo!.getThemeMode(_uid);
     if (remote != null) {
-      await _prefs.setBool(_prefsKey, remote == ThemeMode.dark);
+      await _prefs!.setBool(_prefsKey, remote == ThemeMode.dark);
       return remote;
     }
 
@@ -44,10 +45,10 @@ class ThemeController extends AsyncNotifier<ThemeMode> {
 
   Future<void> updateThemeMode(ThemeMode newMode) async {
     state = AsyncValue.data(newMode);
-    await _prefs.setBool(_prefsKey, newMode == ThemeMode.dark);
+    await _prefs!.setBool(_prefsKey, newMode == ThemeMode.dark);
 
     if (_uid.isNotEmpty) {
-      await _repo.setThemeMode(_uid, newMode);
+      await _repo!.setThemeMode(_uid, newMode);
     }
   }
 }

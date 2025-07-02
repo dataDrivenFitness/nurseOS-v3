@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:nurseos_v3/core/theme/animation_tokens.dart';
-import 'package:nurseos_v3/core/theme/spacing.dart';
-import 'package:nurseos_v3/core/theme/shape_tokens.dart';
+import 'package:nurseos_v3/core/theme/app_colors.dart';
 
+/// A tappable card used for "Add" or "Empty State" actions in lists.
 class GhostCardAction extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -18,33 +17,30 @@ class GhostCardAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
+    final colors = theme.extension<AppColors>()!;
+    final textTheme = theme.textTheme;
 
-    return Material(
-      color: colorScheme.surface.withAlpha(242), // 0.95 * 255 ≈ 242
-      borderRadius: ShapeTokens.cardRadius,
+    return Card(
+      elevation: 2, // ✅ Matches patient card
+      color: colors.surfaceVariant,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      margin: EdgeInsets.zero,
       child: InkWell(
         onTap: onTap,
-        borderRadius: ShapeTokens.cardRadius,
-        splashColor: colorScheme.primary.withAlpha(25), // 0.1 * 255
-        child: AnimatedContainer(
-          duration: AnimationTokens.medium,
-          padding: const EdgeInsets.all(SpacingTokens.lg),
-          decoration: BoxDecoration(
-            borderRadius: ShapeTokens.cardRadius,
-            border: Border.all(
-              color: colorScheme.outline.withAlpha(51), // 0.2 * 255
-            ),
-          ),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: colorScheme.primary),
-              const SizedBox(width: SpacingTokens.md),
+              Icon(icon, color: colors.subdued),
+              const SizedBox(width: 12),
               Text(
                 label,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: colorScheme.primary,
+                style: textTheme.labelLarge?.copyWith(
+                  color: colors.subdued,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],

@@ -7,6 +7,7 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color primaryVariant;
   final Color background;
   final Color surface;
+  final Color surfaceVariant; // ✅ NEW
   final Color onPrimary;
   final Color onSurface;
   final Color danger;
@@ -24,6 +25,7 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.primaryVariant,
     required this.background,
     required this.surface,
+    required this.surfaceVariant, // ✅ NEW
     required this.onPrimary,
     required this.onSurface,
     required this.danger,
@@ -43,6 +45,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? primaryVariant,
     Color? background,
     Color? surface,
+    Color? surfaceVariant, // ✅ NEW
     Color? onPrimary,
     Color? onSurface,
     Color? danger,
@@ -60,6 +63,7 @@ class AppColors extends ThemeExtension<AppColors> {
       primaryVariant: primaryVariant ?? this.primaryVariant,
       background: background ?? this.background,
       surface: surface ?? this.surface,
+      surfaceVariant: surfaceVariant ?? this.surfaceVariant, // ✅
       onPrimary: onPrimary ?? this.onPrimary,
       onSurface: onSurface ?? this.onSurface,
       danger: danger ?? this.danger,
@@ -82,6 +86,7 @@ class AppColors extends ThemeExtension<AppColors> {
       primaryVariant: Color.lerp(primaryVariant, other.primaryVariant, t)!,
       background: Color.lerp(background, other.background, t)!,
       surface: Color.lerp(surface, other.surface, t)!,
+      surfaceVariant: Color.lerp(surfaceVariant, other.surfaceVariant, t)!, // ✅
       onPrimary: Color.lerp(onPrimary, other.onPrimary, t)!,
       onSurface: Color.lerp(onSurface, other.onSurface, t)!,
       danger: Color.lerp(danger, other.danger, t)!,
@@ -101,6 +106,7 @@ class AppColors extends ThemeExtension<AppColors> {
     primaryVariant: Color(0xFF728EFD),
     background: Color(0xFF121620),
     surface: Color(0xFF1E2533),
+    surfaceVariant: Color(0xFF2B3142), // ✅ DARK VARIANT
     onPrimary: Colors.black,
     onSurface: Color(0xFFE5E9FE),
     danger: Color(0xFFEF5350),
@@ -119,6 +125,7 @@ class AppColors extends ThemeExtension<AppColors> {
     primaryVariant: Color(0xFF0041A3),
     background: Color(0xFFFFFFFF),
     surface: Color(0xFFF1F5F9),
+    surfaceVariant: Color(0xFFE8ECF2), // ✅ LIGHT VARIANT
     onPrimary: Colors.white,
     onSurface: Color(0xFF1E293B),
     danger: Color(0xFFD32F2F),

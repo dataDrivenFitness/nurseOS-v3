@@ -12,7 +12,6 @@ final mockPatients = [
     pronouns: 'she/her',
     createdBy: 'nurse_001',
     assignedNurses: ['nurse_001'],
-    tags: ['low_risk'],
   ),
   Patient(
     id: 'mock_2',
@@ -29,7 +28,6 @@ final mockPatients = [
     pronouns: 'he/him',
     createdBy: 'nurse_001',
     assignedNurses: ['nurse_001'],
-    tags: ['fall', 'pressure_ulcer'],
     notes: 'Requires close monitoring overnight',
   ),
 ];

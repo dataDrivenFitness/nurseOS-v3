@@ -14,28 +14,34 @@ abstract class Patient with _$Patient {
     String? mrn,
     required String location,
     @TimestampConverter() DateTime? admittedAt,
+    @TimestampConverter() DateTime? lastSeen, // ✅ Correct location
     @TimestampConverter() DateTime? createdAt,
+    @TimestampConverter() DateTime? birthDate,
+
+    // 🧠 Clinical flags
     @Default(false) bool? isIsolation,
     @Default(false) bool isFallRisk,
     required String primaryDiagnosis,
     @RiskLevelConverter() RiskLevel? manualRiskOverride,
-    @Default([]) List<String>? allergies,
     String? codeStatus,
-    @TimestampConverter() DateTime? birthDate,
+
+    // 🧍 Identity & meta
     String? pronouns,
     @Default('unspecified') String? biologicalSex,
     String? photoUrl,
+    String? language,
+
+    // 🩺 Assigned & created by
     @Default([]) List<String>? assignedNurses,
     String? ownerUid,
     String? createdBy,
-    @Default([]) List<String>? tags,
+
+    // 🏷️ Medical info
+    @Default([]) List<String>? allergies,
+    @Default([]) List<String>? dietRestrictions, // 🍽️ Diet restrictions
     String? notes,
   }) = _Patient;
 
   factory Patient.fromJson(Map<String, dynamic> json) =>
       _$PatientFromJson(json);
-}
-
-extension PatientRiskExtension on Patient {
-  RiskLevel get riskLevel => resolveRiskLevel(this);
 }

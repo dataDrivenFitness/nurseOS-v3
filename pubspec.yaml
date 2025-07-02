@@ -80,6 +80,9 @@ dependencies:
     sdk: flutter                   # built-in Material/Cupertino localizations
   intl: ^0.20.2                    # formatters, translations
 
+  # Card Actions
+  flutter_slidable: ^4.0.0         # swipe actions for patient cards
+
 # ──────────────────────────────────────────────
 # 🧪 Dev Dependencies – Codegen, Testing, Analysis
 # ──────────────────────────────────────────────

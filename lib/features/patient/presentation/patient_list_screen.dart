@@ -66,7 +66,7 @@ class PatientListScreen extends ConsumerWidget {
                     return GhostCardAction(
                       icon: Icons.person_add,
                       label: 'Add Patient',
-                      onTap: () => debugPrint('Tapped add patient'),
+                      onTap: () => context.push('/patients/add'),
                     );
                   }
 

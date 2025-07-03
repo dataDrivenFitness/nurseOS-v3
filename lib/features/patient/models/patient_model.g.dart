@@ -18,7 +18,10 @@ _Patient _$PatientFromJson(Map<String, dynamic> json) => _Patient(
       birthDate: const TimestampConverter().fromJson(json['birthDate']),
       isIsolation: json['isIsolation'] as bool? ?? false,
       isFallRisk: json['isFallRisk'] as bool? ?? false,
-      primaryDiagnosis: json['primaryDiagnosis'] as String,
+      primaryDiagnoses: (json['primaryDiagnoses'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
       manualRiskOverride: _$JsonConverterFromJson<String, RiskLevel>(
           json['manualRiskOverride'], const RiskLevelConverter().fromJson),
       codeStatus: json['codeStatus'] as String?,
@@ -36,14 +39,17 @@ _Patient _$PatientFromJson(Map<String, dynamic> json) => _Patient(
               ?.map((e) => e as String)
               .toList() ??
           const [],
-      tags:
-          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-              const [],
       dietRestrictions: (json['dietRestrictions'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           const [],
-      notes: json['notes'] as String?,
+      department: json['department'] as String?,
+      roomNumber: json['roomNumber'] as String?,
+      addressLine1: json['addressLine1'] as String?,
+      addressLine2: json['addressLine2'] as String?,
+      city: json['city'] as String?,
+      state: json['state'] as String?,
+      zip: json['zip'] as String?,
     );
 
 Map<String, dynamic> _$PatientToJson(_Patient instance) => <String, dynamic>{
@@ -58,7 +64,7 @@ Map<String, dynamic> _$PatientToJson(_Patient instance) => <String, dynamic>{
       'birthDate': const TimestampConverter().toJson(instance.birthDate),
       'isIsolation': instance.isIsolation,
       'isFallRisk': instance.isFallRisk,
-      'primaryDiagnosis': instance.primaryDiagnosis,
+      'primaryDiagnoses': instance.primaryDiagnoses,
       'manualRiskOverride': _$JsonConverterToJson<String, RiskLevel>(
           instance.manualRiskOverride, const RiskLevelConverter().toJson),
       'codeStatus': instance.codeStatus,
@@ -70,9 +76,14 @@ Map<String, dynamic> _$PatientToJson(_Patient instance) => <String, dynamic>{
       'ownerUid': instance.ownerUid,
       'createdBy': instance.createdBy,
       'allergies': instance.allergies,
-      'tags': instance.tags,
       'dietRestrictions': instance.dietRestrictions,
-      'notes': instance.notes,
+      'department': instance.department,
+      'roomNumber': instance.roomNumber,
+      'addressLine1': instance.addressLine1,
+      'addressLine2': instance.addressLine2,
+      'city': instance.city,
+      'state': instance.state,
+      'zip': instance.zip,
     };
 
 Value? _$JsonConverterFromJson<Json, Value>(

@@ -51,5 +51,11 @@
 	<string>We access your photo library so you can choose a profile image. NurseOS never accesses other media.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>We save cropped profile photos securely to your device, only when you approve changes.</string>
+	<key>LSApplicationQueriesSchemes</key>
+		<array>
+		<string>http</string>
+		<string>https</string>
+		<string>maps</string>
+	</array>
 </dict>
 </plist>

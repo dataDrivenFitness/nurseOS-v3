@@ -3,6 +3,9 @@ import 'package:intl/intl.dart';
 import 'package:nurseos_v3/core/theme/app_colors.dart';
 import 'package:nurseos_v3/features/patient/models/patient_extensions.dart';
 import 'package:nurseos_v3/features/patient/models/patient_model.dart';
+import 'package:nurseos_v3/features/patient/models/diagnosis_catalog.dart';
+import 'package:nurseos_v3/features/patient/models/patient_risk.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PatientInfoColumn extends StatelessWidget {
   final Patient patient;
@@ -21,13 +24,12 @@ class PatientInfoColumn extends StatelessWidget {
     final tags = <String>[];
     final allergies = patient.allergies ?? [];
 
-    // Add code status first if present
     final codeStatus = patient.codeStatus?.trim();
     if (codeStatus?.isNotEmpty == true) {
       tags.add(codeStatus!);
     }
 
-    // Then add other risk tags
+    // Add all non-risk-prefixed tags (e.g., "Isolation", "Fall Risk")
     final riskTags = patient.riskTags
         .where((t) => !t.toLowerCase().startsWith('risk:'))
         .toList();
@@ -68,19 +70,31 @@ class PatientInfoColumn extends StatelessWidget {
           color: colors.subdued,
         ),
 
-        // 💉 Diagnosis
-        _buildLineWithIcon(
-          icon: Icons.medical_services,
-          text: patient.primaryDiagnosis,
-          textStyle: textTheme.bodySmall,
-          color: colors.onSurface.withAlpha(140),
-        ),
+        // 💉 Diagnoses sorted by risk level
+        ..._buildDiagnosisList(patient.primaryDiagnoses),
 
-        // 📍 Location
-        if (patient.location.trim().isNotEmpty)
+        // 📍 Residence or Facility
+        if (patient.isAtResidence && patient.mapLaunchUrl != null)
+          GestureDetector(
+            onTap: () async {
+              final url = Uri.parse(patient.mapLaunchUrl!);
+              if (await canLaunchUrl(url)) {
+                await launchUrl(url);
+              }
+            },
+            child: _buildLineWithIcon(
+              icon: Icons.home,
+              text: 'Residence',
+              textStyle: textTheme.bodySmall?.copyWith(
+                decoration: TextDecoration.underline,
+              ),
+              color: colors.subdued,
+            ),
+          )
+        else if (patient.facilityLocationDisplay != null)
           _buildLineWithIcon(
             icon: Icons.location_on,
-            text: patient.location,
+            text: patient.facilityLocationDisplay!,
             textStyle: textTheme.bodySmall,
             color: colors.subdued,
           ),
@@ -92,7 +106,7 @@ class PatientInfoColumn extends StatelessWidget {
             icon: Icons.restaurant_menu,
             text: patient.dietRestrictions!.join(', '),
             textStyle: textTheme.bodySmall,
-            color: colors.brandAccent,
+            color: colors.subdued,
           ),
 
         // ⚠️ Allergies
@@ -100,16 +114,15 @@ class PatientInfoColumn extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 2),
             child: Row(
-              crossAxisAlignment:
-                  CrossAxisAlignment.center, // 🔥 center alignment
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(
-                  width: 16, // 🔥 consistent icon container width
+                  width: 16,
                   height: (textTheme.labelSmall?.fontSize ?? 14) * 1.2,
                   child: Icon(
                     Icons.warning_amber_rounded,
-                    size: (textTheme.labelSmall?.fontSize ?? 14).clamp(
-                        12.0, 18.0), // 🔥 constrained responsive icon size
+                    size: (textTheme.labelSmall?.fontSize ?? 14)
+                        .clamp(12.0, 18.0),
                     color: Colors.orange,
                   ),
                 ),
@@ -117,7 +130,7 @@ class PatientInfoColumn extends StatelessWidget {
                 Expanded(
                   child: Text(
                     allergies.join(', '),
-                    style: textTheme.labelSmall?.copyWith(
+                    style: textTheme.bodySmall?.copyWith(
                       color: colors.warning,
                       fontWeight: FontWeight.w500,
                     ),
@@ -127,7 +140,7 @@ class PatientInfoColumn extends StatelessWidget {
             ),
           ),
 
-        // 🏷️ Tags (including Fall Risk, Isolation, and Code Status)
+        // 🏷️ Tags (e.g. DNR, Isolation)
         if (tags.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 6),
@@ -146,13 +159,29 @@ class PatientInfoColumn extends StatelessWidget {
     );
   }
 
+  List<Widget> _buildDiagnosisList(List<String> diagnoses) {
+    final sorted = [...diagnoses]..sort((a, b) {
+        final riskA = getRiskForDiagnosis(a);
+        final riskB = getRiskForDiagnosis(b);
+        return riskA.index.compareTo(riskB.index);
+      });
+
+    return sorted
+        .map((diagnosis) => _buildLineWithIcon(
+              icon: Icons.medical_services,
+              text: diagnosis,
+              textStyle: textTheme.bodySmall,
+              color: colors.subdued,
+            ))
+        .toList();
+  }
+
   Widget _buildTagChip(String tag) {
     final tagLower = tag.toLowerCase();
     Color bg;
     Color fg;
     IconData? icon;
 
-    // Determine styling based on tag type
     if (tagLower.contains('fall')) {
       bg = colors.warning.withAlpha(30);
       fg = colors.warning;
@@ -162,26 +191,25 @@ class PatientInfoColumn extends StatelessWidget {
       fg = colors.brandAccent;
       icon = Icons.security;
     } else if (_isCodeStatus(tagLower)) {
-      // Code status styling
       switch (tagLower) {
         case 'dnr':
-          bg = colors.danger.withOpacity(0.15);
+          bg = colors.danger.withAlpha(38);
           fg = colors.danger;
           icon = Icons.heart_broken;
           break;
         case 'dni':
-          bg = colors.warning.withOpacity(0.15);
+          bg = colors.warning.withAlpha(38);
           fg = colors.warning;
           icon = Icons.remove_circle_outline;
           break;
         case 'full':
         case 'full code':
-          bg = colors.success.withOpacity(0.15);
+          bg = colors.success.withAlpha(38);
           fg = colors.success;
           icon = Icons.favorite;
           break;
         case 'limited':
-          bg = colors.brandAccent.withOpacity(0.15);
+          bg = colors.brandAccent.withAlpha(38);
           fg = colors.brandAccent;
           icon = Icons.warning_amber_rounded;
           break;
@@ -229,89 +257,50 @@ class PatientInfoColumn extends StatelessWidget {
 
   void _showTagInfo(BuildContext context, String tag) {
     final tagLower = tag.toLowerCase();
-    String title;
-    String description;
-    IconData icon;
+    String explanation;
 
     if (tagLower.contains('fall')) {
-      title = 'Fall Risk';
-      description =
-          'Patient has been identified as having an increased risk of falling. Extra precautions should be taken when ambulating or transferring.';
-      icon = Icons.warning_amber_rounded;
+      explanation = 'This patient has been marked as a fall risk.';
     } else if (tagLower.contains('isolation')) {
-      title = 'Isolation Precautions';
-      description =
-          'Patient requires isolation precautions. Follow proper PPE protocols and isolation procedures when providing care.';
-      icon = Icons.security;
+      explanation = 'This patient requires isolation precautions.';
     } else if (_isCodeStatus(tagLower)) {
       switch (tagLower) {
         case 'dnr':
-          title = 'DNR - Do Not Resuscitate';
-          description =
-              'Patient has a Do Not Resuscitate order. Do not perform CPR or other resuscitative measures in case of cardiac or respiratory arrest.';
-          icon = Icons.heart_broken;
+          explanation =
+              'Do Not Resuscitate: No life-saving measures should be performed.';
           break;
         case 'dni':
-          title = 'DNI - Do Not Intubate';
-          description =
-              'Patient has a Do Not Intubate order. Do not perform endotracheal intubation or mechanical ventilation.';
-          icon = Icons.remove_circle_outline;
+          explanation =
+              'Do Not Intubate: No mechanical ventilation if breathing stops.';
           break;
         case 'full':
         case 'full code':
-          title = 'Full Code';
-          description =
-              'Patient is full code. All resuscitative efforts including CPR, intubation, and advanced life support should be performed if needed.';
-          icon = Icons.favorite;
+          explanation =
+              'Full Code: All resuscitative measures should be taken.';
           break;
         case 'limited':
-          title = 'Limited Code';
-          description =
-              'Patient has limited code status. Some interventions are permitted while others are restricted. Check specific orders for details.';
-          icon = Icons.warning_amber_rounded;
+          explanation =
+              'Limited Code: Only specific interventions are allowed.';
           break;
         default:
-          title = 'Code Status';
-          description =
-              'Code status is specified but details are unclear. Please verify with patient chart or physician.';
-          icon = Icons.info_outline;
+          explanation = 'Code status: $tag';
       }
     } else {
-      title = tag;
-      description =
-          'Additional patient information or risk factor. Please refer to patient chart for more details.';
-      icon = Icons.info_outline;
+      explanation = 'Tag: $tag';
     }
 
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              Icon(icon,
-                  size: 24, color: Theme.of(context).colorScheme.primary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: Text('Tag Info'),
+        content: Text(explanation),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
           ),
-          content: Text(
-            description,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Got it'),
-            ),
-          ],
-        );
-      },
+        ],
+      ),
     );
   }
 
@@ -322,18 +311,16 @@ class PatientInfoColumn extends StatelessWidget {
     Color? color,
   }) {
     final fontSize = textStyle?.fontSize ?? 14;
-    final iconSize =
-        fontSize.clamp(12.0, 18.0); // 🔥 constrained responsive icon size
+    final iconSize = fontSize.clamp(12.0, 18.0);
 
     return Padding(
       padding: const EdgeInsets.only(top: 2),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment
-            .center, // 🔥 center alignment for better visual balance
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
-            width: iconSize + 2, // 🔥 consistent icon container width
-            height: fontSize * 1.2, // 🔥 height matches text line height
+            width: iconSize + 2,
+            height: fontSize * 1.2,
             child: Icon(
               icon,
               size: iconSize,

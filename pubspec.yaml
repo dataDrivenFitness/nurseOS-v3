@@ -45,7 +45,7 @@ dependencies:
   shimmer: ^3.0.0                   # placeholder animations during loading
 
   # 🧭 Routing & Navigation
-  go_router: ^15.2.3                # declarative routing aligned with app state
+  go_router: ^16.0.0                # declarative routing aligned with app state
 
   # 🌿 State Management
   flutter_riverpod: ^2.5.1          # global app state container
@@ -61,9 +61,9 @@ dependencies:
 
   # 🔥 Firebase Core (must call Firebase.initializeApp())
   firebase_core: ^3.14.0            # core required by all Firebase modules
-  firebase_auth: ^5.6.0             # secure login, token refresh, email+password
-  cloud_firestore: ^5.6.9           # typed Firestore queries via withConverter
-  firebase_storage: ^12.4.7         # image uploads for avatars, patient media
+  firebase_auth: ^5.6.1             # secure login, token refresh, email+password
+  cloud_firestore: ^5.6.10          # typed Firestore queries via withConverter
+  firebase_storage: ^12.4.8         # image uploads for avatars, patient media
 
   # 🔐 Env Config (toggle mock mode, env URLs)
   flutter_dotenv: ^5.1.0            # safe access to .env vars at runtime
@@ -74,6 +74,9 @@ dependencies:
   # 📸 Image Picker Tools
   image_picker: ^1.0.7              # select images in gallery or use camera
   image_cropper: ^9.1.0             # use image cropping tool
+
+  # Open Map App in mobile device
+  url_launcher: ^6.2.6
 
   # 🌐 Localization
   flutter_localizations:

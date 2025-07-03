@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 👤 Allow each user to read/write only their own user doc
+    match /users/{userId} {
+      allow read, update: if request.auth != null && request.auth.uid == userId
+      allow create: if request.auth != null
+      allow delete: if false
+    }
+
+    // ✅ Allow users to read/write any doc inside preferences/
+    match /users/{userId}/preferences/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId
+    }
+
+    // ⚙️ Allow users to access their own settings
+    match /users/{userId}/settings/{docId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId
+    }
+
+    // 🧑‍⚕️ Nurses can read patient data and update safe fields
+    match /patients/{patientId} {
+      allow read: if request.auth != null
+
+      allow update: if request.auth != null &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'department',
+          'roomNumber',
+          'addressLine1',
+          'addressLine2',
+          'city',
+          'state',
+          'zip',
+          'lastSeen',
+          'photoUrl',
+          'language',
+          'pronouns',
+          'manualRiskOverride',
+          'codeStatus'
+        ])
+
+      allow create: if false
+      allow delete: if false
+    }
+
+    // 🧩 Future nested collections (locked down for now)
+    match /patients/{patientId}/{subCollection=**} {
+      allow read, write: if false
+    }
+
+    // 🚫 Deny everything else
+    match /{document=**} {
+      allow read, write: if false
+    }
+  }
+}

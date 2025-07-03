@@ -15,36 +15,52 @@ T _$identity<T>(T value) => value;
 
 /// @nodoc
 mixin _$Patient {
+// 🆔 Identity & Demographics
   String get id;
   String get firstName;
   String get lastName;
   String? get mrn;
+
+  /// 🌍 Type of location the patient is currently in
+  /// e.g. "residence", "hospital", "snf", "rehab", "other"
+  /// NOTE: Keeping field name as `location` for Firestore compatibility
   String get location;
+
+  /// 🕐 Admission & visibility timestamps
   @TimestampConverter()
   DateTime? get admittedAt;
   @TimestampConverter()
-  DateTime? get lastSeen; // ✅ Correct location
+  DateTime? get lastSeen;
   @TimestampConverter()
   DateTime? get createdAt;
   @TimestampConverter()
-  DateTime? get birthDate; // 🧠 Clinical flags
+  DateTime? get birthDate; // 🚩 Clinical Risk Flags
   bool? get isIsolation;
   bool get isFallRisk;
-  String get primaryDiagnosis;
+
+  /// 💊 Supports multiple diagnoses per patient
+  List<String> get primaryDiagnoses;
   @RiskLevelConverter()
   RiskLevel? get manualRiskOverride;
-  String? get codeStatus; // 🧍 Identity & meta
+  String? get codeStatus; // 🧍 Gender, pronouns, language
   String? get pronouns;
   String? get biologicalSex;
   String? get photoUrl;
-  String? get language; // 🩺 Assigned & created by
+  String? get language; // 👩‍⚕️ Assigned nurses & ownership
   List<String>? get assignedNurses;
   String? get ownerUid;
-  String? get createdBy; // 🏷️ Tags & notes
+  String? get createdBy; // 🌿 Medical Notes & Dietary Flags
   List<String>? get allergies;
-  List<String>? get tags;
-  List<String>? get dietRestrictions; // 🍽️ NEW FIELD
-  String? get notes;
+  List<String>?
+      get dietRestrictions; // 🏥 Facility Location Fields (only applies if location != 'residence')
+  String? get department; // e.g. "ICU", "Med-Surg"
+  String? get roomNumber; // e.g. "12B"
+// 🏡 Structured Address Fields (only if location == 'residence')
+  String? get addressLine1; // e.g. "123 Main St"
+  String? get addressLine2; // e.g. "Apt 4B"
+  String? get city;
+  String? get state;
+  String? get zip;
 
   /// Create a copy of Patient
   /// with the given fields replaced by the non-null parameter values.
@@ -81,8 +97,8 @@ mixin _$Patient {
                 other.isIsolation == isIsolation) &&
             (identical(other.isFallRisk, isFallRisk) ||
                 other.isFallRisk == isFallRisk) &&
-            (identical(other.primaryDiagnosis, primaryDiagnosis) ||
-                other.primaryDiagnosis == primaryDiagnosis) &&
+            const DeepCollectionEquality()
+                .equals(other.primaryDiagnoses, primaryDiagnoses) &&
             (identical(other.manualRiskOverride, manualRiskOverride) ||
                 other.manualRiskOverride == manualRiskOverride) &&
             (identical(other.codeStatus, codeStatus) ||
@@ -102,10 +118,19 @@ mixin _$Patient {
             (identical(other.createdBy, createdBy) ||
                 other.createdBy == createdBy) &&
             const DeepCollectionEquality().equals(other.allergies, allergies) &&
-            const DeepCollectionEquality().equals(other.tags, tags) &&
             const DeepCollectionEquality()
                 .equals(other.dietRestrictions, dietRestrictions) &&
-            (identical(other.notes, notes) || other.notes == notes));
+            (identical(other.department, department) ||
+                other.department == department) &&
+            (identical(other.roomNumber, roomNumber) ||
+                other.roomNumber == roomNumber) &&
+            (identical(other.addressLine1, addressLine1) ||
+                other.addressLine1 == addressLine1) &&
+            (identical(other.addressLine2, addressLine2) ||
+                other.addressLine2 == addressLine2) &&
+            (identical(other.city, city) || other.city == city) &&
+            (identical(other.state, state) || other.state == state) &&
+            (identical(other.zip, zip) || other.zip == zip));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -123,7 +148,7 @@ mixin _$Patient {
         birthDate,
         isIsolation,
         isFallRisk,
-        primaryDiagnosis,
+        const DeepCollectionEquality().hash(primaryDiagnoses),
         manualRiskOverride,
         codeStatus,
         pronouns,
@@ -134,14 +159,19 @@ mixin _$Patient {
         ownerUid,
         createdBy,
         const DeepCollectionEquality().hash(allergies),
-        const DeepCollectionEquality().hash(tags),
         const DeepCollectionEquality().hash(dietRestrictions),
-        notes
+        department,
+        roomNumber,
+        addressLine1,
+        addressLine2,
+        city,
+        state,
+        zip
       ]);
 
   @override
   String toString() {
-    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, lastSeen: $lastSeen, createdAt: $createdAt, birthDate: $birthDate, isIsolation: $isIsolation, isFallRisk: $isFallRisk, primaryDiagnosis: $primaryDiagnosis, manualRiskOverride: $manualRiskOverride, codeStatus: $codeStatus, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, language: $language, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, allergies: $allergies, tags: $tags, dietRestrictions: $dietRestrictions, notes: $notes)';
+    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, lastSeen: $lastSeen, createdAt: $createdAt, birthDate: $birthDate, isIsolation: $isIsolation, isFallRisk: $isFallRisk, primaryDiagnoses: $primaryDiagnoses, manualRiskOverride: $manualRiskOverride, codeStatus: $codeStatus, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, language: $language, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, allergies: $allergies, dietRestrictions: $dietRestrictions, department: $department, roomNumber: $roomNumber, addressLine1: $addressLine1, addressLine2: $addressLine2, city: $city, state: $state, zip: $zip)';
   }
 }
 
@@ -162,7 +192,7 @@ abstract mixin class $PatientCopyWith<$Res> {
       @TimestampConverter() DateTime? birthDate,
       bool? isIsolation,
       bool isFallRisk,
-      String primaryDiagnosis,
+      List<String> primaryDiagnoses,
       @RiskLevelConverter() RiskLevel? manualRiskOverride,
       String? codeStatus,
       String? pronouns,
@@ -173,9 +203,14 @@ abstract mixin class $PatientCopyWith<$Res> {
       String? ownerUid,
       String? createdBy,
       List<String>? allergies,
-      List<String>? tags,
       List<String>? dietRestrictions,
-      String? notes});
+      String? department,
+      String? roomNumber,
+      String? addressLine1,
+      String? addressLine2,
+      String? city,
+      String? state,
+      String? zip});
 }
 
 /// @nodoc
@@ -201,7 +236,7 @@ class _$PatientCopyWithImpl<$Res> implements $PatientCopyWith<$Res> {
     Object? birthDate = freezed,
     Object? isIsolation = freezed,
     Object? isFallRisk = null,
-    Object? primaryDiagnosis = null,
+    Object? primaryDiagnoses = null,
     Object? manualRiskOverride = freezed,
     Object? codeStatus = freezed,
     Object? pronouns = freezed,
@@ -212,9 +247,14 @@ class _$PatientCopyWithImpl<$Res> implements $PatientCopyWith<$Res> {
     Object? ownerUid = freezed,
     Object? createdBy = freezed,
     Object? allergies = freezed,
-    Object? tags = freezed,
     Object? dietRestrictions = freezed,
-    Object? notes = freezed,
+    Object? department = freezed,
+    Object? roomNumber = freezed,
+    Object? addressLine1 = freezed,
+    Object? addressLine2 = freezed,
+    Object? city = freezed,
+    Object? state = freezed,
+    Object? zip = freezed,
   }) {
     return _then(_self.copyWith(
       id: null == id
@@ -261,10 +301,10 @@ class _$PatientCopyWithImpl<$Res> implements $PatientCopyWith<$Res> {
           ? _self.isFallRisk
           : isFallRisk // ignore: cast_nullable_to_non_nullable
               as bool,
-      primaryDiagnosis: null == primaryDiagnosis
-          ? _self.primaryDiagnosis
-          : primaryDiagnosis // ignore: cast_nullable_to_non_nullable
-              as String,
+      primaryDiagnoses: null == primaryDiagnoses
+          ? _self.primaryDiagnoses
+          : primaryDiagnoses // ignore: cast_nullable_to_non_nullable
+              as List<String>,
       manualRiskOverride: freezed == manualRiskOverride
           ? _self.manualRiskOverride
           : manualRiskOverride // ignore: cast_nullable_to_non_nullable
@@ -305,17 +345,37 @@ class _$PatientCopyWithImpl<$Res> implements $PatientCopyWith<$Res> {
           ? _self.allergies
           : allergies // ignore: cast_nullable_to_non_nullable
               as List<String>?,
-      tags: freezed == tags
-          ? _self.tags
-          : tags // ignore: cast_nullable_to_non_nullable
-              as List<String>?,
       dietRestrictions: freezed == dietRestrictions
           ? _self.dietRestrictions
           : dietRestrictions // ignore: cast_nullable_to_non_nullable
               as List<String>?,
-      notes: freezed == notes
-          ? _self.notes
-          : notes // ignore: cast_nullable_to_non_nullable
+      department: freezed == department
+          ? _self.department
+          : department // ignore: cast_nullable_to_non_nullable
+              as String?,
+      roomNumber: freezed == roomNumber
+          ? _self.roomNumber
+          : roomNumber // ignore: cast_nullable_to_non_nullable
+              as String?,
+      addressLine1: freezed == addressLine1
+          ? _self.addressLine1
+          : addressLine1 // ignore: cast_nullable_to_non_nullable
+              as String?,
+      addressLine2: freezed == addressLine2
+          ? _self.addressLine2
+          : addressLine2 // ignore: cast_nullable_to_non_nullable
+              as String?,
+      city: freezed == city
+          ? _self.city
+          : city // ignore: cast_nullable_to_non_nullable
+              as String?,
+      state: freezed == state
+          ? _self.state
+          : state // ignore: cast_nullable_to_non_nullable
+              as String?,
+      zip: freezed == zip
+          ? _self.zip
+          : zip // ignore: cast_nullable_to_non_nullable
               as String?,
     ));
   }
@@ -336,7 +396,7 @@ class _Patient implements Patient {
       @TimestampConverter() this.birthDate,
       this.isIsolation = false,
       this.isFallRisk = false,
-      required this.primaryDiagnosis,
+      final List<String> primaryDiagnoses = const [],
       @RiskLevelConverter() this.manualRiskOverride,
       this.codeStatus,
       this.pronouns,
@@ -347,16 +407,22 @@ class _Patient implements Patient {
       this.ownerUid,
       this.createdBy,
       final List<String>? allergies = const [],
-      final List<String>? tags = const [],
       final List<String>? dietRestrictions = const [],
-      this.notes})
-      : _assignedNurses = assignedNurses,
+      this.department,
+      this.roomNumber,
+      this.addressLine1,
+      this.addressLine2,
+      this.city,
+      this.state,
+      this.zip})
+      : _primaryDiagnoses = primaryDiagnoses,
+        _assignedNurses = assignedNurses,
         _allergies = allergies,
-        _tags = tags,
         _dietRestrictions = dietRestrictions;
   factory _Patient.fromJson(Map<String, dynamic> json) =>
       _$PatientFromJson(json);
 
+// 🆔 Identity & Demographics
   @override
   final String id;
   @override
@@ -365,36 +431,53 @@ class _Patient implements Patient {
   final String lastName;
   @override
   final String? mrn;
+
+  /// 🌍 Type of location the patient is currently in
+  /// e.g. "residence", "hospital", "snf", "rehab", "other"
+  /// NOTE: Keeping field name as `location` for Firestore compatibility
   @override
   final String location;
+
+  /// 🕐 Admission & visibility timestamps
   @override
   @TimestampConverter()
   final DateTime? admittedAt;
   @override
   @TimestampConverter()
   final DateTime? lastSeen;
-// ✅ Correct location
   @override
   @TimestampConverter()
   final DateTime? createdAt;
   @override
   @TimestampConverter()
   final DateTime? birthDate;
-// 🧠 Clinical flags
+// 🚩 Clinical Risk Flags
   @override
   @JsonKey()
   final bool? isIsolation;
   @override
   @JsonKey()
   final bool isFallRisk;
+
+  /// 💊 Supports multiple diagnoses per patient
+  final List<String> _primaryDiagnoses;
+
+  /// 💊 Supports multiple diagnoses per patient
   @override
-  final String primaryDiagnosis;
+  @JsonKey()
+  List<String> get primaryDiagnoses {
+    if (_primaryDiagnoses is EqualUnmodifiableListView)
+      return _primaryDiagnoses;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_primaryDiagnoses);
+  }
+
   @override
   @RiskLevelConverter()
   final RiskLevel? manualRiskOverride;
   @override
   final String? codeStatus;
-// 🧍 Identity & meta
+// 🧍 Gender, pronouns, language
   @override
   final String? pronouns;
   @override
@@ -404,9 +487,9 @@ class _Patient implements Patient {
   final String? photoUrl;
   @override
   final String? language;
-// 🩺 Assigned & created by
+// 👩‍⚕️ Assigned nurses & ownership
   final List<String>? _assignedNurses;
-// 🩺 Assigned & created by
+// 👩‍⚕️ Assigned nurses & ownership
   @override
   @JsonKey()
   List<String>? get assignedNurses {
@@ -421,26 +504,15 @@ class _Patient implements Patient {
   final String? ownerUid;
   @override
   final String? createdBy;
-// 🏷️ Tags & notes
+// 🌿 Medical Notes & Dietary Flags
   final List<String>? _allergies;
-// 🏷️ Tags & notes
+// 🌿 Medical Notes & Dietary Flags
   @override
   @JsonKey()
   List<String>? get allergies {
     final value = _allergies;
     if (value == null) return null;
     if (_allergies is EqualUnmodifiableListView) return _allergies;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(value);
-  }
-
-  final List<String>? _tags;
-  @override
-  @JsonKey()
-  List<String>? get tags {
-    final value = _tags;
-    if (value == null) return null;
-    if (_tags is EqualUnmodifiableListView) return _tags;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(value);
   }
@@ -457,9 +529,26 @@ class _Patient implements Patient {
     return EqualUnmodifiableListView(value);
   }
 
-// 🍽️ NEW FIELD
+// 🏥 Facility Location Fields (only applies if location != 'residence')
   @override
-  final String? notes;
+  final String? department;
+// e.g. "ICU", "Med-Surg"
+  @override
+  final String? roomNumber;
+// e.g. "12B"
+// 🏡 Structured Address Fields (only if location == 'residence')
+  @override
+  final String? addressLine1;
+// e.g. "123 Main St"
+  @override
+  final String? addressLine2;
+// e.g. "Apt 4B"
+  @override
+  final String? city;
+  @override
+  final String? state;
+  @override
+  final String? zip;
 
   /// Create a copy of Patient
   /// with the given fields replaced by the non-null parameter values.
@@ -501,8 +590,8 @@ class _Patient implements Patient {
                 other.isIsolation == isIsolation) &&
             (identical(other.isFallRisk, isFallRisk) ||
                 other.isFallRisk == isFallRisk) &&
-            (identical(other.primaryDiagnosis, primaryDiagnosis) ||
-                other.primaryDiagnosis == primaryDiagnosis) &&
+            const DeepCollectionEquality()
+                .equals(other._primaryDiagnoses, _primaryDiagnoses) &&
             (identical(other.manualRiskOverride, manualRiskOverride) ||
                 other.manualRiskOverride == manualRiskOverride) &&
             (identical(other.codeStatus, codeStatus) ||
@@ -523,10 +612,19 @@ class _Patient implements Patient {
                 other.createdBy == createdBy) &&
             const DeepCollectionEquality()
                 .equals(other._allergies, _allergies) &&
-            const DeepCollectionEquality().equals(other._tags, _tags) &&
             const DeepCollectionEquality()
                 .equals(other._dietRestrictions, _dietRestrictions) &&
-            (identical(other.notes, notes) || other.notes == notes));
+            (identical(other.department, department) ||
+                other.department == department) &&
+            (identical(other.roomNumber, roomNumber) ||
+                other.roomNumber == roomNumber) &&
+            (identical(other.addressLine1, addressLine1) ||
+                other.addressLine1 == addressLine1) &&
+            (identical(other.addressLine2, addressLine2) ||
+                other.addressLine2 == addressLine2) &&
+            (identical(other.city, city) || other.city == city) &&
+            (identical(other.state, state) || other.state == state) &&
+            (identical(other.zip, zip) || other.zip == zip));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -544,7 +642,7 @@ class _Patient implements Patient {
         birthDate,
         isIsolation,
         isFallRisk,
-        primaryDiagnosis,
+        const DeepCollectionEquality().hash(_primaryDiagnoses),
         manualRiskOverride,
         codeStatus,
         pronouns,
@@ -555,14 +653,19 @@ class _Patient implements Patient {
         ownerUid,
         createdBy,
         const DeepCollectionEquality().hash(_allergies),
-        const DeepCollectionEquality().hash(_tags),
         const DeepCollectionEquality().hash(_dietRestrictions),
-        notes
+        department,
+        roomNumber,
+        addressLine1,
+        addressLine2,
+        city,
+        state,
+        zip
       ]);
 
   @override
   String toString() {
-    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, lastSeen: $lastSeen, createdAt: $createdAt, birthDate: $birthDate, isIsolation: $isIsolation, isFallRisk: $isFallRisk, primaryDiagnosis: $primaryDiagnosis, manualRiskOverride: $manualRiskOverride, codeStatus: $codeStatus, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, language: $language, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, allergies: $allergies, tags: $tags, dietRestrictions: $dietRestrictions, notes: $notes)';
+    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, lastSeen: $lastSeen, createdAt: $createdAt, birthDate: $birthDate, isIsolation: $isIsolation, isFallRisk: $isFallRisk, primaryDiagnoses: $primaryDiagnoses, manualRiskOverride: $manualRiskOverride, codeStatus: $codeStatus, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, language: $language, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, allergies: $allergies, dietRestrictions: $dietRestrictions, department: $department, roomNumber: $roomNumber, addressLine1: $addressLine1, addressLine2: $addressLine2, city: $city, state: $state, zip: $zip)';
   }
 }
 
@@ -584,7 +687,7 @@ abstract mixin class _$PatientCopyWith<$Res> implements $PatientCopyWith<$Res> {
       @TimestampConverter() DateTime? birthDate,
       bool? isIsolation,
       bool isFallRisk,
-      String primaryDiagnosis,
+      List<String> primaryDiagnoses,
       @RiskLevelConverter() RiskLevel? manualRiskOverride,
       String? codeStatus,
       String? pronouns,
@@ -595,9 +698,14 @@ abstract mixin class _$PatientCopyWith<$Res> implements $PatientCopyWith<$Res> {
       String? ownerUid,
       String? createdBy,
       List<String>? allergies,
-      List<String>? tags,
       List<String>? dietRestrictions,
-      String? notes});
+      String? department,
+      String? roomNumber,
+      String? addressLine1,
+      String? addressLine2,
+      String? city,
+      String? state,
+      String? zip});
 }
 
 /// @nodoc
@@ -623,7 +731,7 @@ class __$PatientCopyWithImpl<$Res> implements _$PatientCopyWith<$Res> {
     Object? birthDate = freezed,
     Object? isIsolation = freezed,
     Object? isFallRisk = null,
-    Object? primaryDiagnosis = null,
+    Object? primaryDiagnoses = null,
     Object? manualRiskOverride = freezed,
     Object? codeStatus = freezed,
     Object? pronouns = freezed,
@@ -634,9 +742,14 @@ class __$PatientCopyWithImpl<$Res> implements _$PatientCopyWith<$Res> {
     Object? ownerUid = freezed,
     Object? createdBy = freezed,
     Object? allergies = freezed,
-    Object? tags = freezed,
     Object? dietRestrictions = freezed,
-    Object? notes = freezed,
+    Object? department = freezed,
+    Object? roomNumber = freezed,
+    Object? addressLine1 = freezed,
+    Object? addressLine2 = freezed,
+    Object? city = freezed,
+    Object? state = freezed,
+    Object? zip = freezed,
   }) {
     return _then(_Patient(
       id: null == id
@@ -683,10 +796,10 @@ class __$PatientCopyWithImpl<$Res> implements _$PatientCopyWith<$Res> {
           ? _self.isFallRisk
           : isFallRisk // ignore: cast_nullable_to_non_nullable
               as bool,
-      primaryDiagnosis: null == primaryDiagnosis
-          ? _self.primaryDiagnosis
-          : primaryDiagnosis // ignore: cast_nullable_to_non_nullable
-              as String,
+      primaryDiagnoses: null == primaryDiagnoses
+          ? _self._primaryDiagnoses
+          : primaryDiagnoses // ignore: cast_nullable_to_non_nullable
+              as List<String>,
       manualRiskOverride: freezed == manualRiskOverride
           ? _self.manualRiskOverride
           : manualRiskOverride // ignore: cast_nullable_to_non_nullable
@@ -727,17 +840,37 @@ class __$PatientCopyWithImpl<$Res> implements _$PatientCopyWith<$Res> {
           ? _self._allergies
           : allergies // ignore: cast_nullable_to_non_nullable
               as List<String>?,
-      tags: freezed == tags
-          ? _self._tags
-          : tags // ignore: cast_nullable_to_non_nullable
-              as List<String>?,
       dietRestrictions: freezed == dietRestrictions
           ? _self._dietRestrictions
           : dietRestrictions // ignore: cast_nullable_to_non_nullable
               as List<String>?,
-      notes: freezed == notes
-          ? _self.notes
-          : notes // ignore: cast_nullable_to_non_nullable
+      department: freezed == department
+          ? _self.department
+          : department // ignore: cast_nullable_to_non_nullable
+              as String?,
+      roomNumber: freezed == roomNumber
+          ? _self.roomNumber
+          : roomNumber // ignore: cast_nullable_to_non_nullable
+              as String?,
+      addressLine1: freezed == addressLine1
+          ? _self.addressLine1
+          : addressLine1 // ignore: cast_nullable_to_non_nullable
+              as String?,
+      addressLine2: freezed == addressLine2
+          ? _self.addressLine2
+          : addressLine2 // ignore: cast_nullable_to_non_nullable
+              as String?,
+      city: freezed == city
+          ? _self.city
+          : city // ignore: cast_nullable_to_non_nullable
+              as String?,
+      state: freezed == state
+          ? _self.state
+          : state // ignore: cast_nullable_to_non_nullable
+              as String?,
+      zip: freezed == zip
+          ? _self.zip
+          : zip // ignore: cast_nullable_to_non_nullable
               as String?,
     ));
   }

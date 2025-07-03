@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:nurseos_v3/core/theme/app_colors.dart';
-import 'patient_model.dart';
+import 'package:nurseos_v3/features/patient/models/patient_model.dart';
+import 'package:nurseos_v3/features/patient/models/diagnosis_catalog.dart';
 
 /// 🔥 Triage Risk Levels
 enum RiskLevel { high, medium, low, unknown }
@@ -20,25 +21,22 @@ class RiskLevelConverter implements JsonConverter<RiskLevel, String> {
   String toJson(RiskLevel object) => object.name;
 }
 
-/// 🧠 Risk mapping by known diagnoses
-const Map<RiskLevel, List<String>> riskDiagnosisMap = {
-  RiskLevel.high: ['sepsis', 'stroke'],
-  RiskLevel.medium: ['pneumonia', 'uti'],
-  RiskLevel.low: ['constipation'],
-};
-
 /// 🤖 Returns either nurse-defined override or automatic inference
 RiskLevel resolveRiskLevel(Patient patient) {
   return patient.manualRiskOverride ??
-      getAutoRiskLevel(patient.primaryDiagnosis);
+      getAutoRiskLevel(patient.primaryDiagnoses);
 }
 
-/// 🧠 Automatically infers risk from diagnosis string
-RiskLevel getAutoRiskLevel(String primaryDiagnosis) {
-  final normalized = primaryDiagnosis.toLowerCase().trim();
-  for (final entry in riskDiagnosisMap.entries) {
-    if (entry.value.contains(normalized)) return entry.key;
+/// 🧠 Automatically infers risk from multiple diagnoses
+RiskLevel getAutoRiskLevel(List<String> diagnoses) {
+  final normalized = diagnoses.map((d) => d.toLowerCase().trim());
+
+  for (final level in [RiskLevel.high, RiskLevel.medium, RiskLevel.low]) {
+    if (normalized.any((d) => getRiskForDiagnosis(d) == level)) {
+      return level;
+    }
   }
+
   return RiskLevel.unknown;
 }
 

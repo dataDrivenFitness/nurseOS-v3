@@ -6,6 +6,8 @@ import 'package:nurseos_v3/features/patient/models/patient_risk.dart';
 import 'package:nurseos_v3/features/patient/presentation/widgets/patient_avatar_column.dart';
 import 'package:nurseos_v3/features/patient/presentation/widgets/patient_info_column.dart';
 
+/// 🧾 PatientCard widget displays a compact summary of a patient.
+/// It includes an avatar, demographics, diagnosis, location, tags, and visual risk indicator.
 class PatientCard extends StatelessWidget {
   final Patient patient;
 
@@ -16,8 +18,8 @@ class PatientCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
     final textTheme = theme.textTheme;
-    final risk = patient.resolvedRiskLevel;
 
+    final risk = patient.resolvedRiskLevel;
     final riskBarColor = switch (risk) {
       RiskLevel.high => colors.danger,
       RiskLevel.medium => colors.warning,
@@ -33,6 +35,7 @@ class PatientCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap: () {
           debugPrint('📋 Tapped patient card: ${patient.fullName}');
+          // 🔄 Add navigation logic here if desired
         },
         child: IntrinsicHeight(
           child: Row(
@@ -48,6 +51,8 @@ class PatientCard extends StatelessWidget {
                   ),
                 ),
               ),
+
+              // 📋 Patient summary
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(16),

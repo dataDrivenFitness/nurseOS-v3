@@ -13,6 +13,7 @@ import '../../features/tasks/presentation/task_list_screen.dart';
 import '../../shared/widgets/app_shell.dart';
 import '../../shared/screens/splash_screen.dart';
 import '../../shared/state/suppress_redirect_provider.dart';
+import '../../features/patient/presentation/screens/add_patient_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -84,7 +85,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/accessibility',
         builder: (_, __) => const AccessibilitySettingsScreen(),
-      ), // ✅ NEW
+      ),
+      GoRoute(
+        path: '/patients/add',
+        builder: (_, __) => const AddPatientScreen(),
+      ),
       ShellRoute(
         navigatorKey: shellNavigatorKey,
         builder: (_, __, child) => AppShell(child: child),

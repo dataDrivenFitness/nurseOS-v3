@@ -326,13 +326,13 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
   // ──────────────────────────────────────────────────────────────
 
   Widget _buildProgressIndicator() {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Row(
         children: List.generate(4, (index) {
           final isActive = index == _currentStep;
-          final isCompleted =
-              index < _currentStep || (_stepCompletion[index] ?? false);
 
           return Expanded(
             child: Container(
@@ -340,11 +340,9 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
               height: 4,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(2),
-                color: isCompleted
-                    ? Colors.green
-                    : isActive
-                        ? Theme.of(context).primaryColor
-                        : Colors.grey[300],
+                color: isActive
+                    ? colorScheme.primary
+                    : colorScheme.onSurface.withAlpha(38),
               ),
             ),
           );
@@ -475,9 +473,7 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                           : 'Select Birthdate *',
                       style: TextStyle(
                         fontSize: 16,
-                        color: _birthDate != null
-                            ? Colors.black
-                            : Colors.grey[600],
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ),

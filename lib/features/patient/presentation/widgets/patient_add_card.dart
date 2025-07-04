@@ -13,7 +13,7 @@ class PatientAddCard extends StatelessWidget {
       child: InkWell(
         onTap: () => _showAddPatientModal(context),
         borderRadius: BorderRadius.circular(12),
-        splashColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+        splashColor: Theme.of(context).colorScheme.primary.withAlpha(26),
         child: AnimatedContainer(
           duration: AnimationTokens.medium,
           padding: const EdgeInsets.all(SpacingTokens.lg),

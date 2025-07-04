@@ -51,7 +51,7 @@ class CodeStatusPill extends StatelessWidget {
         tooltip = 'Limited Code: Some interventions only';
         break;
       default:
-        bgColor = colors.onSurface.withOpacity(0.1);
+        bgColor = colors.onSurface.withAlpha(26);
         borderColor = colors.subdued;
         textColor = colors.subdued;
         icon = Icons.info_outline;

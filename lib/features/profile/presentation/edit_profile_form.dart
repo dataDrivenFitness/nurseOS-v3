@@ -203,3 +203,7 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm>
     super.dispose();
   }
 }
+
+/// NOTE: The actual text scaling has been integrated using:
+///   final scale = ref.watch(fontScaleStreamProvider).valueOrNull ?? 1.0;
+/// and applied to all font-related styles explicitly.

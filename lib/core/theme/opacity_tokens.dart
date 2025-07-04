@@ -7,6 +7,7 @@ class OpacityTokens {
   static const int medium = 153; // 60%
   static const int low = 102; // 40%
   static const int faint = 76; // 30%
+  static const int ultraFaint = 10; // 20%
 
   // Semantic aliases
   static const int navIconUnselected = medium;

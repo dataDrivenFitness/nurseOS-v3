@@ -7,7 +7,10 @@ import 'package:nurseos_v3/core/theme/spacing.dart';
 import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
 import 'package:nurseos_v3/features/patient/data/patient_repository_provider.dart';
 import 'package:nurseos_v3/features/patient/models/patient_model.dart';
+import 'package:nurseos_v3/features/patient/presentation/screens/select_allergies_screen.dart';
 import 'package:nurseos_v3/features/patient/presentation/screens/select_diagnosis_screen.dart';
+import 'package:nurseos_v3/features/patient/presentation/screens/select_dietary_restrictions_screen.dart';
+import 'package:nurseos_v3/features/patient/presentation/widgets/add_patient_clinical_step.dart';
 import 'package:nurseos_v3/features/patient/state/patient_providers.dart';
 import 'package:nurseos_v3/features/patient/models/patient_field_options.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/primary_button.dart';
@@ -17,6 +20,11 @@ import 'package:nurseos_v3/core/theme/app_colors.dart';
 import 'package:nurseos_v3/shared/widgets/form_card.dart';
 import 'package:nurseos_v3/shared/utils/image_picker_utils.dart';
 import 'package:nurseos_v3/shared/widgets/profile_avatar.dart';
+
+// Import the step widgets
+import 'package:nurseos_v3/features/patient/presentation/widgets/add_patient_basic_info_step.dart';
+import 'package:nurseos_v3/features/patient/presentation/widgets/add_patient_location_step.dart';
+import 'package:nurseos_v3/features/patient/presentation/widgets/add_patient_risk_step.dart';
 
 class AddPatientScreen extends ConsumerStatefulWidget {
   const AddPatientScreen({super.key});
@@ -48,6 +56,8 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
   String? _language;
   String? _biologicalSex;
   List<String> _primaryDiagnoses = [];
+  List<String> _selectedAllergies = [];
+  List<String> _selectedDietRestrictions = [];
   DateTime? _birthDate;
   bool _isIsolation = false;
   bool _isFallRisk = false;
@@ -215,6 +225,33 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
     }
   }
 
+  Future<void> _selectAllergies() async {
+    final selected = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SelectAllergyScreen(
+            initialSelection: _selectedAllergies), // ← Fixed class name
+      ),
+    );
+    if (selected != null) {
+      setState(() => _selectedAllergies = List<String>.from(selected));
+    }
+  }
+
+  Future<void> _selectDietRestrictions() async {
+    final selected = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SelectDietaryRestrictionScreen(
+            // ← Fixed class name
+            initialSelection: _selectedDietRestrictions),
+      ),
+    );
+    if (selected != null) {
+      setState(() => _selectedDietRestrictions = List<String>.from(selected));
+    }
+  }
+
   // ──────────────────────────────────────────────────────────────
   // Save Patient
   // ──────────────────────────────────────────────────────────────
@@ -255,6 +292,9 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
       isFallRisk: _isFallRisk,
       isIsolation: _isIsolation,
       primaryDiagnoses: _primaryDiagnoses,
+      allergies: _selectedAllergies.isEmpty ? null : _selectedAllergies,
+      dietRestrictions:
+          _selectedDietRestrictions.isEmpty ? null : _selectedDietRestrictions,
       language: _language,
       biologicalSex: _biologicalSex ?? 'unspecified',
       createdAt: DateTime.now(),
@@ -382,396 +422,6 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
     );
   }
 
-  Widget _buildPhotoSection() {
-    final patientName = _firstNameController.text.trim().isEmpty &&
-            _lastNameController.text.trim().isEmpty
-        ? 'Patient'
-        : '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}';
-
-    return Column(
-      children: [
-        InkWell(
-          onTap: _pickImage,
-          borderRadius: BorderRadius.circular(60),
-          child: Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(26),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: ProfileAvatar(
-              file: _profileImage,
-              photoUrl: null,
-              fallbackName: patientName,
-              radius: 50,
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Tap to add patient photo',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBasicInfoStep() {
-    return FormCard(
-      title: 'Essential Information',
-      child: Column(
-        children: [
-          _buildPhotoSection(),
-          const SizedBox(height: 24),
-          TextFormField(
-            controller: _firstNameController,
-            decoration: const InputDecoration(
-              labelText: 'First Name *',
-              hintText: 'Enter patient\'s first name',
-              border: OutlineInputBorder(),
-            ),
-            textCapitalization: TextCapitalization.words,
-            validator: (val) =>
-                val == null || val.isEmpty ? 'First name is required' : null,
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _lastNameController,
-            decoration: const InputDecoration(
-              labelText: 'Last Name *',
-              hintText: 'Enter patient\'s last name',
-              border: OutlineInputBorder(),
-            ),
-            textCapitalization: TextCapitalization.words,
-            validator: (val) =>
-                val == null || val.isEmpty ? 'Last name is required' : null,
-          ),
-          const SizedBox(height: 16),
-          InkWell(
-            onTap: _pickBirthDate,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[400]!),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _birthDate != null
-                          ? 'Birthdate: ${_birthDate!.toLocal().toString().split(' ')[0]}'
-                          : 'Select Birthdate *',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                  ),
-                  Icon(Icons.calendar_today, color: Colors.grey[600]),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _pronounsController,
-            decoration: const InputDecoration(
-              labelText: 'Pronouns (optional)',
-              hintText: 'e.g., they/them, she/her, he/him',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            value: _biologicalSex,
-            decoration: const InputDecoration(
-              labelText: 'Biological Sex (optional)',
-              border: OutlineInputBorder(),
-            ),
-            items: biologicalSexOptions
-                .map((sex) => DropdownMenuItem(value: sex, child: Text(sex)))
-                .toList(),
-            onChanged: (val) => setState(() => _biologicalSex = val),
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            value: _language,
-            decoration: const InputDecoration(
-              labelText: 'Preferred Language (optional)',
-              border: OutlineInputBorder(),
-            ),
-            items: languageOptions
-                .map((lang) => DropdownMenuItem(value: lang, child: Text(lang)))
-                .toList(),
-            onChanged: (val) => setState(() => _language = val),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLocationStep() {
-    return FormCard(
-      title: 'Where is the patient?',
-      child: Column(
-        children: [
-          DropdownButtonFormField<String>(
-            value: _location,
-            decoration: const InputDecoration(
-              labelText: 'Location Type *',
-              border: OutlineInputBorder(),
-            ),
-            items: locationOptions
-                .map((loc) => DropdownMenuItem(value: loc, child: Text(loc)))
-                .toList(),
-            onChanged: (val) {
-              setState(() => _location = val);
-              _updateStepCompletion();
-            },
-            validator: (val) => val == null ? 'Please select a location' : null,
-          ),
-          const SizedBox(height: 16),
-          if (_location != null) ...[
-            if (!_isResidence) ...[
-              TextFormField(
-                controller: _departmentController,
-                decoration: const InputDecoration(
-                  labelText: 'Department',
-                  hintText: 'e.g., ICU, Emergency, Surgery',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _roomController,
-                decoration: const InputDecoration(
-                  labelText: 'Room Number',
-                  hintText: 'e.g., 201A, ICU-3',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ] else ...[
-              TextFormField(
-                controller: _address1Controller,
-                decoration: const InputDecoration(
-                  labelText: 'Street Address',
-                  hintText: '123 Main Street',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _address2Controller,
-                decoration: const InputDecoration(
-                  labelText: 'Apt/Unit (optional)',
-                  hintText: 'Apt 2B',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                      controller: _cityController,
-                      decoration: const InputDecoration(
-                        labelText: 'City',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _stateController,
-                      decoration: const InputDecoration(
-                        labelText: 'State',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _zipController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'ZIP',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildClinicalStep() {
-    return FormCard(
-      title: 'Clinical Information',
-      child: Column(
-        children: [
-          TextFormField(
-            controller: _mrnController,
-            decoration: InputDecoration(
-              labelText: 'Medical Record Number (MRN)',
-              hintText: 'Enter MRN if available',
-              border: const OutlineInputBorder(),
-              errorText: _mrnError,
-              suffixIcon: _isValidatingMrn
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : _mrnExists
-                      ? const Icon(Icons.error, color: Colors.red)
-                      : _mrnController.text.isNotEmpty && !_mrnExists
-                          ? const Icon(Icons.check, color: Colors.green)
-                          : null,
-            ),
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 16),
-          InkWell(
-            onTap: _selectDiagnoses,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[400]!),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Primary Diagnoses',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ),
-                      Icon(Icons.chevron_right, color: Colors.grey[600]),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  _primaryDiagnoses.isEmpty
-                      ? Text('Tap to add diagnoses',
-                          style: TextStyle(color: Colors.grey[600]))
-                      : Wrap(
-                          spacing: 8,
-                          children: _primaryDiagnoses
-                              .map((dx) => Chip(
-                                    label: Text(dx),
-                                    backgroundColor: Colors.blue[50],
-                                  ))
-                              .toList(),
-                        ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<String>(
-            value: _codeStatusController.text.isEmpty
-                ? null
-                : _codeStatusController.text,
-            decoration: const InputDecoration(
-              labelText: 'Code Status',
-              border: OutlineInputBorder(),
-            ),
-            items: codeStatusOptions
-                .map((status) =>
-                    DropdownMenuItem(value: status, child: Text(status)))
-                .toList(),
-            onChanged: (val) =>
-                setState(() => _codeStatusController.text = val ?? ''),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRiskStep() {
-    return FormCard(
-      title: 'Risk Assessment',
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.orange[50],
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.orange[200]!),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.warning_amber, color: Colors.orange),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Please review and set any applicable risk flags for this patient.',
-                    style: TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          Card(
-            elevation: 0,
-            color: _isIsolation ? Colors.red[50] : Colors.grey[50],
-            child: SwitchListTile(
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              title: const Text('Isolation Precautions'),
-              subtitle: const Text('Patient requires isolation protocols'),
-              value: _isIsolation,
-              onChanged: (val) => setState(() => _isIsolation = val),
-              secondary: Icon(
-                Icons.medical_services,
-                color: _isIsolation ? Colors.red : Colors.grey,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            elevation: 0,
-            color: _isFallRisk ? Colors.orange[50] : Colors.grey[50],
-            child: SwitchListTile(
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              title: const Text('Fall Risk'),
-              subtitle: const Text('Patient has elevated fall risk'),
-              value: _isFallRisk,
-              onChanged: (val) => setState(() => _isFallRisk = val),
-              secondary: Icon(
-                Icons.accessibility,
-                color: _isFallRisk ? Colors.orange : Colors.grey,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildNavigationButtons() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -833,21 +483,73 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
+                  // Step 1: Basic Info
                   SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: _buildBasicInfoStep(),
+                    child: AddPatientBasicInfoStep(
+                      firstNameController: _firstNameController,
+                      lastNameController: _lastNameController,
+                      pronounsController: _pronounsController,
+                      birthDate: _birthDate,
+                      biologicalSex: _biologicalSex,
+                      language: _language,
+                      profileImage: _profileImage,
+                      onPickBirthDate: _pickBirthDate,
+                      onPickImage: _pickImage,
+                      onBiologicalSexChanged: (value) =>
+                          setState(() => _biologicalSex = value),
+                      onLanguageChanged: (value) =>
+                          setState(() => _language = value),
+                    ),
                   ),
+                  // Step 2: Location
                   SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: _buildLocationStep(),
+                    child: AddPatientLocationStep(
+                      location: _location,
+                      departmentController: _departmentController,
+                      roomController: _roomController,
+                      address1Controller: _address1Controller,
+                      address2Controller: _address2Controller,
+                      cityController: _cityController,
+                      stateController: _stateController,
+                      zipController: _zipController,
+                      onLocationChanged: (value) {
+                        setState(() => _location = value);
+                        _updateStepCompletion();
+                      },
+                    ),
                   ),
+                  // Step 3: Clinical Info
                   SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: _buildClinicalStep(),
+                    child: AddPatientClinicalStep(
+                      mrnController: _mrnController,
+                      primaryDiagnoses: _primaryDiagnoses,
+                      selectedAllergies: _selectedAllergies,
+                      selectedDietRestrictions: _selectedDietRestrictions,
+                      mrnExists: _mrnExists,
+                      isValidatingMrn: _isValidatingMrn,
+                      mrnError: _mrnError,
+                      onSelectDiagnoses: _selectDiagnoses,
+                      onSelectAllergies: _selectAllergies,
+                      onSelectDietRestrictions: _selectDietRestrictions,
+                    ),
                   ),
+                  // Step 4: Risk Assessment
                   SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: _buildRiskStep(),
+                    child: AddPatientRiskStep(
+                      codeStatusController: _codeStatusController,
+                      isIsolation: _isIsolation,
+                      isFallRisk: _isFallRisk,
+                      onIsolationChanged: (value) =>
+                          setState(() => _isIsolation = value),
+                      onFallRiskChanged: (value) =>
+                          setState(() => _isFallRisk = value),
+                      onCodeStatusChanged: (value) => setState(
+                          () => _codeStatusController.text = value ?? ''),
+                    ),
                   ),
                 ],
               ),

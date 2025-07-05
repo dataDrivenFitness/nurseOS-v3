@@ -70,7 +70,12 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
   String? _mrnError;
 
   // Form completion tracking
-  Map<int, bool> _stepCompletion = {0: false, 1: false, 2: false, 3: false};
+  final Map<int, bool> _stepCompletion = {
+    0: false,
+    1: false,
+    2: false,
+    3: false
+  };
 
   bool get _isResidence => _location?.toLowerCase() == 'residence';
   bool get _canProceedToNext => _stepCompletion[_currentStep] ?? false;

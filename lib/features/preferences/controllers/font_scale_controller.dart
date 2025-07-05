@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
 import 'package:nurseos_v3/features/preferences/data/font_scale_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';

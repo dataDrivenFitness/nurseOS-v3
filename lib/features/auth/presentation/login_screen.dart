@@ -13,7 +13,7 @@ import 'package:nurseos_v3/shared/widgets/app_loader.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/primary_button.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();

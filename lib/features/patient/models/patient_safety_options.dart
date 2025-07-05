@@ -5,6 +5,7 @@
 /// This file contains standardized lists of common allergies and dietary
 /// restrictions used throughout the healthcare workflow. These should be
 /// reviewed periodically by clinical staff to ensure completeness and accuracy.
+library;
 
 /// 🧬 Common Drug and Environmental Allergies
 ///

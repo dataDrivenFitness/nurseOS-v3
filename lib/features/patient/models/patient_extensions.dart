@@ -26,7 +26,7 @@ extension PatientExtensions on Patient {
       'male' => 'Male',
       'female' => 'Female',
       'unspecified' || null => 'Unspecified',
-      _ => value!.capitalize(),
+      _ => value.capitalize(),
     };
   }
 
@@ -74,7 +74,7 @@ extension PatientExtensions on Patient {
       if (addressLine2?.isNotEmpty == true) addressLine2,
       [city, state].where((s) => s?.isNotEmpty == true).join(', '),
       zip
-    ].where((part) => part != null && part!.isNotEmpty).map((e) => e!).toList();
+    ].where((part) => part != null && part.isNotEmpty).map((e) => e!).toList();
 
     if (parts.isEmpty) return null;
     return parts.join('\n');

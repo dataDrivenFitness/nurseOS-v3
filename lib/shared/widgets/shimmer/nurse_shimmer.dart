@@ -17,7 +17,8 @@ class NurseShimmerContainer extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final baseColor = theme.colorScheme.surface;
-    final highlightColor = theme.colorScheme.surfaceVariant.withOpacity(0.5);
+    final highlightColor =
+        theme.colorScheme.surfaceContainerHighest.withOpacity(0.5);
 
     return Shimmer.fromColors(
       baseColor: baseColor,

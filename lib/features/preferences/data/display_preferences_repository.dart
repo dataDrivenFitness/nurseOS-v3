@@ -1,6 +1,6 @@
 // 📁 lib/features/preferences/data/display_preferences_repository.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_core/firebase_core.dart'; // ← for FirebaseException
+// ← for FirebaseException
 import '../domain/display_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

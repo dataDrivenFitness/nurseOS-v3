@@ -16,13 +16,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:nurseos_v3/core/theme/theme_controller.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/user_model.dart';
 import '../../profile/state/user_profile_controller.dart'; // one-shot + stream
-import '../../preferences/controllers/font_scale_controller.dart'; // font scale
-import '../../preferences/controllers/locale_controller.dart'; // locale
+// font scale
+// locale
 
 part 'auth_controller.g.dart';
 

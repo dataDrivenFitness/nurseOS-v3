@@ -7,9 +7,9 @@ sealed class Failure {
 }
 
 class UnexpectedFailure extends Failure {
-  const UnexpectedFailure(String msg) : super(msg);
+  const UnexpectedFailure(super.msg);
 }
 
 class NotFoundFailure extends Failure {
-  const NotFoundFailure(String msg) : super(msg);
+  const NotFoundFailure(super.msg);
 }

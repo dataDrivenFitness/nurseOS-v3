@@ -79,6 +79,8 @@ class SelectItemsScreen extends StatefulWidget {
   final SelectItemsConfig config;
   final List<String>? favoriteItems; // 🆕 Optional favorites
   final Function(String itemId)? onToggleFavorite; // 🆕 Optional callback
+  final Future<void> Function(List<String> selectedItems)?
+      onDone; // 🆕 Optional done callback
 
   const SelectItemsScreen({
     super.key,
@@ -89,6 +91,7 @@ class SelectItemsScreen extends StatefulWidget {
     required this.config,
     this.favoriteItems, // 🆕 Optional
     this.onToggleFavorite, // 🆕 Optional
+    this.onDone, // 🆕 Optional
   });
 
   @override
@@ -142,7 +145,15 @@ class _SelectItemsScreenState extends State<SelectItemsScreen>
     });
   }
 
-  void _done() => Navigator.pop(context, selected);
+  void _done() async {
+    // 🆕 Call custom onDone handler if provided
+    if (widget.onDone != null) {
+      await widget.onDone!(selected);
+    } else {
+      // 🔄 Default behavior - just pop with results
+      Navigator.pop(context, selected);
+    }
+  }
 
   // 🆕 Show favorite toggle dialog (only when favorites enabled)
   void _showFavoriteDialog(SelectableItem item) {

@@ -11,7 +11,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'app.dart';
 import 'core/env/env.dart';
-import 'features/preferences/data/font_scale_repository.dart';
 
 Future<void> main() async {
   // 🔧 Ensure widget binding is initialized before async tasks

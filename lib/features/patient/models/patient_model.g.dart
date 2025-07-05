@@ -43,6 +43,10 @@ _Patient _$PatientFromJson(Map<String, dynamic> json) => _Patient(
               ?.map((e) => e as String)
               .toList() ??
           const [],
+      medications: (json['medications'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
       department: json['department'] as String?,
       roomNumber: json['roomNumber'] as String?,
       addressLine1: json['addressLine1'] as String?,
@@ -77,6 +81,7 @@ Map<String, dynamic> _$PatientToJson(_Patient instance) => <String, dynamic>{
       'createdBy': instance.createdBy,
       'allergies': instance.allergies,
       'dietRestrictions': instance.dietRestrictions,
+      'medications': instance.medications,
       'department': instance.department,
       'roomNumber': instance.roomNumber,
       'addressLine1': instance.addressLine1,

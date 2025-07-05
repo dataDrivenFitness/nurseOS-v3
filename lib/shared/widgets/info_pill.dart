@@ -8,6 +8,7 @@ enum InfoPillType {
   diagnosisAccent,
   dietRestrictionGreen,
   danger, // 🆕 New red color option
+  medicationPrimary, // 💊 New medication pill type
 }
 
 class InfoPill extends StatelessWidget {
@@ -100,6 +101,12 @@ class InfoPill extends StatelessWidget {
           background: colors.danger.withAlpha(25),
           border: colors.danger,
           text: colors.danger,
+        );
+      case InfoPillType.medicationPrimary: // 💊 Purple medication pills
+        return _PillColors(
+          background: colors.medicationPurple.withAlpha(25),
+          border: colors.medicationPurple,
+          text: colors.medicationPurple,
         );
     }
   }

@@ -12,12 +12,14 @@ class AddPatientClinicalStep extends StatelessWidget {
   final List<String> primaryDiagnoses;
   final List<String> selectedAllergies;
   final List<String> selectedDietRestrictions;
+  final List<String> selectedMedications;
   final bool mrnExists;
   final bool isValidatingMrn;
   final String? mrnError;
   final VoidCallback onSelectDiagnoses;
   final VoidCallback onSelectAllergies;
   final VoidCallback onSelectDietRestrictions;
+  final VoidCallback onSelectMedications;
 
   const AddPatientClinicalStep({
     super.key,
@@ -25,12 +27,14 @@ class AddPatientClinicalStep extends StatelessWidget {
     required this.primaryDiagnoses,
     required this.selectedAllergies,
     required this.selectedDietRestrictions,
+    required this.selectedMedications,
     required this.mrnExists,
     required this.isValidatingMrn,
     this.mrnError,
     required this.onSelectDiagnoses,
     required this.onSelectAllergies,
     required this.onSelectDietRestrictions,
+    required this.onSelectMedications,
   });
 
   @override
@@ -72,7 +76,7 @@ class AddPatientClinicalStep extends StatelessWidget {
             context: context,
             theme: theme,
             colors: colors,
-            icon: Icons.medical_services,
+            icon: Icons.monitor_heart,
             iconColor: colors.brandAccent,
             title: 'Primary Diagnoses',
             description: 'Current medical conditions',
@@ -80,6 +84,22 @@ class AddPatientClinicalStep extends StatelessWidget {
             emptyText: 'Tap to add diagnoses',
             pillType: InfoPillType.diagnosisAccent,
             onTap: onSelectDiagnoses,
+          ),
+          const SizedBox(height: SpacingTokens.md),
+
+          // Current Medications Selection
+          _buildSelectionContainer(
+            context: context,
+            theme: theme,
+            colors: colors,
+            icon: Icons.medication,
+            iconColor: colors.medicationPurple, // 💜 Purple for medications
+            title: 'Current Medications',
+            description: 'Active prescriptions and medications',
+            items: selectedMedications,
+            emptyText: 'Tap to add medications',
+            pillType: InfoPillType.medicationPrimary,
+            onTap: onSelectMedications,
           ),
           const SizedBox(height: SpacingTokens.md),
 

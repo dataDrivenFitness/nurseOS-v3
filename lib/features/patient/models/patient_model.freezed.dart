@@ -51,8 +51,11 @@ mixin _$Patient {
   String? get ownerUid;
   String? get createdBy; // 🌿 Medical Notes & Dietary Flags
   List<String>? get allergies;
+  List<String>? get dietRestrictions;
+
+  /// 💊 Current medications and prescriptions
   List<String>?
-      get dietRestrictions; // 🏥 Facility Location Fields (only applies if location != 'residence')
+      get medications; // 🏥 Facility Location Fields (only applies if location != 'residence')
   String? get department; // e.g. "ICU", "Med-Surg"
   String? get roomNumber; // e.g. "12B"
 // 🏡 Structured Address Fields (only if location == 'residence')
@@ -120,6 +123,8 @@ mixin _$Patient {
             const DeepCollectionEquality().equals(other.allergies, allergies) &&
             const DeepCollectionEquality()
                 .equals(other.dietRestrictions, dietRestrictions) &&
+            const DeepCollectionEquality()
+                .equals(other.medications, medications) &&
             (identical(other.department, department) ||
                 other.department == department) &&
             (identical(other.roomNumber, roomNumber) ||
@@ -160,6 +165,7 @@ mixin _$Patient {
         createdBy,
         const DeepCollectionEquality().hash(allergies),
         const DeepCollectionEquality().hash(dietRestrictions),
+        const DeepCollectionEquality().hash(medications),
         department,
         roomNumber,
         addressLine1,
@@ -171,7 +177,7 @@ mixin _$Patient {
 
   @override
   String toString() {
-    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, lastSeen: $lastSeen, createdAt: $createdAt, birthDate: $birthDate, isIsolation: $isIsolation, isFallRisk: $isFallRisk, primaryDiagnoses: $primaryDiagnoses, manualRiskOverride: $manualRiskOverride, codeStatus: $codeStatus, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, language: $language, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, allergies: $allergies, dietRestrictions: $dietRestrictions, department: $department, roomNumber: $roomNumber, addressLine1: $addressLine1, addressLine2: $addressLine2, city: $city, state: $state, zip: $zip)';
+    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, lastSeen: $lastSeen, createdAt: $createdAt, birthDate: $birthDate, isIsolation: $isIsolation, isFallRisk: $isFallRisk, primaryDiagnoses: $primaryDiagnoses, manualRiskOverride: $manualRiskOverride, codeStatus: $codeStatus, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, language: $language, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, allergies: $allergies, dietRestrictions: $dietRestrictions, medications: $medications, department: $department, roomNumber: $roomNumber, addressLine1: $addressLine1, addressLine2: $addressLine2, city: $city, state: $state, zip: $zip)';
   }
 }
 
@@ -204,6 +210,7 @@ abstract mixin class $PatientCopyWith<$Res> {
       String? createdBy,
       List<String>? allergies,
       List<String>? dietRestrictions,
+      List<String>? medications,
       String? department,
       String? roomNumber,
       String? addressLine1,
@@ -248,6 +255,7 @@ class _$PatientCopyWithImpl<$Res> implements $PatientCopyWith<$Res> {
     Object? createdBy = freezed,
     Object? allergies = freezed,
     Object? dietRestrictions = freezed,
+    Object? medications = freezed,
     Object? department = freezed,
     Object? roomNumber = freezed,
     Object? addressLine1 = freezed,
@@ -349,6 +357,10 @@ class _$PatientCopyWithImpl<$Res> implements $PatientCopyWith<$Res> {
           ? _self.dietRestrictions
           : dietRestrictions // ignore: cast_nullable_to_non_nullable
               as List<String>?,
+      medications: freezed == medications
+          ? _self.medications
+          : medications // ignore: cast_nullable_to_non_nullable
+              as List<String>?,
       department: freezed == department
           ? _self.department
           : department // ignore: cast_nullable_to_non_nullable
@@ -408,6 +420,7 @@ class _Patient implements Patient {
       this.createdBy,
       final List<String>? allergies = const [],
       final List<String>? dietRestrictions = const [],
+      final List<String>? medications = const [],
       this.department,
       this.roomNumber,
       this.addressLine1,
@@ -418,7 +431,8 @@ class _Patient implements Patient {
       : _primaryDiagnoses = primaryDiagnoses,
         _assignedNurses = assignedNurses,
         _allergies = allergies,
-        _dietRestrictions = dietRestrictions;
+        _dietRestrictions = dietRestrictions,
+        _medications = medications;
   factory _Patient.fromJson(Map<String, dynamic> json) =>
       _$PatientFromJson(json);
 
@@ -529,6 +543,20 @@ class _Patient implements Patient {
     return EqualUnmodifiableListView(value);
   }
 
+  /// 💊 Current medications and prescriptions
+  final List<String>? _medications;
+
+  /// 💊 Current medications and prescriptions
+  @override
+  @JsonKey()
+  List<String>? get medications {
+    final value = _medications;
+    if (value == null) return null;
+    if (_medications is EqualUnmodifiableListView) return _medications;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(value);
+  }
+
 // 🏥 Facility Location Fields (only applies if location != 'residence')
   @override
   final String? department;
@@ -614,6 +642,8 @@ class _Patient implements Patient {
                 .equals(other._allergies, _allergies) &&
             const DeepCollectionEquality()
                 .equals(other._dietRestrictions, _dietRestrictions) &&
+            const DeepCollectionEquality()
+                .equals(other._medications, _medications) &&
             (identical(other.department, department) ||
                 other.department == department) &&
             (identical(other.roomNumber, roomNumber) ||
@@ -654,6 +684,7 @@ class _Patient implements Patient {
         createdBy,
         const DeepCollectionEquality().hash(_allergies),
         const DeepCollectionEquality().hash(_dietRestrictions),
+        const DeepCollectionEquality().hash(_medications),
         department,
         roomNumber,
         addressLine1,
@@ -665,7 +696,7 @@ class _Patient implements Patient {
 
   @override
   String toString() {
-    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, lastSeen: $lastSeen, createdAt: $createdAt, birthDate: $birthDate, isIsolation: $isIsolation, isFallRisk: $isFallRisk, primaryDiagnoses: $primaryDiagnoses, manualRiskOverride: $manualRiskOverride, codeStatus: $codeStatus, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, language: $language, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, allergies: $allergies, dietRestrictions: $dietRestrictions, department: $department, roomNumber: $roomNumber, addressLine1: $addressLine1, addressLine2: $addressLine2, city: $city, state: $state, zip: $zip)';
+    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, lastSeen: $lastSeen, createdAt: $createdAt, birthDate: $birthDate, isIsolation: $isIsolation, isFallRisk: $isFallRisk, primaryDiagnoses: $primaryDiagnoses, manualRiskOverride: $manualRiskOverride, codeStatus: $codeStatus, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, language: $language, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, allergies: $allergies, dietRestrictions: $dietRestrictions, medications: $medications, department: $department, roomNumber: $roomNumber, addressLine1: $addressLine1, addressLine2: $addressLine2, city: $city, state: $state, zip: $zip)';
   }
 }
 
@@ -699,6 +730,7 @@ abstract mixin class _$PatientCopyWith<$Res> implements $PatientCopyWith<$Res> {
       String? createdBy,
       List<String>? allergies,
       List<String>? dietRestrictions,
+      List<String>? medications,
       String? department,
       String? roomNumber,
       String? addressLine1,
@@ -743,6 +775,7 @@ class __$PatientCopyWithImpl<$Res> implements _$PatientCopyWith<$Res> {
     Object? createdBy = freezed,
     Object? allergies = freezed,
     Object? dietRestrictions = freezed,
+    Object? medications = freezed,
     Object? department = freezed,
     Object? roomNumber = freezed,
     Object? addressLine1 = freezed,
@@ -843,6 +876,10 @@ class __$PatientCopyWithImpl<$Res> implements _$PatientCopyWith<$Res> {
       dietRestrictions: freezed == dietRestrictions
           ? _self._dietRestrictions
           : dietRestrictions // ignore: cast_nullable_to_non_nullable
+              as List<String>?,
+      medications: freezed == medications
+          ? _self._medications
+          : medications // ignore: cast_nullable_to_non_nullable
               as List<String>?,
       department: freezed == department
           ? _self.department

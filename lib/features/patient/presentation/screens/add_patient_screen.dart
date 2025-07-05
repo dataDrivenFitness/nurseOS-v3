@@ -10,6 +10,7 @@ import 'package:nurseos_v3/features/patient/models/patient_model.dart';
 import 'package:nurseos_v3/features/patient/presentation/screens/select_allergies_screen.dart';
 import 'package:nurseos_v3/features/patient/presentation/screens/select_diagnosis_screen.dart';
 import 'package:nurseos_v3/features/patient/presentation/screens/select_dietary_restrictions_screen.dart';
+import 'package:nurseos_v3/features/patient/presentation/screens/select_medications_screen.dart';
 import 'package:nurseos_v3/features/patient/presentation/widgets/add_patient_clinical_step.dart';
 import 'package:nurseos_v3/features/patient/state/patient_providers.dart';
 import 'package:nurseos_v3/features/patient/models/patient_field_options.dart';
@@ -58,6 +59,7 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
   List<String> _primaryDiagnoses = [];
   List<String> _selectedAllergies = [];
   List<String> _selectedDietRestrictions = [];
+  List<String> _selectedMedications = []; // 💊 New medications state
   DateTime? _birthDate;
   bool _isIsolation = false;
   bool _isFallRisk = false;
@@ -230,6 +232,21 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
     }
   }
 
+  // 💊 New medications selection handler
+  Future<void> _selectMedications() async {
+    final selected = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SelectMedicationsScreen(
+          initialSelection: _selectedMedications,
+        ),
+      ),
+    );
+    if (selected != null) {
+      setState(() => _selectedMedications = List<String>.from(selected));
+    }
+  }
+
   Future<void> _selectAllergies() async {
     final selected = await Navigator.push(
       context,
@@ -300,6 +317,9 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
       allergies: _selectedAllergies.isEmpty ? null : _selectedAllergies,
       dietRestrictions:
           _selectedDietRestrictions.isEmpty ? null : _selectedDietRestrictions,
+      medications: _selectedMedications.isEmpty
+          ? null
+          : _selectedMedications, // 💊 Include medications
       language: _language,
       biologicalSex: _biologicalSex ?? 'unspecified',
       createdAt: DateTime.now(),
@@ -533,12 +553,16 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                       primaryDiagnoses: _primaryDiagnoses,
                       selectedAllergies: _selectedAllergies,
                       selectedDietRestrictions: _selectedDietRestrictions,
+                      selectedMedications:
+                          _selectedMedications, // 💊 Pass medications
                       mrnExists: _mrnExists,
                       isValidatingMrn: _isValidatingMrn,
                       mrnError: _mrnError,
                       onSelectDiagnoses: _selectDiagnoses,
                       onSelectAllergies: _selectAllergies,
                       onSelectDietRestrictions: _selectDietRestrictions,
+                      onSelectMedications:
+                          _selectMedications, // 💊 Pass medications callback
                     ),
                   ),
                   // Step 4: Risk Assessment

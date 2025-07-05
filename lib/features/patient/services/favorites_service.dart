@@ -8,9 +8,13 @@ class FavoritesService {
   static const String _allergyFavoritesKey = 'user_favorite_allergies';
   static const String _dietaryFavoritesKey =
       'user_favorite_dietary_restrictions';
+  static const String _medicationFavoritesKey =
+      'user_favorite_medications'; // 💊 New key
   static const String _recentDiagnosesKey = 'user_recent_diagnoses';
   static const String _recentAllergiesKey = 'user_recent_allergies';
   static const String _recentDietaryKey = 'user_recent_dietary_restrictions';
+  static const String _recentMedicationsKey =
+      'user_recent_medications'; // 💊 New key
   static const int _maxRecentItems = 10;
 
   // ═══════════════════════════════════════════════════════════════
@@ -183,6 +187,90 @@ class FavoritesService {
   }
 
   // ═══════════════════════════════════════════════════════════════
+  // 💊 MEDICATION FAVORITES
+  // ═══════════════════════════════════════════════════════════════
+
+  /// Load user's favorite medications from local storage
+  static Future<List<String>> loadFavoriteMedications() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getStringList(_medicationFavoritesKey) ?? [];
+    } catch (e) {
+      print('⚠️ Error loading favorite medications: $e');
+      return [];
+    }
+  }
+
+  /// Save user's favorite medications to local storage
+  static Future<void> saveFavoriteMedications(List<String> favorites) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_medicationFavoritesKey, favorites);
+      print('✅ Saved ${favorites.length} favorite medications');
+    } catch (e) {
+      print('⚠️ Error saving favorite medications: $e');
+    }
+  }
+
+  /// Toggle a medication in favorites list
+  static Future<List<String>> toggleFavoriteMedication(
+      String medicationId) async {
+    final favorites = await loadFavoriteMedications();
+
+    if (favorites.contains(medicationId)) {
+      favorites.remove(medicationId);
+      print('🔄 Removed medication from favorites: $medicationId');
+    } else {
+      favorites.add(medicationId);
+      print('🔄 Added medication to favorites: $medicationId');
+    }
+
+    await saveFavoriteMedications(favorites);
+    return favorites;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🕒 MEDICATION RECENT TRACKING
+  // ═══════════════════════════════════════════════════════════════
+
+  /// Add multiple medications to recently used
+  static Future<List<String>> addRecentMedications(
+      List<String> selectedIds) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      var recent = prefs.getStringList(_recentMedicationsKey) ?? [];
+
+      for (final id in selectedIds.reversed) {
+        recent.remove(id);
+        recent.insert(0, id);
+      }
+
+      if (recent.length > _maxRecentItems) {
+        recent = recent.take(_maxRecentItems).toList();
+      }
+
+      await prefs.setStringList(_recentMedicationsKey, recent);
+      print(
+          '🕒 Added ${selectedIds.length} items to recent medications. Total: ${recent.length}');
+      return recent;
+    } catch (e) {
+      print('⚠️ Error saving recent medications: $e');
+      return [];
+    }
+  }
+
+  /// Load recently used medications
+  static Future<List<String>> loadRecentMedications() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getStringList(_recentMedicationsKey) ?? [];
+    } catch (e) {
+      print('⚠️ Error loading recent medications: $e');
+      return [];
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   // 🍽️ DIETARY RESTRICTION FAVORITES
   // ═══════════════════════════════════════════════════════════════
 
@@ -278,6 +366,7 @@ class FavoritesService {
       await prefs.remove(_diagnosisFavoritesKey);
       await prefs.remove(_allergyFavoritesKey);
       await prefs.remove(_dietaryFavoritesKey);
+      await prefs.remove(_medicationFavoritesKey); // 💊 Include medications
       print('✅ Cleared all favorites');
     } catch (e) {
       print('⚠️ Error clearing favorites: $e');
@@ -291,6 +380,7 @@ class FavoritesService {
       await prefs.remove(_recentDiagnosesKey);
       await prefs.remove(_recentAllergiesKey);
       await prefs.remove(_recentDietaryKey);
+      await prefs.remove(_recentMedicationsKey); // 💊 Include medications
       print('✅ Cleared all recent items');
     } catch (e) {
       print('⚠️ Error clearing recent items: $e');
@@ -302,8 +392,13 @@ class FavoritesService {
     final diagnoses = await loadFavoriteDiagnoses();
     final allergies = await loadFavoriteAllergies();
     final dietary = await loadFavoriteDietaryRestrictions();
+    final medications =
+        await loadFavoriteMedications(); // 💊 Include medications
 
-    return diagnoses.length + allergies.length + dietary.length;
+    return diagnoses.length +
+        allergies.length +
+        dietary.length +
+        medications.length;
   }
 
   /// Check if any favorites exist

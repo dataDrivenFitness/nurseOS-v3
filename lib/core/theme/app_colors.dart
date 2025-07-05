@@ -19,6 +19,7 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color brandAccent;
   final Color brandSecondary;
   final Color brandNeutral;
+  final Color medicationPurple; // 💊 NEW - Purple for medications
 
   const AppColors({
     required this.primary,
@@ -37,6 +38,7 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.brandAccent,
     required this.brandSecondary,
     required this.brandNeutral,
+    required this.medicationPurple, // 💊 NEW
   });
 
   @override
@@ -57,6 +59,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? brandAccent,
     Color? brandSecondary,
     Color? brandNeutral,
+    Color? medicationPurple, // 💊 NEW
   }) {
     return AppColors(
       primary: primary ?? this.primary,
@@ -75,6 +78,7 @@ class AppColors extends ThemeExtension<AppColors> {
       brandAccent: brandAccent ?? this.brandAccent,
       brandSecondary: brandSecondary ?? this.brandSecondary,
       brandNeutral: brandNeutral ?? this.brandNeutral,
+      medicationPurple: medicationPurple ?? this.medicationPurple, // 💊 NEW
     );
   }
 
@@ -98,6 +102,8 @@ class AppColors extends ThemeExtension<AppColors> {
       brandAccent: Color.lerp(brandAccent, other.brandAccent, t)!,
       brandSecondary: Color.lerp(brandSecondary, other.brandSecondary, t)!,
       brandNeutral: Color.lerp(brandNeutral, other.brandNeutral, t)!,
+      medicationPurple:
+          Color.lerp(medicationPurple, other.medicationPurple, t)!, // 💊 NEW
     );
   }
 
@@ -118,6 +124,7 @@ class AppColors extends ThemeExtension<AppColors> {
     brandAccent: Color(0xFF728EFD),
     brandSecondary: Color(0xFF607D8B),
     brandNeutral: Color(0xFF2C3445),
+    medicationPurple: Color(0xFFB19CD9), // 💊 Lighter purple for dark mode
   );
 
   static const light = AppColors(
@@ -137,6 +144,7 @@ class AppColors extends ThemeExtension<AppColors> {
     brandAccent: Color(0xFF3981F7),
     brandSecondary: Color(0xFFF368B3),
     brandNeutral: Color(0xFF94A3B8),
+    medicationPurple: Color(0xFF8E44AD), // 💊 Rich purple for light mode
   );
 }
 

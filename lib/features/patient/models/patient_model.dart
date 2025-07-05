@@ -53,9 +53,6 @@ abstract class Patient with _$Patient {
     @Default([]) List<String>? allergies,
     @Default([]) List<String>? dietRestrictions,
 
-    /// 💊 Current medications and prescriptions
-    @Default([]) List<String>? medications,
-
     // 🏥 Facility Location Fields (only applies if location != 'residence')
     String? department, // e.g. "ICU", "Med-Surg"
     String? roomNumber, // e.g. "12B"

@@ -7,7 +7,7 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color primaryVariant;
   final Color background;
   final Color surface;
-  final Color surfaceVariant; // ✅ NEW
+  final Color surfaceVariant;
   final Color onPrimary;
   final Color onSurface;
   final Color danger;
@@ -19,14 +19,14 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color brandAccent;
   final Color brandSecondary;
   final Color brandNeutral;
-  final Color medicationPurple; // 💊 NEW - Purple for medications
+  final Color medicationPurple;
 
   const AppColors({
     required this.primary,
     required this.primaryVariant,
     required this.background,
     required this.surface,
-    required this.surfaceVariant, // ✅ NEW
+    required this.surfaceVariant,
     required this.onPrimary,
     required this.onSurface,
     required this.danger,
@@ -38,7 +38,7 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.brandAccent,
     required this.brandSecondary,
     required this.brandNeutral,
-    required this.medicationPurple, // 💊 NEW
+    required this.medicationPurple,
   });
 
   @override
@@ -47,7 +47,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? primaryVariant,
     Color? background,
     Color? surface,
-    Color? surfaceVariant, // ✅ NEW
+    Color? surfaceVariant,
     Color? onPrimary,
     Color? onSurface,
     Color? danger,
@@ -59,14 +59,14 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? brandAccent,
     Color? brandSecondary,
     Color? brandNeutral,
-    Color? medicationPurple, // 💊 NEW
+    Color? medicationPurple,
   }) {
     return AppColors(
       primary: primary ?? this.primary,
       primaryVariant: primaryVariant ?? this.primaryVariant,
       background: background ?? this.background,
       surface: surface ?? this.surface,
-      surfaceVariant: surfaceVariant ?? this.surfaceVariant, // ✅
+      surfaceVariant: surfaceVariant ?? this.surfaceVariant,
       onPrimary: onPrimary ?? this.onPrimary,
       onSurface: onSurface ?? this.onSurface,
       danger: danger ?? this.danger,
@@ -78,7 +78,7 @@ class AppColors extends ThemeExtension<AppColors> {
       brandAccent: brandAccent ?? this.brandAccent,
       brandSecondary: brandSecondary ?? this.brandSecondary,
       brandNeutral: brandNeutral ?? this.brandNeutral,
-      medicationPurple: medicationPurple ?? this.medicationPurple, // 💊 NEW
+      medicationPurple: medicationPurple ?? this.medicationPurple,
     );
   }
 
@@ -90,7 +90,7 @@ class AppColors extends ThemeExtension<AppColors> {
       primaryVariant: Color.lerp(primaryVariant, other.primaryVariant, t)!,
       background: Color.lerp(background, other.background, t)!,
       surface: Color.lerp(surface, other.surface, t)!,
-      surfaceVariant: Color.lerp(surfaceVariant, other.surfaceVariant, t)!, // ✅
+      surfaceVariant: Color.lerp(surfaceVariant, other.surfaceVariant, t)!,
       onPrimary: Color.lerp(onPrimary, other.onPrimary, t)!,
       onSurface: Color.lerp(onSurface, other.onSurface, t)!,
       danger: Color.lerp(danger, other.danger, t)!,
@@ -112,7 +112,7 @@ class AppColors extends ThemeExtension<AppColors> {
     primaryVariant: Color(0xFF728EFD),
     background: Color(0xFF121620),
     surface: Color(0xFF1E2533),
-    surfaceVariant: Color(0xFF2B3142), // ✅ DARK VARIANT
+    surfaceVariant: Color(0xFF2B3142),
     onPrimary: Colors.black,
     onSurface: Color(0xFFE5E9FE),
     danger: Color(0xFFEF5350),
@@ -124,7 +124,7 @@ class AppColors extends ThemeExtension<AppColors> {
     brandAccent: Color(0xFF728EFD),
     brandSecondary: Color(0xFF607D8B),
     brandNeutral: Color(0xFF2C3445),
-    medicationPurple: Color(0xFFB19CD9), // 💊 Lighter purple for dark mode
+    medicationPurple: Color(0xFFB19CD9),
   );
 
   static const light = AppColors(
@@ -132,7 +132,7 @@ class AppColors extends ThemeExtension<AppColors> {
     primaryVariant: Color(0xFF0041A3),
     background: Color(0xFFFFFFFF),
     surface: Color(0xFFF1F5F9),
-    surfaceVariant: Color(0xFFE8ECF2), // ✅ LIGHT VARIANT
+    surfaceVariant: Color(0xFFE8ECF2),
     onPrimary: Colors.white,
     onSurface: Color(0xFF1E293B),
     danger: Color(0xFFD32F2F),
@@ -144,7 +144,7 @@ class AppColors extends ThemeExtension<AppColors> {
     brandAccent: Color(0xFF3981F7),
     brandSecondary: Color(0xFFF368B3),
     brandNeutral: Color(0xFF94A3B8),
-    medicationPurple: Color(0xFF8E44AD), // 💊 Rich purple for light mode
+    medicationPurple: Color(0xFF8E44AD),
   );
 }
 

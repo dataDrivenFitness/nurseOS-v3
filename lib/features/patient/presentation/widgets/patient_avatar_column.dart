@@ -44,7 +44,7 @@ class PatientAvatarColumn extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.visibility, size: 14, color: Colors.grey),
+                    const Icon(Icons.visibility, size: 12, color: Colors.grey),
                     const SizedBox(width: 4),
                     Text(
                       DateFormat('M/d/yyyy').format(patient.lastSeen!),
@@ -58,7 +58,7 @@ class PatientAvatarColumn extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                    const Icon(Icons.access_time, size: 12, color: Colors.grey),
                     const SizedBox(width: 4),
                     Text(
                       DateFormat('h:mm a').format(patient.lastSeen!),

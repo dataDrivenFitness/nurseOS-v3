@@ -424,17 +424,10 @@ class _SelectItemsScreenState extends State<SelectItemsScreen>
         color: colors.surface,
         border: Border(
           top: BorderSide(
-            color: accentColor.withOpacity(0.3),
-            width: 1,
+            color: accentColor.withAlpha(128), // 0.5 * 255 = 128 (match top)
+            width: 1, // Ensure same thickness
           ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: colors.subdued.withOpacity(0.2),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
       ),
       child: SafeArea(
         top: false,
@@ -518,11 +511,15 @@ class _SelectItemsScreenState extends State<SelectItemsScreen>
         vertical: SpacingTokens.xs,
       ),
       decoration: BoxDecoration(
-        color: colors.surfaceVariant,
+        color: colors.background,
         borderRadius: ShapeTokens.cardRadius,
         border: isSelected
             ? Border.all(color: accentColor, width: 2)
-            : Border.all(color: colors.subdued.withOpacity(0.1)),
+            : Border.all(
+                color: colors.subdued
+                    .withOpacity(0.3), // 🆕 Increased from 0.1 to 0.3
+                width: 1.5, // 🆕 Increased from 1 to 1.5
+              ),
       ),
       child: ListTile(
         leading: Checkbox(
@@ -902,7 +899,16 @@ class _SelectItemsScreenState extends State<SelectItemsScreen>
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(kToolbarHeight),
             child: Container(
-              color: accentColor.withOpacity(0.08),
+              decoration: BoxDecoration(
+                color: accentColor.withAlpha(20), // 0.08 * 255 ≈ 20
+                border: Border(
+                  bottom: BorderSide(
+                    color: accentColor
+                        .withAlpha(128), // 0.5 * 255 = 128 (more visible)
+                    width: 1, // Match bottom bar thickness
+                  ),
+                ),
+              ),
               child: TabBar(
                 controller: _tabController,
                 labelColor: Colors.white,
@@ -916,6 +922,8 @@ class _SelectItemsScreenState extends State<SelectItemsScreen>
                   horizontal: SpacingTokens.xs,
                   vertical: SpacingTokens.xs,
                 ),
+                dividerColor:
+                    Colors.transparent, // 🆕 Remove default TabBar divider
                 labelStyle: theme.textTheme.labelMedium?.copyWith(
                   fontSize: textScaler.scale(12),
                   fontWeight: FontWeight.w600,

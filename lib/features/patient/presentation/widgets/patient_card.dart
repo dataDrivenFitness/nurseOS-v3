@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:nurseos_v3/core/theme/app_colors.dart';
+import 'package:nurseos_v3/core/theme/spacing.dart';
+import 'package:nurseos_v3/core/theme/shape_tokens.dart';
 import 'package:nurseos_v3/features/patient/models/patient_model.dart';
 import 'package:nurseos_v3/features/patient/models/patient_extensions.dart';
 import 'package:nurseos_v3/features/patient/models/patient_risk.dart';
 import 'package:nurseos_v3/features/patient/presentation/widgets/patient_avatar_column.dart';
 import 'package:nurseos_v3/features/patient/presentation/widgets/patient_info_column.dart';
 
-/// 🧾 PatientCard widget displays a compact summary of a patient.
-/// It includes an avatar, demographics, diagnosis, location, tags, and visual risk indicator.
 class PatientCard extends StatelessWidget {
   final Patient patient;
 
@@ -20,47 +20,45 @@ class PatientCard extends StatelessWidget {
     final textTheme = theme.textTheme;
 
     final risk = patient.resolvedRiskLevel;
-    final riskBarColor = switch (risk) {
-      RiskLevel.high => colors.danger,
-      RiskLevel.medium => colors.warning,
-      _ => Colors.transparent,
-    };
 
     return Card(
       elevation: 2,
       color: colors.surfaceVariant,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: ShapeTokens.cardRadius),
       margin: EdgeInsets.zero,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: ShapeTokens.cardRadius,
         onTap: () {
           debugPrint('📋 Tapped patient card: ${patient.fullName}');
-          // 🔄 Add navigation logic here if desired
         },
         child: IntrinsicHeight(
           child: Row(
             children: [
-              // 🚦 Vertical risk bar
-              Container(
-                width: 4,
-                decoration: BoxDecoration(
-                  color: riskBarColor,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(12),
-                    bottomLeft: Radius.circular(12),
+              // 🚦 Risk sidebar with padded inset to fit card corners
+              if (risk == RiskLevel.medium || risk == RiskLevel.high)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Container(
+                    width: 10,
+                    decoration: BoxDecoration(
+                      color: risk.color(colors),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(12),
+                        bottomLeft: Radius.circular(12),
+                      ),
+                    ),
                   ),
                 ),
-              ),
 
               // 📋 Patient summary
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(SpacingTokens.md),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       PatientAvatarColumn(patient: patient),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: SpacingTokens.md),
                       Expanded(
                         child: PatientInfoColumn(
                           patient: patient,

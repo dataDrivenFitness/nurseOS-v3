@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:nurseos_v3/core/theme/app_colors.dart';
+import 'package:nurseos_v3/core/theme/spacing.dart';
+import 'package:nurseos_v3/features/patient/models/code_status_utils.dart';
 import 'package:nurseos_v3/features/patient/models/patient_extensions.dart';
 import 'package:nurseos_v3/features/patient/models/patient_model.dart';
 import 'package:nurseos_v3/features/patient/models/diagnosis_catalog.dart';
+import 'package:nurseos_v3/features/patient/models/patient_risk.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+// ⬇️ Insert your existing imports here
 class PatientInfoColumn extends StatelessWidget {
   final Patient patient;
   final AppColors colors;
   final TextTheme textTheme;
 
   const PatientInfoColumn({
-    super.key,
     required this.patient,
     required this.colors,
     required this.textTheme,
@@ -19,19 +23,8 @@ class PatientInfoColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tags = <String>[];
     final allergies = patient.allergies ?? [];
-
-    final codeStatus = patient.codeStatus?.trim();
-    if (codeStatus?.isNotEmpty == true) {
-      tags.add(codeStatus!);
-    }
-
-    // Add all non-risk-prefixed tags (e.g., "Isolation", "Fall Risk")
-    final riskTags = patient.riskTags
-        .where((t) => !t.toLowerCase().startsWith('risk:'))
-        .toList();
-    tags.addAll(riskTags);
+    final dietRestrictions = patient.dietRestrictions ?? [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,8 +46,7 @@ class PatientInfoColumn extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 4),
-
+        const SizedBox(height: SpacingTokens.xs),
         // 📋 Age · Sex · Language
         _buildLineWithIcon(
           icon: Icons.person,
@@ -67,12 +59,19 @@ class PatientInfoColumn extends StatelessWidget {
           textStyle: textTheme.bodySmall,
           color: colors.subdued,
         ),
-
-        // 💉 Diagnoses sorted by risk level
-        ..._buildDiagnosisList(patient.primaryDiagnoses),
-
-        // 📍 Residence or Facility
-        if (patient.isAtResidence && patient.mapLaunchUrl != null)
+        // 💉 Diagnoses - consolidated on one line
+        if (patient.primaryDiagnoses.isNotEmpty) ...[
+          const SizedBox(height: SpacingTokens.xs),
+          _buildLineWithIcon(
+            icon: Icons.medical_services,
+            text: patient.primaryDiagnoses.join(', '),
+            textStyle: textTheme.bodySmall,
+            color: colors.subdued,
+          ),
+        ],
+        // 📍 Location - with map link for residence
+        if (patient.isAtResidence && patient.mapLaunchUrl != null) ...[
+          const SizedBox(height: SpacingTokens.xs),
           GestureDetector(
             onTap: () async {
               final url = Uri.parse(patient.mapLaunchUrl!);
@@ -88,210 +87,173 @@ class PatientInfoColumn extends StatelessWidget {
               ),
               color: colors.subdued,
             ),
-          )
-        else if (patient.facilityLocationDisplay != null)
+          ),
+        ] else if (patient.facilityLocationDisplay != null) ...[
+          const SizedBox(height: SpacingTokens.xs),
           _buildLineWithIcon(
             icon: Icons.location_on,
             text: patient.facilityLocationDisplay!,
             textStyle: textTheme.bodySmall,
             color: colors.subdued,
           ),
-
-        // 🍽️ Diet Restrictions
-        if (patient.dietRestrictions != null &&
-            patient.dietRestrictions!.isNotEmpty)
-          _buildLineWithIcon(
-            icon: Icons.restaurant_menu,
-            text: patient.dietRestrictions!.join(', '),
-            textStyle: textTheme.bodySmall,
-            color: colors.subdued,
-          ),
-
-        // ⚠️ Allergies
-        if (allergies.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 16,
-                  height: (textTheme.labelSmall?.fontSize ?? 14) * 1.2,
-                  child: Icon(
-                    Icons.warning_amber_rounded,
-                    size: (textTheme.labelSmall?.fontSize ?? 14)
-                        .clamp(12.0, 18.0),
-                    color: Colors.orange,
-                  ),
+        ],
+        const SizedBox(height: SpacingTokens.sm),
+        // 🏷️ Icon-only Status Pills
+        Wrap(
+          spacing: SpacingTokens.xs,
+          runSpacing: SpacingTokens.xs,
+          children: [
+            if (patient.codeStatus?.trim().isNotEmpty == true)
+              GestureDetector(
+                onLongPress: () =>
+                    _showCodeStatusInfo(context, patient.codeStatus!),
+                child: _buildIconOnlyPill(
+                  CodeStatusUtils.getIcon(patient.codeStatus!),
+                  CodeStatusUtils.getColor(patient.codeStatus!, colors),
                 ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    allergies.join(', '),
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colors.warning,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+              ),
+            if (patient.isFallRisk)
+              GestureDetector(
+                onLongPress: () => _showFallRiskInfo(context),
+                child: _buildIconOnlyPill(
+                  Icons.warning_amber_rounded,
+                  colors.warning,
                 ),
-              ],
-            ),
-          ),
-
-        // 🏷️ Tags (e.g. DNR, Isolation)
-        if (tags.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: tags
-                  .map((tag) => GestureDetector(
-                        onLongPress: () => _showTagInfo(context, tag),
-                        child: _buildTagChip(tag),
-                      ))
-                  .toList(),
-            ),
-          ),
+              ),
+            if (patient.isIsolation == true)
+              GestureDetector(
+                onLongPress: () => _showIsolationInfo(context),
+                child: _buildIconOnlyPill(
+                  Icons.security,
+                  colors.brandAccent,
+                ),
+              ),
+            if (allergies.isNotEmpty)
+              GestureDetector(
+                onLongPress: () => _showAllergiesList(context, allergies),
+                child: _buildIconOnlyPill(
+                  Icons.medical_information,
+                  colors.warning,
+                ),
+              ),
+            if (dietRestrictions.isNotEmpty)
+              GestureDetector(
+                onLongPress: () =>
+                    _showDietRestrictionsList(context, dietRestrictions),
+                child: _buildIconOnlyPill(
+                  Icons.restaurant_menu,
+                  colors.success,
+                ),
+              ),
+          ],
+        ),
       ],
     );
   }
 
-  List<Widget> _buildDiagnosisList(List<String> diagnoses) {
-    final sorted = [...diagnoses]..sort((a, b) {
-        final riskA = getRiskForDiagnosis(a);
-        final riskB = getRiskForDiagnosis(b);
-        return riskA.index.compareTo(riskB.index);
-      });
-
-    return sorted
-        .map((diagnosis) => _buildLineWithIcon(
-              icon: Icons.medical_services,
-              text: diagnosis,
-              textStyle: textTheme.bodySmall,
-              color: colors.subdued,
-            ))
-        .toList();
+  Widget _buildLineWithIcon({
+    required IconData icon,
+    required String text,
+    required TextStyle? textStyle,
+    required Color color,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 16,
+          height: (textStyle?.fontSize ?? 14) * 1.2,
+          child: Icon(
+            icon,
+            size: (textStyle?.fontSize ?? 14).clamp(12.0, 18.0),
+            color: color,
+          ),
+        ),
+        const SizedBox(width: SpacingTokens.xs),
+        Expanded(
+          child: Text(
+            text,
+            style: textStyle?.copyWith(color: color),
+          ),
+        ),
+      ],
+    );
   }
 
-  Widget _buildTagChip(String tag) {
-    final tagLower = tag.toLowerCase();
-    Color bg;
-    Color fg;
-    IconData? icon;
-
-    if (tagLower.contains('fall')) {
-      bg = colors.warning.withAlpha(30);
-      fg = colors.warning;
-      icon = Icons.warning_amber_rounded;
-    } else if (tagLower.contains('isolation')) {
-      bg = colors.brandAccent.withAlpha(30);
-      fg = colors.brandAccent;
-      icon = Icons.security;
-    } else if (_isCodeStatus(tagLower)) {
-      switch (tagLower) {
-        case 'dnr':
-          bg = colors.danger.withAlpha(38);
-          fg = colors.danger;
-          icon = Icons.heart_broken;
-          break;
-        case 'dni':
-          bg = colors.warning.withAlpha(38);
-          fg = colors.warning;
-          icon = Icons.remove_circle_outline;
-          break;
-        case 'full':
-        case 'full code':
-          bg = colors.success.withAlpha(38);
-          fg = colors.success;
-          icon = Icons.favorite;
-          break;
-        case 'limited':
-          bg = colors.brandAccent.withAlpha(38);
-          fg = colors.brandAccent;
-          icon = Icons.warning_amber_rounded;
-          break;
-        default:
-          bg = colors.onSurface.withAlpha(12);
-          fg = colors.subdued;
-          icon = Icons.info_outline;
-      }
-    } else {
-      bg = colors.onSurface.withAlpha(12);
-      fg = colors.subdued;
-    }
-
+  Widget _buildIconOnlyPill(IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
-        color: bg,
+        color: color.withAlpha(30),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: fg, width: 1),
+        border: Border.all(color: color, width: 1),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 10, color: fg),
-            const SizedBox(width: 4),
-          ],
-          Text(
-            tag,
-            style: textTheme.labelSmall?.copyWith(
-              color: fg,
-              fontWeight: FontWeight.w400,
-              fontSize: 11.5,
-            ),
-          ),
-        ],
+      child: Icon(
+        icon,
+        size: 12,
+        color: color,
       ),
     );
   }
 
-  bool _isCodeStatus(String tag) {
-    final codeStatuses = ['dnr', 'dni', 'full', 'full code', 'limited'];
-    return codeStatuses.contains(tag);
+  void _showCodeStatusInfo(BuildContext context, String codeStatus) {
+    final tooltip = CodeStatusUtils.getTooltip(codeStatus);
+    final color = CodeStatusUtils.getColor(codeStatus, colors);
+    _showInfoDialog(context, 'Code Status', tooltip, color);
   }
 
-  void _showTagInfo(BuildContext context, String tag) {
-    final tagLower = tag.toLowerCase();
-    String explanation;
+  void _showFallRiskInfo(BuildContext context) {
+    _showInfoDialog(
+      context,
+      'Fall Risk',
+      'This patient has been marked as a fall risk.',
+      colors.warning,
+    );
+  }
 
-    if (tagLower.contains('fall')) {
-      explanation = 'This patient has been marked as a fall risk.';
-    } else if (tagLower.contains('isolation')) {
-      explanation = 'This patient requires isolation precautions.';
-    } else if (_isCodeStatus(tagLower)) {
-      switch (tagLower) {
-        case 'dnr':
-          explanation =
-              'Do Not Resuscitate: No life-saving measures should be performed.';
-          break;
-        case 'dni':
-          explanation =
-              'Do Not Intubate: No mechanical ventilation if breathing stops.';
-          break;
-        case 'full':
-        case 'full code':
-          explanation =
-              'Full Code: All resuscitative measures should be taken.';
-          break;
-        case 'limited':
-          explanation =
-              'Limited Code: Only specific interventions are allowed.';
-          break;
-        default:
-          explanation = 'Code status: $tag';
-      }
-    } else {
-      explanation = 'Tag: $tag';
-    }
+  void _showIsolationInfo(BuildContext context) {
+    _showInfoDialog(
+      context,
+      'Isolation',
+      'This patient requires isolation precautions.',
+      colors.brandAccent,
+    );
+  }
 
+  void _showAllergiesList(BuildContext context, List<String> allergies) {
+    _showListDialog(
+      context,
+      'Allergies',
+      allergies,
+      colors.warning,
+      Icons.warning_amber_rounded,
+    );
+  }
+
+  void _showDietRestrictionsList(
+      BuildContext context, List<String> restrictions) {
+    _showListDialog(
+      context,
+      'Diet Restrictions',
+      restrictions,
+      colors.success,
+      Icons.restaurant_menu,
+    );
+  }
+
+  void _showInfoDialog(
+      BuildContext context, String title, String message, Color color) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Tag Info'),
-        content: Text(explanation),
+        title: Row(
+          children: [
+            Icon(Icons.info_outline, color: color, size: 20),
+            const SizedBox(width: SpacingTokens.sm),
+            Text(title),
+          ],
+        ),
+        content: Text(message),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -302,35 +264,46 @@ class PatientInfoColumn extends StatelessWidget {
     );
   }
 
-  Widget _buildLineWithIcon({
-    required IconData icon,
-    required String text,
-    TextStyle? textStyle,
-    Color? color,
-  }) {
-    final fontSize = textStyle?.fontSize ?? 14;
-    final iconSize = fontSize.clamp(12.0, 18.0);
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: iconSize + 2,
-            height: fontSize * 1.2,
-            child: Icon(
-              icon,
-              size: iconSize,
-              color: color ?? Colors.grey,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              text,
-              style: textStyle?.copyWith(color: color),
-            ),
+  void _showListDialog(BuildContext context, String title, List<String> items,
+      Color color, IconData icon) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: SpacingTokens.sm),
+            Text(title),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: items
+              .map((item) => Padding(
+                    padding:
+                        const EdgeInsets.symmetric(vertical: SpacingTokens.xs),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: SpacingTokens.sm),
+                        Expanded(child: Text(item)),
+                      ],
+                    ),
+                  ))
+              .toList(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
           ),
         ],
       ),

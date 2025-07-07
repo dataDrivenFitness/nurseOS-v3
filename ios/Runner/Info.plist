@@ -57,5 +57,9 @@
 		<string>https</string>
 		<string>maps</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>NurseOS needs location access to verify your duty status for compliance and emergency response.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>NurseOS needs location access to verify your duty status for compliance and emergency response.</string>
 </dict>
 </plist>

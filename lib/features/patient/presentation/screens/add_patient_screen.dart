@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:nurseos_v3/core/theme/spacing.dart';
 import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
 import 'package:nurseos_v3/features/patient/data/patient_repository_provider.dart';
 import 'package:nurseos_v3/features/patient/models/patient_model.dart';
@@ -12,14 +11,10 @@ import 'package:nurseos_v3/features/patient/presentation/screens/select_diagnosi
 import 'package:nurseos_v3/features/patient/presentation/screens/select_dietary_restrictions_screen.dart';
 import 'package:nurseos_v3/features/patient/presentation/widgets/add_patient_clinical_step.dart';
 import 'package:nurseos_v3/features/patient/state/patient_providers.dart';
-import 'package:nurseos_v3/features/patient/models/patient_field_options.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/primary_button.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/secondary_button.dart';
 import 'package:nurseos_v3/shared/widgets/nurse_scaffold.dart';
-import 'package:nurseos_v3/core/theme/app_colors.dart';
-import 'package:nurseos_v3/shared/widgets/form_card.dart';
 import 'package:nurseos_v3/shared/utils/image_picker_utils.dart';
-import 'package:nurseos_v3/shared/widgets/profile_avatar.dart';
 
 // Import the step widgets
 import 'package:nurseos_v3/features/patient/presentation/widgets/add_patient_basic_info_step.dart';
@@ -258,17 +253,46 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
   }
 
   // ──────────────────────────────────────────────────────────────
-  // Save Patient
+  // Fixed Save Patient Method
   // ──────────────────────────────────────────────────────────────
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate() || _mrnExists) return;
+
+    // ✅ Validate required fields before submission
+    if (_location == null || _location!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ Location is required')),
+      );
+      return;
+    }
+
+    if (_firstNameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ First name is required')),
+      );
+      return;
+    }
+
+    if (_lastNameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ Last name is required')),
+      );
+      return;
+    }
 
     final messenger = ScaffoldMessenger.of(context);
     final db = FirebaseFirestore.instance;
     final storage = FirebaseStorage.instance;
     final repo = ref.read(patientRepositoryProvider)!;
     final user = ref.read(authControllerProvider).value;
+
+    if (user == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('❌ No authenticated user')),
+      );
+      return;
+    }
 
     _showLoadingDialog();
 
@@ -285,38 +309,98 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
       }
     }
 
+    // ✅ Create patient with all required fields for Firestore rules
     final patient = Patient(
-      id: id,
+      id: id, // ✅ Required by rules
       firstName: _firstNameController.text.trim(),
       lastName: _lastNameController.text.trim(),
+      location: _location!, // ✅ Required by rules
+
+      // ✅ Required timestamp and user fields
+      createdAt: DateTime.now(), // ✅ Required by rules
+      createdBy: user.uid, // ✅ Required by rules
+      admittedAt: DateTime.now(),
+      ownerUid: user.uid,
+
+      // ✅ Ensure boolean fields are proper types (not nullable)
+      isFallRisk: _isFallRisk, // bool (not bool?)
+      isIsolation: _isIsolation, // bool (not bool?)
+
+      // ✅ Ensure arrays are empty lists, not null (required by rules)
+      primaryDiagnoses: _primaryDiagnoses.isEmpty ? [] : _primaryDiagnoses,
+      allergies: _selectedAllergies.isEmpty ? [] : _selectedAllergies,
+      dietRestrictions:
+          _selectedDietRestrictions.isEmpty ? [] : _selectedDietRestrictions,
+      assignedNurses: [], // ✅ Empty list, not null
+
+      // ✅ Optional fields
       mrn: _mrnController.text.trim().isEmpty
           ? null
           : _mrnController.text.trim(),
-      location: _location ?? 'other',
       birthDate: _birthDate,
-      isFallRisk: _isFallRisk,
-      isIsolation: _isIsolation,
-      primaryDiagnoses: _primaryDiagnoses,
-      allergies: _selectedAllergies.isEmpty ? null : _selectedAllergies,
-      dietRestrictions:
-          _selectedDietRestrictions.isEmpty ? null : _selectedDietRestrictions,
-      language: _language,
       biologicalSex: _biologicalSex ?? 'unspecified',
-      createdAt: DateTime.now(),
-      admittedAt: DateTime.now(),
-      createdBy: user?.uid,
-      ownerUid: user?.uid,
+      language: _language,
       photoUrl: photoUrl,
-      addressLine1: _address1Controller.text.trim(),
-      addressLine2: _address2Controller.text.trim(),
-      city: _cityController.text.trim(),
-      state: _stateController.text.trim(),
-      zip: _zipController.text.trim(),
-      roomNumber: _roomController.text.trim(),
-      pronouns: _pronounsController.text.trim(),
-      codeStatus: _codeStatusController.text.trim(),
-      department: _departmentController.text.trim(),
+
+      // ✅ Location-specific fields (conditional based on location type)
+      department: !_isResidence && _departmentController.text.trim().isNotEmpty
+          ? _departmentController.text.trim()
+          : null,
+      roomNumber: !_isResidence && _roomController.text.trim().isNotEmpty
+          ? _roomController.text.trim()
+          : null,
+      addressLine1: _isResidence && _address1Controller.text.trim().isNotEmpty
+          ? _address1Controller.text.trim()
+          : null,
+      addressLine2: _isResidence && _address2Controller.text.trim().isNotEmpty
+          ? _address2Controller.text.trim()
+          : null,
+      city: _isResidence && _cityController.text.trim().isNotEmpty
+          ? _cityController.text.trim()
+          : null,
+      state: _isResidence && _stateController.text.trim().isNotEmpty
+          ? _stateController.text.trim()
+          : null,
+      zip: _isResidence && _zipController.text.trim().isNotEmpty
+          ? _zipController.text.trim()
+          : null,
+
+      pronouns: _pronounsController.text.trim().isEmpty
+          ? null
+          : _pronounsController.text.trim(),
+      codeStatus: _codeStatusController.text.trim().isEmpty
+          ? null
+          : _codeStatusController.text.trim(),
     );
+
+    // ✅ Debug logging to check what we're sending
+    print('🔍 Patient data being sent:');
+    print('- firstName: "${_firstNameController.text.trim()}"');
+    print('- lastName: "${_lastNameController.text.trim()}"');
+    print('- location: "$_location"');
+    print('- isFallRisk: $_isFallRisk');
+    print('- isIsolation: $_isIsolation');
+    print('- user.uid: ${user.uid}');
+    print('- createdAt: ${patient.createdAt}');
+    print('- createdBy: ${patient.createdBy}');
+
+    // ✅ Debug the full patient JSON
+    final patientJson = patient.toJson();
+    print('🔍 Full patient JSON:');
+    print(patientJson);
+
+    // Check if all required fields are present
+    final requiredFields = [
+      'id',
+      'firstName',
+      'lastName',
+      'location',
+      'createdAt',
+      'createdBy'
+    ];
+    for (final field in requiredFields) {
+      print('📋 $field: ${patientJson[field]}');
+    }
 
     final result = await repo.save(patient);
 

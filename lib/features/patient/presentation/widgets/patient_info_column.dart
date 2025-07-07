@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:nurseos_v3/core/theme/app_colors.dart';
 import 'package:nurseos_v3/core/theme/spacing.dart';
 import 'package:nurseos_v3/features/patient/models/code_status_utils.dart';
 import 'package:nurseos_v3/features/patient/models/patient_extensions.dart';
 import 'package:nurseos_v3/features/patient/models/patient_model.dart';
-import 'package:nurseos_v3/features/patient/models/diagnosis_catalog.dart';
-import 'package:nurseos_v3/features/patient/models/patient_risk.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // ⬇️ Insert your existing imports here
@@ -16,6 +13,7 @@ class PatientInfoColumn extends StatelessWidget {
   final TextTheme textTheme;
 
   const PatientInfoColumn({
+    super.key,
     required this.patient,
     required this.colors,
     required this.textTheme,

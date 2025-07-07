@@ -52,7 +52,7 @@ dependencies:
   riverpod_annotation: ^2.6.1       # codegen for Riverpod (Notifiers, AsyncNotifiers)
 
   # 🧊 Models & Serialization
-  freezed_annotation: ^3.0.0        # immutable value models
+  freezed_annotation: ^3.1.0        # immutable value models
   json_annotation: ^4.9.0           # codegen for Firestore-compatible JSON
   collection: ^1.17.2               # ListEquality, unmodifiableListView, etc.
 
@@ -60,10 +60,10 @@ dependencies:
   fpdart: ^1.1.0                    # Option, Either, Try for predictable null/error handling
 
   # 🔥 Firebase Core (must call Firebase.initializeApp())
-  firebase_core: ^3.14.0            # core required by all Firebase modules
-  firebase_auth: ^5.6.1             # secure login, token refresh, email+password
-  cloud_firestore: ^5.6.10          # typed Firestore queries via withConverter
-  firebase_storage: ^12.4.8         # image uploads for avatars, patient media
+  firebase_core: ^3.15.1            # core required by all Firebase modules
+  firebase_auth: ^5.6.2             # secure login, token refresh, email+password
+  cloud_firestore: ^5.6.11          # typed Firestore queries via withConverter
+  firebase_storage: ^12.4.9         # image uploads for avatars, patient media
 
   # 🔐 Env Config (toggle mock mode, env URLs)
   flutter_dotenv: ^5.1.0            # safe access to .env vars at runtime
@@ -78,13 +78,17 @@ dependencies:
   # Open Map App in mobile device
   url_launcher: ^6.2.6
 
+  # 📍 Location Tools
+  geolocator: ^14.0.2               # Location services
+  permission_handler: ^12.0.1       # Location permissions
+
   # 🌐 Localization
   flutter_localizations:
-    sdk: flutter                   # built-in Material/Cupertino localizations
-  intl: ^0.20.2                    # formatters, translations
+    sdk: flutter                    # built-in Material/Cupertino localizations
+  intl: ^0.20.2                     # formatters, translations
 
   # Card Actions
-  flutter_slidable: ^4.0.0         # swipe actions for patient cards
+  flutter_slidable: ^4.0.0          # swipe actions for patient cards
 
 # ──────────────────────────────────────────────
 # 🧪 Dev Dependencies – Codegen, Testing, Analysis
@@ -95,7 +99,7 @@ dev_dependencies:
 
   # 🔁 Codegen for Models, Providers
   build_runner: ^2.4.6             # orchestrates *.g.dart generation
-  freezed: ^3.0.6                  # generates `copyWith`, unions
+  freezed: ^3.1.0                  # generates `copyWith`, unions
   json_serializable: ^6.7.1        # model serialization for Firestore & local use
   riverpod_generator: ^2.3.3       # auto-generates Notifier and AsyncNotifier providers
 

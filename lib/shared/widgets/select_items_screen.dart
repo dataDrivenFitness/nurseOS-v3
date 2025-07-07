@@ -633,7 +633,7 @@ class _SelectItemsScreenState extends State<SelectItemsScreen>
               ),
             );
             return _buildItemCard(item);
-          }).toList(),
+          }),
           const SizedBox(height: SpacingTokens.lg),
         ],
 
@@ -712,7 +712,7 @@ class _SelectItemsScreenState extends State<SelectItemsScreen>
                 ),
               );
               return _buildItemCard(item);
-            }).toList(),
+            }),
           const SizedBox(height: SpacingTokens.lg),
         ],
 
@@ -739,7 +739,7 @@ class _SelectItemsScreenState extends State<SelectItemsScreen>
               ),
             );
             return _buildItemCard(item);
-          }).toList(),
+          }),
         ],
 
         const SizedBox(height: 100), // Space for bottom bar

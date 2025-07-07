@@ -14,6 +14,7 @@ import '../../shared/widgets/app_shell.dart';
 import '../../shared/screens/splash_screen.dart';
 import '../../shared/state/suppress_redirect_provider.dart';
 import '../../features/patient/presentation/screens/add_patient_screen.dart';
+import '../../features/work_history/presentation/work_history_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -89,6 +90,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/patients/add',
         builder: (_, __) => const AddPatientScreen(),
+      ),
+      GoRoute(
+        path: '/work-history',
+        builder: (_, __) => const WorkHistoryScreen(),
       ),
       ShellRoute(
         navigatorKey: shellNavigatorKey,

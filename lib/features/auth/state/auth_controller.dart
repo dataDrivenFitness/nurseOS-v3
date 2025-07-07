@@ -79,7 +79,7 @@ class AuthController extends _$AuthController {
     });
 
     state = result; // → data / error
-    ref.invalidate(userProfileProvider); // refresh one-shot cache
+    ref.invalidate(userProfileControllerProvider); // refresh one-shot cache
     // DO NOT invalidate userProfileStreamProvider – it depends on us and
     // will rebuild automatically when `state` changes.
   }

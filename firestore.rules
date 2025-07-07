@@ -1,57 +1,433 @@
+/// # Deploy just the rules
+/// firebase deploy --only firestore:rules
+
+/// # Or deploy everything
+/// firebase deploy
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 👤 Allow each user to read/write only their own user doc
+    // ═══════════════════════════════════════════════════════════════════
+    // 🔐 SECURITY HELPERS & VALIDATION FUNCTIONS
+    // ═══════════════════════════════════════════════════════════════════
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isValidTimestamp(ts) {
+      return ts is timestamp || ts is string;
+    }
+    
+    function isValidString(value) {
+      return value is string && value.size() > 0;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches('.*@.*\\..*');
+    }
+
+    function isValidUserRole(role) {
+      return role in ['admin', 'nurse', 'doctor', 'manager'];
+    }
+
+    function isValidPatientLocation(location) {
+      return location in ['residence', 'hospital', 'snf', 'rehab', 'other'];
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 👤 USER PROFILES & AUTHENTICATION
+    // ═══════════════════════════════════════════════════════════════════
+    
     match /users/{userId} {
-      allow read, update: if request.auth != null && request.auth.uid == userId
-      allow create: if request.auth != null
-      allow delete: if false
+      // Read permissions - users can read their own profile
+      allow read: if isOwner(userId);
+      
+      // Create permissions - new user registration
+      allow create: if isAuthenticated() && 
+        request.auth.uid == userId &&
+        // Validate required fields
+        request.resource.data.keys().hasAll([
+          'uid', 'firstName', 'lastName', 'email', 'role'
+        ]) &&
+        // Validate field types and values
+        request.resource.data.uid == userId &&
+        isValidString(request.resource.data.firstName) &&
+        isValidString(request.resource.data.lastName) &&
+        isValidEmail(request.resource.data.email) &&
+        isValidUserRole(request.resource.data.role) &&
+        // Validate optional fields
+        validateOptionalUserFields(request.resource.data);
+
+      // Update permissions - handles both profile and duty status updates
+      allow update: if isOwner(userId) && (
+        // General profile updates (exclude critical system fields)
+        (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'uid', 'email', 'createdAt', 'authProvider'
+          ]) &&
+          validateUserUpdateFields(request.resource.data)
+        ) ||
+        // OR duty status updates only (for work history system)
+        (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'isOnDuty', 'lastStatusChange', 'currentSessionId'
+          ]) &&
+          validateDutyStatusUpdate(request.resource.data)
+        )
+      );
+      
+      // Never allow user deletion via client
+      allow delete: if false;
     }
 
-    // ✅ Allow users to read/write any doc inside preferences/
-    match /users/{userId}/preferences/{docId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId
+    // Helper function for optional user field validation
+    function validateOptionalUserFields(data) {
+      return (
+        (!('photoUrl' in data) || (data.photoUrl == null || isValidString(data.photoUrl))) &&
+        (!('department' in data) || (data.department == null || isValidString(data.department))) &&
+        (!('unit' in data) || (data.unit == null || isValidString(data.unit))) &&
+        (!('shift' in data) || (data.shift == null || isValidString(data.shift))) &&
+        (!('phoneExtension' in data) || (data.phoneExtension == null || isValidString(data.phoneExtension))) &&
+        (!('licenseNumber' in data) || (data.licenseNumber == null || isValidString(data.licenseNumber))) &&
+        (!('specialty' in data) || (data.specialty == null || isValidString(data.specialty))) &&
+        (!('licenseExpiry' in data) || (data.licenseExpiry == null || isValidTimestamp(data.licenseExpiry))) &&
+        (!('hireDate' in data) || (data.hireDate == null || isValidTimestamp(data.hireDate))) &&
+        (!('createdAt' in data) || (data.createdAt == null || isValidTimestamp(data.createdAt))) &&
+        (!('isOnDuty' in data) || (data.isOnDuty == null || data.isOnDuty is bool)) &&
+        (!('currentSessionId' in data) || (data.currentSessionId == null || isValidString(data.currentSessionId))) &&
+        (!('lastStatusChange' in data) || (data.lastStatusChange == null || isValidTimestamp(data.lastStatusChange))) &&
+        (!('level' in data) || (data.level == null || (data.level is int && data.level >= 1))) &&
+        (!('xp' in data) || (data.xp == null || (data.xp is int && data.xp >= 0))) &&
+        (!('badges' in data) || (data.badges == null || data.badges is list)) &&
+        (!('certifications' in data) || (data.certifications == null || data.certifications is list)) &&
+        (!('referralCode' in data) || (data.referralCode == null || isValidString(data.referralCode))) &&
+        (!('subscriptionTier' in data) || (data.subscriptionTier == null || data.subscriptionTier in ['free', 'pro']))
+      );
     }
 
-    // ⚙️ Allow users to access their own settings
-    match /users/{userId}/settings/{docId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId
+    // Helper function for user field validation
+    function validateUserUpdateFields(data) {
+      return (
+        (!('firstName' in data) || isValidString(data.firstName)) &&
+        (!('lastName' in data) || isValidString(data.lastName)) &&
+        (!('photoUrl' in data) || (data.photoUrl == null || isValidString(data.photoUrl))) &&
+        (!('department' in data) || (data.department == null || isValidString(data.department))) &&
+        (!('unit' in data) || (data.unit == null || isValidString(data.unit))) &&
+        (!('shift' in data) || (data.shift == null || isValidString(data.shift))) &&
+        (!('phoneExtension' in data) || (data.phoneExtension == null || isValidString(data.phoneExtension))) &&
+        (!('licenseNumber' in data) || (data.licenseNumber == null || isValidString(data.licenseNumber))) &&
+        (!('specialty' in data) || (data.specialty == null || isValidString(data.specialty))) &&
+        (!('licenseExpiry' in data) || (data.licenseExpiry == null || isValidTimestamp(data.licenseExpiry))) &&
+        (!('hireDate' in data) || (data.hireDate == null || isValidTimestamp(data.hireDate))) &&
+        (!('level' in data) || (data.level is int && data.level >= 1)) &&
+        (!('xp' in data) || (data.xp is int && data.xp >= 0)) &&
+        (!('badges' in data) || data.badges is list) &&
+        (!('certifications' in data) || data.certifications is list) &&
+        (!('subscriptionTier' in data) || data.subscriptionTier in ['free', 'pro'])
+      );
     }
 
-    // 🧑‍⚕️ Nurses can read patient data and update safe fields
+    // Helper function for duty status validation
+    function validateDutyStatusUpdate(data) {
+      return (
+        (('isOnDuty' in data) ? data.isOnDuty is bool : true) &&
+        (('currentSessionId' in data) ? 
+         (data.currentSessionId == null || isValidString(data.currentSessionId)) : true) &&
+        (('lastStatusChange' in data) ? 
+         isValidTimestamp(data.lastStatusChange) : true)
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 🏥 WORK HISTORY & SESSION MANAGEMENT
+    // ═══════════════════════════════════════════════════════════════════
+    
+    match /users/{userId}/workHistory/{sessionId} {
+      // Read permissions - users can read their own work history
+      allow read: if isOwner(userId);
+      
+      // Create permissions - starting a new work session
+      allow create: if isOwner(userId) && 
+        validateWorkSessionCreate(request.resource.data, sessionId, userId);
+      
+      // Update permissions - ending a work session or updating notes
+      allow update: if isOwner(userId) && 
+        validateWorkSessionUpdate(request.resource.data, resource.data);
+      
+      // Never allow deletion - preserve audit trail
+      allow delete: if false;
+    }
+
+    function validateWorkSessionCreate(data, sessionId, userId) {
+      return (
+        // Validate required fields exist
+        data.keys().hasAll([
+          'sessionId', 'userId', 'startTime', 'createdAt', 'updatedAt'
+        ]) &&
+        // Validate field values
+        data.sessionId == sessionId &&
+        data.userId == userId &&
+        isValidTimestamp(data.startTime) &&
+        isValidTimestamp(data.createdAt) &&
+        isValidTimestamp(data.updatedAt) &&
+        // Validate optional location fields
+        (!('startLatitude' in data) || (data.startLatitude is number)) &&
+        (!('startLongitude' in data) || (data.startLongitude is number)) &&
+        (!('startAccuracy' in data) || (data.startAccuracy is number)) &&
+        (!('startLocationTimestamp' in data) || isValidTimestamp(data.startLocationTimestamp)) &&
+        (!('startAddress' in data) || (data.startAddress == null || isValidString(data.startAddress))) &&
+        (!('startFacility' in data) || (data.startFacility == null || isValidString(data.startFacility))) &&
+        // Validate optional work details
+        (!('department' in data) || (data.department == null || isValidString(data.department))) &&
+        (!('shift' in data) || (data.shift == null || isValidString(data.shift))) &&
+        (!('facility' in data) || (data.facility == null || isValidString(data.facility))) &&
+        (!('notes' in data) || (data.notes == null || isValidString(data.notes))) &&
+        // Ensure no end-related fields are set on creation
+        !('endTime' in data) &&
+        !('endLatitude' in data) &&
+        !('endLongitude' in data) &&
+        !('duration' in data)
+      );
+    }
+
+    function validateWorkSessionUpdate(newData, currentData) {
+      return (
+        // Only allow updating specific fields when ending a session
+        newData.diff(currentData).affectedKeys().hasOnly([
+          'endTime', 'endLatitude', 'endLongitude', 'endAccuracy', 
+          'endAddress', 'endFacility', 'endLocationTimestamp',
+          'duration', 'notes', 'updatedAt'
+        ]) &&
+        // Validate end time
+        (('endTime' in newData) ? 
+         isValidTimestamp(newData.endTime) : true) &&
+        // Validate end location fields
+        (('endLatitude' in newData) ? (newData.endLatitude is number) : true) &&
+        (('endLongitude' in newData) ? (newData.endLongitude is number) : true) &&
+        (('endAccuracy' in newData) ? (newData.endAccuracy is number) : true) &&
+        (('endLocationTimestamp' in newData) ? isValidTimestamp(newData.endLocationTimestamp) : true) &&
+        (('endAddress' in newData) ? (newData.endAddress == null || isValidString(newData.endAddress)) : true) &&
+        (('endFacility' in newData) ? (newData.endFacility == null || isValidString(newData.endFacility)) : true) &&
+        // Validate duration (must be positive integer)
+        (('duration' in newData) ? 
+         (newData.duration is int && newData.duration > 0) : true) &&
+        // Validate notes
+        (('notes' in newData) ? 
+         (newData.notes == null || isValidString(newData.notes)) : true) &&
+        // Validate updated timestamp
+        (('updatedAt' in newData) ? isValidTimestamp(newData.updatedAt) : true)
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 🧑‍⚕️ PATIENT DATA & HEALTHCARE RECORDS
+    // ═══════════════════════════════════════════════════════════════════
+    
     match /patients/{patientId} {
-      allow read: if request.auth != null
+      // Read access for all authenticated healthcare workers
+      allow read: if isAuthenticated();
 
-      allow update: if request.auth != null &&
+      // Create permissions - new patient registration
+      allow create: if isAuthenticated() && 
+        validatePatientCreate(request.resource.data);
+
+      // Update permissions - limited field updates
+      allow update: if isAuthenticated() && 
+        validatePatientUpdate(request.resource.data, resource.data);
+
+      // Never allow patient deletion via client (data protection)
+      allow delete: if false;
+    }
+
+    function validatePatientCreate(data) {
+      return (
+        // Validate required fields exist
+        data.keys().hasAll(['firstName', 'lastName', 'location', 'createdAt', 'createdBy']) &&
+        // Validate required field types
+        isValidString(data.firstName) &&
+        isValidString(data.lastName) &&
+        isValidPatientLocation(data.location) &&
+        isValidTimestamp(data.createdAt) &&
+        isValidString(data.createdBy) &&
+        // Validate optional fields
+        validateOptionalPatientFields(data)
+      );
+    }
+
+    function validateOptionalPatientFields(data) {
+      return (
+        (!('id' in data) || isValidString(data.id)) &&
+        (!('mrn' in data) || (data.mrn == null || isValidString(data.mrn))) &&
+        (!('birthDate' in data) || (data.birthDate == null || isValidTimestamp(data.birthDate))) &&
+        (!('admittedAt' in data) || (data.admittedAt == null || isValidTimestamp(data.admittedAt))) &&
+        (!('lastSeen' in data) || (data.lastSeen == null || isValidTimestamp(data.lastSeen))) &&
+        (!('department' in data) || (data.department == null || isValidString(data.department))) &&
+        (!('roomNumber' in data) || (data.roomNumber == null || isValidString(data.roomNumber))) &&
+        (!('pronouns' in data) || (data.pronouns == null || isValidString(data.pronouns))) &&
+        (!('biologicalSex' in data) || (data.biologicalSex == null || isValidString(data.biologicalSex))) &&
+        (!('language' in data) || (data.language == null || isValidString(data.language))) &&
+        (!('photoUrl' in data) || (data.photoUrl == null || isValidString(data.photoUrl))) &&
+        (!('codeStatus' in data) || (data.codeStatus == null || isValidString(data.codeStatus))) &&
+        (!('addressLine1' in data) || (data.addressLine1 == null || isValidString(data.addressLine1))) &&
+        (!('addressLine2' in data) || (data.addressLine2 == null || isValidString(data.addressLine2))) &&
+        (!('city' in data) || (data.city == null || isValidString(data.city))) &&
+        (!('state' in data) || (data.state == null || isValidString(data.state))) &&
+        (!('zip' in data) || (data.zip == null || isValidString(data.zip))) &&
+        (!('isIsolation' in data) || (data.isIsolation == null || data.isIsolation is bool)) &&
+        (!('isFallRisk' in data) || (data.isFallRisk == null || data.isFallRisk is bool)) &&
+        (!('ownerUid' in data) || (data.ownerUid == null || isValidString(data.ownerUid))) &&
+        (!('allergies' in data) || (data.allergies == null || data.allergies is list)) &&
+        (!('primaryDiagnoses' in data) || (data.primaryDiagnoses == null || data.primaryDiagnoses is list)) &&
+        (!('dietRestrictions' in data) || (data.dietRestrictions == null || data.dietRestrictions is list)) &&
+        (!('assignedNurses' in data) || (data.assignedNurses == null || data.assignedNurses is list))
+      );
+    }
+
+    function validatePatientUpdate(newData, currentData) {
+      return (
+        // Only allow updating safe, non-critical fields
+        newData.diff(currentData).affectedKeys().hasOnly([
+          'location', 'department', 'roomNumber', 'lastSeen', 'photoUrl', 
+          'language', 'pronouns', 'codeStatus', 'isIsolation', 'isFallRisk',
+          'allergies', 'primaryDiagnoses', 'dietRestrictions', 'assignedNurses',
+          'addressLine1', 'addressLine2', 'city', 'state', 'zip', 'manualRiskOverride'
+        ]) &&
+        // Validate updated field types
+        (('location' in newData) ? isValidPatientLocation(newData.location) : true) &&
+        (('department' in newData) ? (newData.department == null || isValidString(newData.department)) : true) &&
+        (('roomNumber' in newData) ? (newData.roomNumber == null || isValidString(newData.roomNumber)) : true) &&
+        (('lastSeen' in newData) ? (newData.lastSeen == null || isValidTimestamp(newData.lastSeen)) : true) &&
+        (('photoUrl' in newData) ? (newData.photoUrl == null || isValidString(newData.photoUrl)) : true) &&
+        (('language' in newData) ? (newData.language == null || isValidString(newData.language)) : true) &&
+        (('pronouns' in newData) ? (newData.pronouns == null || isValidString(newData.pronouns)) : true) &&
+        (('codeStatus' in newData) ? (newData.codeStatus == null || isValidString(newData.codeStatus)) : true) &&
+        (('isIsolation' in newData) ? (newData.isIsolation == null || newData.isIsolation is bool) : true) &&
+        (('isFallRisk' in newData) ? (newData.isFallRisk == null || newData.isFallRisk is bool) : true) &&
+        (('allergies' in newData) ? (newData.allergies == null || newData.allergies is list) : true) &&
+        (('primaryDiagnoses' in newData) ? (newData.primaryDiagnoses == null || newData.primaryDiagnoses is list) : true) &&
+        (('dietRestrictions' in newData) ? (newData.dietRestrictions == null || newData.dietRestrictions is list) : true) &&
+        (('assignedNurses' in newData) ? (newData.assignedNurses == null || newData.assignedNurses is list) : true)
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // ⚙️ USER PREFERENCES & SETTINGS
+    // ═══════════════════════════════════════════════════════════════════
+    
+    match /users/{userId}/preferences/{docId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    match /users/{userId}/settings/{docId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 🔔 NOTIFICATIONS & MESSAGING
+    // ═══════════════════════════════════════════════════════════════════
+    
+    match /users/{userId}/notifications/{notificationId} {
+      allow read: if isOwner(userId);
+      
+      // Only allow marking as read and adding responses
+      allow update: if isOwner(userId) &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'department',
-          'roomNumber',
-          'addressLine1',
-          'addressLine2',
-          'city',
-          'state',
-          'zip',
-          'lastSeen',
-          'photoUrl',
-          'language',
-          'pronouns',
-          'manualRiskOverride',
-          'codeStatus'
-        ])
-
-      allow create: if false
-      allow delete: if false
+          'isRead', 'readAt', 'response', 'updatedAt'
+        ]) &&
+        (('isRead' in request.resource.data) ? request.resource.data.isRead is bool : true) &&
+        (('readAt' in request.resource.data) ? (request.resource.data.readAt == null || isValidTimestamp(request.resource.data.readAt)) : true) &&
+        (('response' in request.resource.data) ? (request.resource.data.response == null || isValidString(request.resource.data.response)) : true) &&
+        (('updatedAt' in request.resource.data) ? isValidTimestamp(request.resource.data.updatedAt) : true);
+      
+      // System-generated only
+      allow create, delete: if false;
     }
 
-    // 🧩 Future nested collections (locked down for now)
-    match /patients/{patientId}/{subCollection=**} {
-      allow read, write: if false
+    // ═══════════════════════════════════════════════════════════════════
+    // 🎮 GAMIFICATION & XP SYSTEM
+    // ═══════════════════════════════════════════════════════════════════
+    
+    match /users/{userId}/xpHistory/{xpId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // Only Cloud Functions can award XP
     }
 
-    // 🚫 Deny everything else
+    match /leaderboards/{boardId} {
+      allow read: if isAuthenticated(); // All users can read leaderboards
+      allow write: if false; // Only Cloud Functions update leaderboards
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 📊 ANALYTICS & REPORTING (Read-only)
+    // ═══════════════════════════════════════════════════════════════════
+    
+    match /analytics/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Cloud Functions or admin only
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 🏥 REFERENCE DATA (Read-only)
+    // ═══════════════════════════════════════════════════════════════════
+    
+    match /facilities/{facilityId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Admin console only
+    }
+
+    match /departments/{departmentId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Admin console only
+    }
+
+    match /appConfig/{configId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Admin only
+    }
+
+    match /maintenance/{document} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Admin only
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 💳 SUBSCRIPTION & BILLING
+    // ═══════════════════════════════════════════════════════════════════
+    
+    match /users/{userId}/subscriptions/{subId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // Only Stripe webhooks via Cloud Functions
+    }
+
+    match /pro_features/{docId} {
+      allow read: if isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.subscriptionTier == "pro";
+      allow write: if false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 🔍 AUDIT LOGS (Read-only for users)
+    // ═══════════════════════════════════════════════════════════════════
+    
+    match /auditLogs/{logId} {
+      allow read: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow write: if false; // System/Cloud Functions only
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 🚫 DEFAULT DENY - Security by default
+    // ═══════════════════════════════════════════════════════════════════
+    
+    // Deny all other access patterns not explicitly defined above
     match /{document=**} {
-      allow read, write: if false
+      allow read, write: if false;
     }
   }
 }

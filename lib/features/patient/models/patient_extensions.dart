@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart'; // 👈 for Uri.encodeComponent (safe URL formatting)
+// 👈 for Uri.encodeComponent (safe URL formatting)
 import 'patient_model.dart';
 import 'patient_risk.dart'; // <-- new import for risk logic
 

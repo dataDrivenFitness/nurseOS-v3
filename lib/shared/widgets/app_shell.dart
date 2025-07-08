@@ -7,7 +7,7 @@ class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.child});
 
   /// Route paths for each tab in order
-  static const tabs = ['/tasks', '/patients', '/profile'];
+  static const tabs = ['/tasks', '/schedule', '/patients', '/profile'];
 
   /// Get index of active tab based on current route
   int _indexForLocation(String location) {
@@ -45,6 +45,12 @@ class AppShell extends StatelessWidget {
             BottomNavigationBarItem(
               icon: NavIcon(icon: Icons.list_alt_outlined, isSelected: false),
               activeIcon: NavIcon(icon: Icons.list_alt, isSelected: true),
+              label: '',
+            ),
+            BottomNavigationBarItem(
+              icon: NavIcon(
+                  icon: Icons.calendar_today_outlined, isSelected: false),
+              activeIcon: NavIcon(icon: Icons.calendar_today, isSelected: true),
               label: '',
             ),
             BottomNavigationBarItem(

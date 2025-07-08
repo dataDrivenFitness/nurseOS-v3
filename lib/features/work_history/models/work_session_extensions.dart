@@ -30,7 +30,7 @@ extension WorkSessionExtensions on WorkSession {
 
   /// Get location display
   String get locationDisplay {
-    return startAddress!;
+    return startAddress;
     return '${startLatitude.toStringAsFixed(4)}, ${startLongitude.toStringAsFixed(4)}';
   }
 

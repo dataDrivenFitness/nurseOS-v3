@@ -59,6 +59,8 @@ This checklist replaces the legacy roadmap and provides detailed tracking of all
 - [ ] Head-to-toe assessment screen
 - [ ] Care Plan screen
 - [ ] Add Care Plan entry
+- [ ] Medications screen
+- [ ] Add/update medication entry (including dose and frequency)
 - [ ] Note-taking with progressive disclosure
 - [ ] Shift scheduling with drag-and-drop interface
 - [ ] EVV (Electronic Visit Verification) with GPS logging

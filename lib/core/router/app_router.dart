@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:nurseos_v3/features/preferences/presentation/accessibility_settings_screen.dart';
+import 'package:nurseos_v3/features/schedule/presentation/schedule_screen.dart';
 
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/state/auth_controller.dart';
@@ -38,28 +39,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isAuthed = auth is AsyncData && auth.value != null;
       final isUnauthed = auth is AsyncData && auth.value == null;
 
-      // 1. Respect explicit suppressRedirect flag
       if (suppressRedirect) return null;
 
-      // 2. If auth is loading, show splash unless already on it
       if (auth.isLoading) {
         return isSplashing ? null : '/splash';
       }
 
-      // 3. Unauthenticated users redirected to login (except splash)
       if (isUnauthed && !isLoggingIn && !isSplashing) {
         return '/login';
       }
 
-      // 4. Post-auth redirection logic
       if (isAuthed) {
         if (isLoggingIn) {
-          // Support return via `?from=...`
           return uri.queryParameters['from'] ?? '/tasks';
         }
-        if (isSplashing) {
-          return null; // allow splash to naturally forward
-        }
+        if (isSplashing) return null;
       }
 
       return null;
@@ -77,7 +71,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/edit-profile',
         pageBuilder: (context, state) {
           final replace = state.uri.queryParameters['replace'] == 'true';
-
           return replace
               ? const NoTransitionPage(child: EditProfileScreen())
               : const MaterialPage(child: EditProfileScreen());
@@ -103,6 +96,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/tasks',
             pageBuilder: (_, __) =>
                 const NoTransitionPage(child: TaskListScreen()),
+          ),
+          GoRoute(
+            path: '/schedule',
+            pageBuilder: (_, __) =>
+                const NoTransitionPage(child: ScheduleScreen()),
           ),
           GoRoute(
             path: '/patients',

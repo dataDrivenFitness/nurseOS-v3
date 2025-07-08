@@ -1,6 +1,5 @@
 // lib/features/schedule/models/scheduled_shift_model.dart
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:nurseos_v3/shared/converters/timestamp_converter.dart';
 

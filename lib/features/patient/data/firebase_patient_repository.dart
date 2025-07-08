@@ -42,18 +42,6 @@ class FirebasePatientRepository implements PatientRepository {
       data['isIsolation'] ??= false;
       data['biologicalSex'] ??= 'unspecified';
 
-      if (kDebugMode) {
-        print('🏥 Converting patient ${snapshot.id}:');
-        print(
-            '  - primaryDiagnoses: ${data['primaryDiagnoses']} (${data['primaryDiagnoses'].runtimeType})');
-        print(
-            '  - assignedNurses: ${data['assignedNurses']} (${data['assignedNurses'].runtimeType})');
-        print(
-            '  - allergies: ${data['allergies']} (${data['allergies'].runtimeType})');
-        print(
-            '  - dietRestrictions: ${data['dietRestrictions']} (${data['dietRestrictions'].runtimeType})');
-      }
-
       return Patient.fromJson(data);
     } catch (e, stackTrace) {
       if (kDebugMode) {
@@ -180,25 +168,16 @@ class FirebasePatientRepository implements PatientRepository {
           final patients = snapshot.docs.map((doc) => doc.data()).toList();
           return Right<Failure, List<Patient>>(patients);
         } catch (e) {
-          if (kDebugMode) {
-            print('❌ Error in watchAllPatients stream: $e');
-          }
           return Left<Failure, List<Patient>>(
             Failure.unexpected('Failed to process patient stream: $e'),
           );
         }
       }).handleError((error) {
-        if (kDebugMode) {
-          print('❌ Stream error in watchAllPatients: $error');
-        }
         return Left<Failure, List<Patient>>(
           Failure.unexpected('Stream error: $error'),
         );
       });
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error setting up watchAllPatients stream: $e');
-      }
       return Stream.value(
         Left<Failure, List<Patient>>(
           Failure.unexpected('Failed to setup patient stream: $e'),

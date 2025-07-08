@@ -1,12 +1,12 @@
+// lib/features/patient/presentation/widgets/patient_info_column.dart
+
 import 'package:flutter/material.dart';
 import 'package:nurseos_v3/core/theme/app_colors.dart';
 import 'package:nurseos_v3/core/theme/spacing.dart';
 import 'package:nurseos_v3/features/patient/models/code_status_utils.dart';
 import 'package:nurseos_v3/features/patient/models/patient_extensions.dart';
 import 'package:nurseos_v3/features/patient/models/patient_model.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-// ⬇️ Insert your existing imports here
 class PatientInfoColumn extends StatelessWidget {
   final Patient patient;
   final AppColors colors;
@@ -67,24 +67,14 @@ class PatientInfoColumn extends StatelessWidget {
             color: colors.subdued,
           ),
         ],
-        // 📍 Location - with map link for residence
-        if (patient.isAtResidence && patient.mapLaunchUrl != null) ...[
+        // 📍 Location - display only, no map functionality
+        if (patient.isAtResidence && patient.formattedAddress != null) ...[
           const SizedBox(height: SpacingTokens.xs),
-          GestureDetector(
-            onTap: () async {
-              final url = Uri.parse(patient.mapLaunchUrl!);
-              if (await canLaunchUrl(url)) {
-                await launchUrl(url);
-              }
-            },
-            child: _buildLineWithIcon(
-              icon: Icons.home,
-              text: 'Residence',
-              textStyle: textTheme.bodySmall?.copyWith(
-                decoration: TextDecoration.underline,
-              ),
-              color: colors.subdued,
-            ),
+          _buildLineWithIcon(
+            icon: Icons.home,
+            text: 'Residence',
+            textStyle: textTheme.bodySmall,
+            color: colors.subdued,
           ),
         ] else if (patient.facilityLocationDisplay != null) ...[
           const SizedBox(height: SpacingTokens.xs),
@@ -160,10 +150,10 @@ class PatientInfoColumn extends StatelessWidget {
       children: [
         SizedBox(
           width: 16,
-          height: (textStyle?.fontSize ?? 14) * 1.2,
+          height: (textStyle?.fontSize ?? 14) + 2,
           child: Icon(
             icon,
-            size: (textStyle?.fontSize ?? 14).clamp(12.0, 18.0),
+            size: 14,
             color: color,
           ),
         ),
@@ -180,11 +170,11 @@ class PatientInfoColumn extends StatelessWidget {
 
   Widget _buildIconOnlyPill(IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      width: 20,
+      height: 20,
       decoration: BoxDecoration(
-        color: color.withAlpha(30),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color, width: 1),
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Icon(
         icon,
@@ -196,108 +186,55 @@ class PatientInfoColumn extends StatelessWidget {
 
   void _showCodeStatusInfo(BuildContext context, String codeStatus) {
     final tooltip = CodeStatusUtils.getTooltip(codeStatus);
-    final color = CodeStatusUtils.getColor(codeStatus, colors);
-    _showInfoDialog(context, 'Code Status', tooltip, color);
+    _showInfoDialog(context, 'Code Status', tooltip);
   }
 
   void _showFallRiskInfo(BuildContext context) {
     _showInfoDialog(
       context,
       'Fall Risk',
-      'This patient has been marked as a fall risk.',
-      colors.warning,
+      'This patient has been identified as having an increased risk of falling. Take appropriate precautions.',
     );
   }
 
   void _showIsolationInfo(BuildContext context) {
     _showInfoDialog(
       context,
-      'Isolation',
-      'This patient requires isolation precautions.',
-      colors.brandAccent,
+      'Isolation Precautions',
+      'This patient requires isolation precautions. Follow facility protocols for PPE and room entry.',
     );
   }
 
   void _showAllergiesList(BuildContext context, List<String> allergies) {
-    _showListDialog(
+    _showInfoDialog(
       context,
-      'Allergies',
-      allergies,
-      colors.warning,
-      Icons.warning_amber_rounded,
+      'Known Allergies',
+      allergies.join('\n• '),
+      prefix: '• ',
     );
   }
 
   void _showDietRestrictionsList(
-      BuildContext context, List<String> restrictions) {
-    _showListDialog(
+      BuildContext context, List<String> dietRestrictions) {
+    _showInfoDialog(
       context,
-      'Diet Restrictions',
-      restrictions,
-      colors.success,
-      Icons.restaurant_menu,
+      'Dietary Restrictions',
+      dietRestrictions.join('\n• '),
+      prefix: '• ',
     );
   }
 
   void _showInfoDialog(
-      BuildContext context, String title, String message, Color color) {
+    BuildContext context,
+    String title,
+    String content, {
+    String? prefix,
+  }) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.info_outline, color: color, size: 20),
-            const SizedBox(width: SpacingTokens.sm),
-            Text(title),
-          ],
-        ),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showListDialog(BuildContext context, String title, List<String> items,
-      Color color, IconData icon) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(width: SpacingTokens.sm),
-            Text(title),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: items
-              .map((item) => Padding(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: SpacingTokens.xs),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: SpacingTokens.sm),
-                        Expanded(child: Text(item)),
-                      ],
-                    ),
-                  ))
-              .toList(),
-        ),
+        title: Text(title),
+        content: Text(prefix != null ? '$prefix$content' : content),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),

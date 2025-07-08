@@ -39,7 +39,31 @@ class ScheduledShiftCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header with location and status
+              // Date header - prominent at the top
+              Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today,
+                    size: 16,
+                    color: colors.brandPrimary,
+                  ),
+                  const SizedBox(width: SpacingTokens.sm),
+                  Text(
+                    _formatShiftDate(shift.startTime),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: colors.brandPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  // Status indicator
+                  _buildStatusChip(shift.status, shift.isConfirmed, colors),
+                ],
+              ),
+
+              const SizedBox(height: SpacingTokens.md),
+
+              // Header with location
               Row(
                 children: [
                   Expanded(
@@ -77,8 +101,6 @@ class ScheduledShiftCard extends StatelessWidget {
                       tooltip: 'Open in Maps',
                     ),
                   ],
-                  // Status indicator
-                  _buildStatusChip(shift.status, shift.isConfirmed, colors),
                 ],
               ),
 
@@ -221,6 +243,30 @@ class ScheduledShiftCard extends StatelessWidget {
     );
   }
 
+  String _formatShiftDate(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    final shiftDate = DateTime(date.year, date.month, date.day);
+
+    // Check if it's today
+    if (shiftDate == today) {
+      return 'Today';
+    }
+    // Check if it's tomorrow
+    else if (shiftDate == tomorrow) {
+      return 'Tomorrow';
+    }
+    // Check if it's this week (next 7 days)
+    else if (shiftDate.isBefore(today.add(const Duration(days: 7)))) {
+      return DateFormat('EEEE').format(date); // Monday, Tuesday, etc.
+    }
+    // For dates further out, show full date
+    else {
+      return DateFormat('MMM d, y').format(date); // Jan 15, 2025
+    }
+  }
+
   String _formatTimeRange(DateTime start, DateTime end) {
     final startTime = DateFormat('h:mm a').format(start);
     final endTime = DateFormat('h:mm a').format(end);
@@ -254,14 +300,31 @@ class ScheduledShiftCard extends StatelessWidget {
 
   Future<void> _openMap(String address) async {
     final encodedAddress = Uri.encodeComponent(address);
-    final url = 'https://maps.google.com/search/?api=1&query=$encodedAddress';
 
-    try {
-      if (await canLaunchUrl(Uri.parse(url))) {
-        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    // Try multiple URL formats for better compatibility
+    final urls = [
+      // Modern Google Maps URL (primary)
+      'https://www.google.com/maps/search/?api=1&query=$encodedAddress',
+      // Alternative format
+      'https://maps.google.com/?q=$encodedAddress',
+      // Fallback to basic search
+      'https://www.google.com/maps/place/$encodedAddress',
+    ];
+
+    for (final url in urls) {
+      try {
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+          return; // Success, exit the loop
+        }
+      } catch (e) {
+        debugPrint('Failed to open URL $url: $e');
+        continue; // Try next URL
       }
-    } catch (e) {
-      debugPrint('Error opening map: $e');
     }
+
+    // If all URLs fail, show a user-friendly message
+    debugPrint('❌ Could not open any map URLs for address: $address');
   }
 }

@@ -49,7 +49,9 @@ service cloud.firestore {
       allow read: if isAuthenticated();
 
       // Block all direct writes for now (manual via admin or test scripts)
-      allow write: if false;
+      // allow write: if false; // comment out if testing
+      allow write: if isAuthenticated();  // Allow writes for testing
+
 
       // In future, allow admins to create/edit shifts
       // allow write: if isAuthenticated() &&

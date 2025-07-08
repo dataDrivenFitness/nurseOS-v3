@@ -1,5 +1,4 @@
 // lib/features/schedule/presentation/my_schedule_view.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nurseos_v3/core/theme/spacing.dart';
@@ -91,7 +90,7 @@ class MyScheduleView extends ConsumerWidget {
           itemBuilder: (context, index) {
             final shift = shifts[index];
             return ScheduledShiftCard(
-              shift: shift,
+              shift: shift, // ✅ This is correct - named parameter
             );
           },
         );

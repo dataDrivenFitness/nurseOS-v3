@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:nurseos_v3/features/schedule/shift_pool/presentation/shift_pool_screen.dart';
 import 'my_schedule_view.dart';
-import '../shift_pool/presentation/shift_pool_screen.dart';
 
 class ScheduleScreen extends StatelessWidget {
   const ScheduleScreen({super.key});

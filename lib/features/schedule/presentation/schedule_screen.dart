@@ -1,5 +1,6 @@
+// lib/features/schedule/presentation/schedule_screen.dart
 import 'package:flutter/material.dart';
-import 'package:nurseos_v3/features/schedule/shift_pool/presentation/shift_pool_screen.dart';
+import 'package:nurseos_v3/features/schedule/shift_pool/models/enhanced_available_view.dart';
 import 'my_schedule_view.dart';
 
 class ScheduleScreen extends StatelessWidget {
@@ -22,7 +23,7 @@ class ScheduleScreen extends StatelessWidget {
         body: const TabBarView(
           children: [
             MyScheduleView(),
-            ShiftPoolScreen(),
+            EnhancedAvailableView(), // 👈 Updated to use enhanced view
           ],
         ),
       ),

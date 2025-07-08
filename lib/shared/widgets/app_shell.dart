@@ -1,3 +1,4 @@
+// lib/shared/widgets/app_shell.dart
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../shared/widgets/nav_icon.dart';
@@ -7,7 +8,13 @@ class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.child});
 
   /// Route paths for each tab in order
-  static const tabs = ['/tasks', '/schedule', '/patients', '/profile'];
+  static const tabs = [
+    '/tasks',
+    '/schedule',
+    '/patients',
+    '/profile',
+    '/admin'
+  ];
 
   /// Get index of active tab based on current route
   int _indexForLocation(String location) {
@@ -61,6 +68,14 @@ class AppShell extends StatelessWidget {
             BottomNavigationBarItem(
               icon: NavIcon(icon: Icons.person, isSelected: false),
               activeIcon: NavIcon(icon: Icons.person, isSelected: true),
+              label: '',
+            ),
+            // 🚨 Temporary Admin Portal Tab
+            BottomNavigationBarItem(
+              icon: NavIcon(
+                  icon: Icons.admin_panel_settings_outlined, isSelected: false),
+              activeIcon:
+                  NavIcon(icon: Icons.admin_panel_settings, isSelected: true),
               label: '',
             ),
           ],

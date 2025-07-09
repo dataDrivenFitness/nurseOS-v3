@@ -24,6 +24,7 @@ class ScheduledShiftCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
     final isFacility = shift.locationType == 'facility';
+    final formattedAddress = _formatFullAddress();
 
     return Card(
       elevation: 2,
@@ -39,31 +40,7 @@ class ScheduledShiftCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Date header - prominent at the top
-              Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    size: 16,
-                    color: colors.brandPrimary,
-                  ),
-                  const SizedBox(width: SpacingTokens.sm),
-                  Text(
-                    _formatShiftDate(shift.startTime),
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: colors.brandPrimary,
-                    ),
-                  ),
-                  const Spacer(),
-                  // Status indicator
-                  _buildStatusChip(shift.status, shift.isConfirmed, colors),
-                ],
-              ),
-
-              const SizedBox(height: SpacingTokens.md),
-
-              // Header with location
+              // Header with location and status
               Row(
                 children: [
                   Expanded(
@@ -76,10 +53,10 @@ class ScheduledShiftCard extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        if (shift.address != null) ...[
+                        if (formattedAddress.isNotEmpty) ...[
                           const SizedBox(height: 2),
                           Text(
-                            shift.address!,
+                            formattedAddress,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: colors.subdued,
                             ),
@@ -88,11 +65,11 @@ class ScheduledShiftCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  // Map icon for non-facility locations
-                  if (!isFacility && shift.address != null) ...[
+                  // Map icon when we have an address
+                  if (formattedAddress.isNotEmpty) ...[
                     const SizedBox(width: SpacingTokens.sm),
                     IconButton(
-                      onPressed: () => _openMap(shift.address!),
+                      onPressed: () => _openMap(formattedAddress),
                       icon: Icon(
                         Icons.map,
                         color: colors.brandPrimary,
@@ -101,10 +78,32 @@ class ScheduledShiftCard extends StatelessWidget {
                       tooltip: 'Open in Maps',
                     ),
                   ],
+                  // Status indicator
+                  _buildStatusChip(shift.status, shift.isConfirmed, colors),
                 ],
               ),
 
               const SizedBox(height: SpacingTokens.md),
+
+              // Date
+              Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today,
+                    size: 16,
+                    color: colors.brandPrimary,
+                  ),
+                  const SizedBox(width: SpacingTokens.sm),
+                  Text(
+                    DateFormat('EEEE, MMMM d, y').format(shift.startTime),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: SpacingTokens.sm),
 
               // Time and duration
               Row(
@@ -195,6 +194,45 @@ class ScheduledShiftCard extends StatelessWidget {
     );
   }
 
+  /// Formats the full address from the new address structure
+  String _formatFullAddress() {
+    // Check if we have the old single address field first
+    if (shift.address != null && shift.address!.isNotEmpty) {
+      return shift.address!;
+    }
+
+    // Build address from new structured fields
+    final addressParts = <String>[];
+
+    // Add address line 1
+    if (shift.addressLine1?.isNotEmpty == true) {
+      addressParts.add(shift.addressLine1!);
+    }
+
+    // Add address line 2 if present
+    if (shift.addressLine2?.isNotEmpty == true) {
+      addressParts.add(shift.addressLine2!);
+    }
+
+    // Add city, state zip on same line
+    final cityStateZip = <String>[];
+    if (shift.city?.isNotEmpty == true) {
+      cityStateZip.add(shift.city!);
+    }
+    if (shift.state?.isNotEmpty == true) {
+      cityStateZip.add(shift.state!);
+    }
+    if (shift.zip?.isNotEmpty == true) {
+      cityStateZip.add(shift.zip!);
+    }
+
+    if (cityStateZip.isNotEmpty) {
+      addressParts.add(cityStateZip.join(', '));
+    }
+
+    return addressParts.join(', ');
+  }
+
   Widget _buildStatusChip(String status, bool isConfirmed, AppColors colors) {
     final String displayText;
     final Color backgroundColor;
@@ -243,30 +281,6 @@ class ScheduledShiftCard extends StatelessWidget {
     );
   }
 
-  String _formatShiftDate(DateTime date) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final tomorrow = today.add(const Duration(days: 1));
-    final shiftDate = DateTime(date.year, date.month, date.day);
-
-    // Check if it's today
-    if (shiftDate == today) {
-      return 'Today';
-    }
-    // Check if it's tomorrow
-    else if (shiftDate == tomorrow) {
-      return 'Tomorrow';
-    }
-    // Check if it's this week (next 7 days)
-    else if (shiftDate.isBefore(today.add(const Duration(days: 7)))) {
-      return DateFormat('EEEE').format(date); // Monday, Tuesday, etc.
-    }
-    // For dates further out, show full date
-    else {
-      return DateFormat('MMM d, y').format(date); // Jan 15, 2025
-    }
-  }
-
   String _formatTimeRange(DateTime start, DateTime end) {
     final startTime = DateFormat('h:mm a').format(start);
     final endTime = DateFormat('h:mm a').format(end);
@@ -291,6 +305,12 @@ class ScheduledShiftCard extends StatelessWidget {
         return 'Healthcare Facility';
       case 'residence':
         return 'Patient Home';
+      case 'hospital':
+        return 'Hospital';
+      case 'snf':
+        return 'Skilled Nursing Facility';
+      case 'rehab':
+        return 'Rehabilitation Center';
       case 'other':
         return 'Other Location';
       default:
@@ -299,32 +319,18 @@ class ScheduledShiftCard extends StatelessWidget {
   }
 
   Future<void> _openMap(String address) async {
+    if (address.isEmpty) return;
+
     final encodedAddress = Uri.encodeComponent(address);
+    final url =
+        'https://www.google.com/maps/search/?api=1&query=$encodedAddress';
 
-    // Try multiple URL formats for better compatibility
-    final urls = [
-      // Modern Google Maps URL (primary)
-      'https://www.google.com/maps/search/?api=1&query=$encodedAddress',
-      // Alternative format
-      'https://maps.google.com/?q=$encodedAddress',
-      // Fallback to basic search
-      'https://www.google.com/maps/place/$encodedAddress',
-    ];
-
-    for (final url in urls) {
-      try {
-        final uri = Uri.parse(url);
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-          return; // Success, exit the loop
-        }
-      } catch (e) {
-        debugPrint('Failed to open URL $url: $e');
-        continue; // Try next URL
+    try {
+      if (await canLaunchUrl(Uri.parse(url))) {
+        await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
       }
+    } catch (e) {
+      debugPrint('Error opening map: $e');
     }
-
-    // If all URLs fail, show a user-friendly message
-    debugPrint('❌ Could not open any map URLs for address: $address');
   }
 }

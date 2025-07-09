@@ -39,6 +39,21 @@ class _EnhancedAvailableViewState extends ConsumerState<EnhancedAvailableView> {
     );
   }
 
+  /// Get display name for shift - facilityName for facilities, address for residence
+  String _getShiftDisplayName(dynamic shift) {
+    if (shift.location == 'residence') {
+      // For home care, show address
+      final address = shift.addressLine1 ?? 'Home Care';
+      final patientName = shift.patientName;
+      return patientName != null ? '$address - $patientName' : address;
+    } else {
+      // For facilities, show facilityName with department if available
+      final facilityName = shift.facilityName ?? 'Medical Facility';
+      final department = shift.department;
+      return department != null ? '$facilityName - $department' : facilityName;
+    }
+  }
+
   Widget _buildAvailableContent(
     BuildContext context,
     WidgetRef ref,
@@ -258,7 +273,7 @@ class _EnhancedAvailableViewState extends ConsumerState<EnhancedAvailableView> {
               children: [
                 Expanded(
                   child: Text(
-                    shift.location,
+                    _getShiftDisplayName(shift),
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                       color: colors.text,

@@ -1,25 +1,26 @@
+// 📁 lib/features/patient/presentation/screens/add_patient_screen.dart
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+
 import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
 import 'package:nurseos_v3/features/patient/data/patient_repository_provider.dart';
 import 'package:nurseos_v3/features/patient/models/patient_model.dart';
+import 'package:nurseos_v3/features/patient/presentation/widgets/add_patient_basic_info_step.dart';
+import 'package:nurseos_v3/features/patient/presentation/widgets/add_patient_location_step.dart';
+import 'package:nurseos_v3/features/patient/presentation/widgets/add_patient_clinical_step.dart';
+import 'package:nurseos_v3/features/patient/presentation/widgets/add_patient_risk_step.dart';
 import 'package:nurseos_v3/features/patient/presentation/screens/select_allergies_screen.dart';
 import 'package:nurseos_v3/features/patient/presentation/screens/select_diagnosis_screen.dart';
 import 'package:nurseos_v3/features/patient/presentation/screens/select_dietary_restrictions_screen.dart';
-import 'package:nurseos_v3/features/patient/presentation/widgets/add_patient_clinical_step.dart';
-import 'package:nurseos_v3/features/patient/state/patient_providers.dart';
+
+import 'package:nurseos_v3/shared/utils/image_picker_utils.dart';
+import 'package:nurseos_v3/shared/widgets/nurse_scaffold.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/primary_button.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/secondary_button.dart';
-import 'package:nurseos_v3/shared/widgets/nurse_scaffold.dart';
-import 'package:nurseos_v3/shared/utils/image_picker_utils.dart';
-
-// Import the step widgets
-import 'package:nurseos_v3/features/patient/presentation/widgets/add_patient_basic_info_step.dart';
-import 'package:nurseos_v3/features/patient/presentation/widgets/add_patient_location_step.dart';
-import 'package:nurseos_v3/features/patient/presentation/widgets/add_patient_risk_step.dart';
 
 class AddPatientScreen extends ConsumerStatefulWidget {
   const AddPatientScreen({super.key});
@@ -32,7 +33,7 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
   final _formKey = GlobalKey<FormState>();
   final PageController _pageController = PageController();
 
-  // Text Controllers
+  // Controllers
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _mrnController = TextEditingController();
@@ -46,39 +47,29 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
   final _pronounsController = TextEditingController();
   final _codeStatusController = TextEditingController();
 
-  // Form State
   String? _location;
   String? _language;
   String? _biologicalSex;
-  List<String> _primaryDiagnoses = [];
-  List<String> _selectedAllergies = [];
-  List<String> _selectedDietRestrictions = [];
   DateTime? _birthDate;
-  bool _isIsolation = false;
-  bool _isFallRisk = false;
   File? _profileImage;
 
-  // UX State Management
+  List<String> _diagnoses = [];
+  List<String> _allergies = [];
+  List<String> _dietaryRestrictions = [];
+
+  bool _isFallRisk = false;
+  bool _isIsolation = false;
+
   int _currentStep = 0;
   bool _mrnExists = false;
   bool _isValidatingMrn = false;
-  String? _mrnError;
-
-  // Form completion tracking
-  final Map<int, bool> _stepCompletion = {
-    0: false,
-    1: false,
-    2: false,
-    3: false
-  };
 
   bool get _isResidence => _location?.toLowerCase() == 'residence';
-  bool get _canProceedToNext => _stepCompletion[_currentStep] ?? false;
 
   @override
   void initState() {
     super.initState();
-    _setupValidation();
+    _mrnController.addListener(_checkMrn);
   }
 
   @override
@@ -99,241 +90,100 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
     super.dispose();
   }
 
-  // ──────────────────────────────────────────────────────────────
-  // Setup & Validation
-  // ──────────────────────────────────────────────────────────────
+  Future<void> _checkMrn() async {
+    final mrn = _mrnController.text.trim();
+    if (mrn.isEmpty) return;
 
-  void _setupValidation() {
-    _mrnController.addListener(_validateMrn);
-    _firstNameController.addListener(_updateStepCompletion);
-    _lastNameController.addListener(_updateStepCompletion);
-  }
-
-  void _updateStepCompletion() {
+    setState(() => _isValidatingMrn = true);
+    final existing = await FirebaseFirestore.instance
+        .collection('patients')
+        .where('mrn', isEqualTo: mrn)
+        .limit(1)
+        .get();
     setState(() {
-      _stepCompletion[0] = _firstNameController.text.trim().isNotEmpty &&
-          _lastNameController.text.trim().isNotEmpty &&
-          _birthDate != null;
-
-      _stepCompletion[1] = _location != null;
-
-      _stepCompletion[2] = true; // Clinical info is optional
-
-      _stepCompletion[3] = true; // Risk flags are optional
+      _mrnExists = existing.docs.isNotEmpty;
+      _isValidatingMrn = false;
     });
   }
 
-  Future<void> _validateMrn() async {
-    final mrn = _mrnController.text.trim();
-    if (mrn.isEmpty) {
-      setState(() {
-        _mrnExists = false;
-        _mrnError = null;
-        _isValidatingMrn = false;
-      });
-      return;
-    }
-
-    setState(() => _isValidatingMrn = true);
-
-    try {
-      final existing = await FirebaseFirestore.instance
-          .collection('patients')
-          .where('mrn', isEqualTo: mrn)
-          .limit(1)
-          .get();
-
-      setState(() {
-        _mrnExists = existing.docs.isNotEmpty;
-        _mrnError = _mrnExists ? 'MRN already exists' : null;
-        _isValidatingMrn = false;
-      });
-    } catch (e) {
-      setState(() {
-        _mrnError = 'Error validating MRN';
-        _isValidatingMrn = false;
-      });
-    }
-  }
-
-  // ──────────────────────────────────────────────────────────────
-  // Navigation
-  // ──────────────────────────────────────────────────────────────
-
-  void _nextStep() {
-    if (_currentStep < 3 && _canProceedToNext) {
-      setState(() => _currentStep++);
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
-  }
-
-  void _previousStep() {
-    if (_currentStep > 0) {
-      setState(() => _currentStep--);
-      _pageController.previousPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-    }
-  }
-
-  void _cancel() {
-    Navigator.of(context).pop();
-  }
-
-  // ──────────────────────────────────────────────────────────────
-  // Input Handlers
-  // ──────────────────────────────────────────────────────────────
-
   Future<void> _pickImage() async {
-    final picked = await pickAndCropImage(
-      context: context,
-      isCircular: true,
-    );
-    if (picked != null) {
-      setState(() => _profileImage = picked);
-    }
+    final file = await pickAndCropImage(context: context, isCircular: true);
+    if (file != null) setState(() => _profileImage = file);
   }
 
-  void _pickBirthDate() async {
+  Future<void> _pickBirthDate() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now().subtract(const Duration(days: 365 * 30)),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
-      helpText: 'Select patient birthdate',
     );
-    if (picked != null) {
-      setState(() => _birthDate = picked);
-      _updateStepCompletion();
-    }
+    if (picked != null) setState(() => _birthDate = picked);
   }
 
   Future<void> _selectDiagnoses() async {
     final selected = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            SelectDiagnosisScreen(initialSelection: _primaryDiagnoses),
-      ),
+          builder: (_) => SelectDiagnosisScreen(initialSelection: _diagnoses)),
     );
-    if (selected != null) {
-      setState(() => _primaryDiagnoses = List<String>.from(selected));
-    }
+    if (selected != null)
+      setState(() => _diagnoses = List<String>.from(selected));
   }
 
   Future<void> _selectAllergies() async {
     final selected = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => SelectAllergyScreen(
-            initialSelection: _selectedAllergies), // ← Fixed class name
-      ),
+          builder: (_) => SelectAllergyScreen(initialSelection: _allergies)),
     );
-    if (selected != null) {
-      setState(() => _selectedAllergies = List<String>.from(selected));
-    }
+    if (selected != null)
+      setState(() => _allergies = List<String>.from(selected));
   }
 
-  Future<void> _selectDietRestrictions() async {
+  Future<void> _selectDietaryRestrictions() async {
     final selected = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => SelectDietaryRestrictionScreen(
-            // ← Fixed class name
-            initialSelection: _selectedDietRestrictions),
-      ),
+          builder: (_) => SelectDietaryRestrictionScreen(
+              initialSelection: _dietaryRestrictions)),
     );
-    if (selected != null) {
-      setState(() => _selectedDietRestrictions = List<String>.from(selected));
-    }
+    if (selected != null)
+      setState(() => _dietaryRestrictions = List<String>.from(selected));
   }
-
-  // ──────────────────────────────────────────────────────────────
-  // Fixed Save Patient Method
-  // ──────────────────────────────────────────────────────────────
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate() || _mrnExists) return;
 
-    // ✅ Validate required fields before submission
-    if (_location == null || _location!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❌ Location is required')),
-      );
-      return;
-    }
-
-    if (_firstNameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❌ First name is required')),
-      );
-      return;
-    }
-
-    if (_lastNameController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❌ Last name is required')),
-      );
-      return;
-    }
-
-    final messenger = ScaffoldMessenger.of(context);
-    final db = FirebaseFirestore.instance;
-    final storage = FirebaseStorage.instance;
-    final repo = ref.read(patientRepositoryProvider)!;
     final user = ref.read(authControllerProvider).value;
+    if (user == null) return;
 
-    if (user == null) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('❌ No authenticated user')),
-      );
-      return;
-    }
-
-    _showLoadingDialog();
-
-    final id = db.collection('patients').doc().id;
-
+    final id = FirebaseFirestore.instance.collection('patients').doc().id;
     String? photoUrl;
+
     if (_profileImage != null) {
-      try {
-        final fileRef = storage.ref().child('patients/profile_photos/$id.jpg');
-        final uploadTask = await fileRef.putFile(_profileImage!);
-        photoUrl = await uploadTask.ref.getDownloadURL();
-      } catch (e) {
-        debugPrint('⚠️ Image upload failed: $e');
-      }
+      final fileRef =
+          FirebaseStorage.instance.ref('patients/profile_photos/$id.jpg');
+      final upload = await fileRef.putFile(_profileImage!);
+      photoUrl = await upload.ref.getDownloadURL();
     }
 
-    // ✅ Create patient with all required fields for Firestore rules
     final patient = Patient(
-      id: id, // ✅ Required by rules
+      id: id,
+      agencyId: user.activeAgencyId, // ✅ REQUIRED
       firstName: _firstNameController.text.trim(),
       lastName: _lastNameController.text.trim(),
-      location: _location!, // ✅ Required by rules
-
-      // ✅ Required timestamp and user fields
-      createdAt: DateTime.now(), // ✅ Required by rules
-      createdBy: user.uid, // ✅ Required by rules
+      location: _location!,
+      createdAt: DateTime.now(),
+      createdBy: user.uid,
       admittedAt: DateTime.now(),
       ownerUid: user.uid,
-
-      // ✅ Ensure boolean fields are proper types (not nullable)
-      isFallRisk: _isFallRisk, // bool (not bool?)
-      isIsolation: _isIsolation, // bool (not bool?)
-
-      // ✅ Ensure arrays are empty lists, not null (required by rules)
-      primaryDiagnoses: _primaryDiagnoses.isEmpty ? [] : _primaryDiagnoses,
-      allergies: _selectedAllergies.isEmpty ? [] : _selectedAllergies,
-      dietRestrictions:
-          _selectedDietRestrictions.isEmpty ? [] : _selectedDietRestrictions,
-      assignedNurses: [], // ✅ Empty list, not null
-
-      // ✅ Optional fields
+      isFallRisk: _isFallRisk,
+      isIsolation: _isIsolation,
+      primaryDiagnoses: _diagnoses,
+      allergies: _allergies,
+      dietRestrictions: _dietaryRestrictions,
+      assignedNurses: [],
       mrn: _mrnController.text.trim().isEmpty
           ? null
           : _mrnController.text.trim(),
@@ -341,30 +191,13 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
       biologicalSex: _biologicalSex ?? 'unspecified',
       language: _language,
       photoUrl: photoUrl,
-
-      // ✅ Location-specific fields (conditional based on location type)
-      department: !_isResidence && _departmentController.text.trim().isNotEmpty
-          ? _departmentController.text.trim()
-          : null,
-      roomNumber: !_isResidence && _roomController.text.trim().isNotEmpty
-          ? _roomController.text.trim()
-          : null,
-      addressLine1: _isResidence && _address1Controller.text.trim().isNotEmpty
-          ? _address1Controller.text.trim()
-          : null,
-      addressLine2: _isResidence && _address2Controller.text.trim().isNotEmpty
-          ? _address2Controller.text.trim()
-          : null,
-      city: _isResidence && _cityController.text.trim().isNotEmpty
-          ? _cityController.text.trim()
-          : null,
-      state: _isResidence && _stateController.text.trim().isNotEmpty
-          ? _stateController.text.trim()
-          : null,
-      zip: _isResidence && _zipController.text.trim().isNotEmpty
-          ? _zipController.text.trim()
-          : null,
-
+      department: !_isResidence ? _departmentController.text.trim() : null,
+      roomNumber: !_isResidence ? _roomController.text.trim() : null,
+      addressLine1: _isResidence ? _address1Controller.text.trim() : null,
+      addressLine2: _isResidence ? _address2Controller.text.trim() : null,
+      city: _isResidence ? _cityController.text.trim() : null,
+      state: _isResidence ? _stateController.text.trim() : null,
+      zip: _isResidence ? _zipController.text.trim() : null,
       pronouns: _pronounsController.text.trim().isEmpty
           ? null
           : _pronounsController.text.trim(),
@@ -373,198 +206,30 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
           : _codeStatusController.text.trim(),
     );
 
-    // ✅ Debug logging to check what we're sending
-    print('🔍 Patient data being sent:');
-    print('- firstName: "${_firstNameController.text.trim()}"');
-    print('- lastName: "${_lastNameController.text.trim()}"');
-    print('- location: "$_location"');
-    print('- isFallRisk: $_isFallRisk');
-    print('- isIsolation: $_isIsolation');
-    print('- user.uid: ${user.uid}');
-    print('- createdAt: ${patient.createdAt}');
-    print('- createdBy: ${patient.createdBy}');
-
-    // ✅ Debug the full patient JSON
-    final patientJson = patient.toJson();
-    print('🔍 Full patient JSON:');
-    print(patientJson);
-
-    // Check if all required fields are present
-    final requiredFields = [
-      'id',
-      'firstName',
-      'lastName',
-      'location',
-      'createdAt',
-      'createdBy'
-    ];
-    for (final field in requiredFields) {
-      print('📋 $field: ${patientJson[field]}');
-    }
-
+    final repo = ref.read(patientRepositoryProvider)!;
     final result = await repo.save(patient);
 
-    Navigator.of(context).pop(); // Close loading dialog
-
     result.fold(
-      (failure) {
-        messenger.showSnackBar(SnackBar(
-          content: Text('Failed to add patient: ${failure.message}'),
-          backgroundColor: Colors.red,
-          action: SnackBarAction(
-            label: 'Retry',
-            onPressed: _submit,
-          ),
-        ));
-      },
+      (error) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Error: ${error.message}'),
+            backgroundColor: Colors.red),
+      ),
       (_) {
-        ref.invalidate(patientProvider);
-        messenger.showSnackBar(const SnackBar(
-          content: Text('✅ Patient added successfully!'),
-          backgroundColor: Colors.green,
-        ));
-        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('✅ Patient saved'), backgroundColor: Colors.green),
+        );
+        Navigator.pop(context);
       },
     );
   }
-
-  void _showLoadingDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: Card(
-          child: Padding(
-            padding: EdgeInsets.all(32.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Saving patient...'),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ──────────────────────────────────────────────────────────────
-  // UI Components
-  // ──────────────────────────────────────────────────────────────
-
-  Widget _buildProgressIndicator() {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      child: Row(
-        children: List.generate(4, (index) {
-          final isActive = index == _currentStep;
-
-          return Expanded(
-            child: Container(
-              margin: EdgeInsets.only(right: index < 3 ? 8 : 0),
-              height: 4,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(2),
-                color: isActive
-                    ? colorScheme.primary
-                    : colorScheme.onSurface.withAlpha(38),
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildStepTitle() {
-    final titles = [
-      'Patient Information',
-      'Location Details',
-      'Clinical Information',
-      'Risk Assessment'
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Step ${_currentStep + 1} of 4',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[600],
-                ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            titles[_currentStep],
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavigationButtons() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      child: Row(
-        children: [
-          // Left button – Cancel or Back
-          Flexible(
-            flex: 1,
-            child: SecondaryButton(
-              label: _currentStep == 0 ? 'Cancel' : 'Back',
-              onPressed: _currentStep == 0 ? _cancel : _previousStep,
-              icon: Icon(
-                _currentStep == 0 ? Icons.close : Icons.arrow_back,
-                size: 20,
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          // Right button – Continue or Save
-          Flexible(
-            flex: 2,
-            child: _currentStep < 3
-                ? PrimaryButton(
-                    label: 'Continue',
-                    onPressed: _canProceedToNext ? _nextStep : null,
-                  )
-                : PrimaryButton(
-                    label: 'Save Patient',
-                    onPressed: _mrnExists ? null : _submit,
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ──────────────────────────────────────────────────────────────
-  // Main Build
-  // ──────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     return NurseScaffold(
       child: Column(
         children: [
-          // Progress indicator
-          _buildProgressIndicator(),
-
-          // Step title
-          const SizedBox(height: 16),
-          _buildStepTitle(),
-          const SizedBox(height: 24),
-
-          // Form content
           Expanded(
             child: Form(
               key: _formKey,
@@ -572,81 +237,95 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
-                  // Step 1: Basic Info
-                  SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: AddPatientBasicInfoStep(
-                      firstNameController: _firstNameController,
-                      lastNameController: _lastNameController,
-                      pronounsController: _pronounsController,
-                      birthDate: _birthDate,
-                      biologicalSex: _biologicalSex,
-                      language: _language,
-                      profileImage: _profileImage,
-                      onPickBirthDate: _pickBirthDate,
-                      onPickImage: _pickImage,
-                      onBiologicalSexChanged: (value) =>
-                          setState(() => _biologicalSex = value),
-                      onLanguageChanged: (value) =>
-                          setState(() => _language = value),
-                    ),
+                  AddPatientBasicInfoStep(
+                    firstNameController: _firstNameController,
+                    lastNameController: _lastNameController,
+                    pronounsController: _pronounsController,
+                    birthDate: _birthDate,
+                    biologicalSex: _biologicalSex,
+                    language: _language,
+                    profileImage: _profileImage,
+                    onPickBirthDate: _pickBirthDate,
+                    onPickImage: _pickImage,
+                    onBiologicalSexChanged: (value) =>
+                        setState(() => _biologicalSex = value),
+                    onLanguageChanged: (value) =>
+                        setState(() => _language = value),
                   ),
-                  // Step 2: Location
-                  SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: AddPatientLocationStep(
-                      location: _location,
-                      departmentController: _departmentController,
-                      roomController: _roomController,
-                      address1Controller: _address1Controller,
-                      address2Controller: _address2Controller,
-                      cityController: _cityController,
-                      stateController: _stateController,
-                      zipController: _zipController,
-                      onLocationChanged: (value) {
-                        setState(() => _location = value);
-                        _updateStepCompletion();
-                      },
-                    ),
+                  AddPatientLocationStep(
+                    location: _location,
+                    departmentController: _departmentController,
+                    roomController: _roomController,
+                    address1Controller: _address1Controller,
+                    address2Controller: _address2Controller,
+                    cityController: _cityController,
+                    stateController: _stateController,
+                    zipController: _zipController,
+                    onLocationChanged: (value) =>
+                        setState(() => _location = value),
                   ),
-                  // Step 3: Clinical Info
-                  SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: AddPatientClinicalStep(
-                      mrnController: _mrnController,
-                      primaryDiagnoses: _primaryDiagnoses,
-                      selectedAllergies: _selectedAllergies,
-                      selectedDietRestrictions: _selectedDietRestrictions,
-                      mrnExists: _mrnExists,
-                      isValidatingMrn: _isValidatingMrn,
-                      mrnError: _mrnError,
-                      onSelectDiagnoses: _selectDiagnoses,
-                      onSelectAllergies: _selectAllergies,
-                      onSelectDietRestrictions: _selectDietRestrictions,
-                    ),
+                  AddPatientClinicalStep(
+                    mrnController: _mrnController,
+                    primaryDiagnoses: _diagnoses,
+                    selectedAllergies: _allergies,
+                    selectedDietRestrictions: _dietaryRestrictions,
+                    mrnExists: _mrnExists,
+                    isValidatingMrn: _isValidatingMrn,
+                    onSelectDiagnoses: _selectDiagnoses,
+                    onSelectAllergies: _selectAllergies,
+                    onSelectDietRestrictions: _selectDietaryRestrictions,
                   ),
-                  // Step 4: Risk Assessment
-                  SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: AddPatientRiskStep(
-                      codeStatusController: _codeStatusController,
-                      isIsolation: _isIsolation,
-                      isFallRisk: _isFallRisk,
-                      onIsolationChanged: (value) =>
-                          setState(() => _isIsolation = value),
-                      onFallRiskChanged: (value) =>
-                          setState(() => _isFallRisk = value),
-                      onCodeStatusChanged: (value) => setState(
-                          () => _codeStatusController.text = value ?? ''),
-                    ),
+                  AddPatientRiskStep(
+                    codeStatusController: _codeStatusController,
+                    isIsolation: _isIsolation,
+                    isFallRisk: _isFallRisk,
+                    onIsolationChanged: (val) =>
+                        setState(() => _isIsolation = val),
+                    onFallRiskChanged: (val) =>
+                        setState(() => _isFallRisk = val),
+                    onCodeStatusChanged: (val) =>
+                        setState(() => _codeStatusController.text = val ?? ''),
                   ),
                 ],
               ),
             ),
           ),
-
-          // Navigation buttons
-          _buildNavigationButtons(),
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SecondaryButton(
+                    label: _currentStep == 0 ? 'Cancel' : 'Back',
+                    onPressed: _currentStep == 0
+                        ? () => Navigator.pop(context)
+                        : () {
+                            _pageController.previousPage(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                            setState(() => _currentStep--);
+                          },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: PrimaryButton(
+                    label: _currentStep < 3 ? 'Next' : 'Save Patient',
+                    onPressed: _currentStep < 3
+                        ? () {
+                            _pageController.nextPage(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                            setState(() => _currentStep++);
+                          }
+                        : _submit,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

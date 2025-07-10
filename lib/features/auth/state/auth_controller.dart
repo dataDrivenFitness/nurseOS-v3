@@ -1,39 +1,20 @@
-// 📁 lib/features/auth/state/auth_controller.dart
-//
-// Controls authentication state (sign-in / sign-out) and exposes the
-// current UserModel for the rest of the app.
-//
-// Key design points
-// ─────────────────
-// • build()  : fast, single fetch of the user profile (Firestore)
-// • signIn() : writes AsyncValue.loading → AsyncValue<UserModel>
-// • signOut(): emits null + invalidates user-scoped providers
-//
-// NOTE: userProfileStreamProvider now DEPENDS on this controller, so
-//       we must **not** invalidate that stream inside signOut()
-//       (doing so created the CircularDependencyError).
-
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/user_model.dart';
-import '../../profile/state/user_profile_controller.dart'; // one-shot + stream
-// font scale
-// locale
+import '../../profile/state/user_profile_controller.dart';
+import '../../agency/state/session_agency_provider.dart'; // 👈 NEW
 
 part 'auth_controller.g.dart';
 
 @Riverpod(keepAlive: true)
 class AuthController extends _$AuthController {
-/*───────────────────────────────────────────────────────────────
-  build()  –  called once per ProviderScope refresh
-───────────────────────────────────────────────────────────────*/
   @override
   Future<UserModel?> build() async {
     final current = FirebaseAuth.instance.currentUser;
-    if (current == null) return null; // guest session
+    if (current == null) return null;
 
     try {
       final snap = await FirebaseFirestore.instance
@@ -45,10 +26,16 @@ class AuthController extends _$AuthController {
           )
           .get();
 
-      return snap.data(); // may be null if doc missing
+      final user = snap.data();
+
+      // ✅ Set active agency from cached value or fallback to primary
+      final agencyCtrl = ref.read(sessionAgencyProvider.notifier);
+      if (agencyCtrl.state == null && user != null) {
+        await agencyCtrl.setAgency(user.activeAgencyId);
+      }
+
+      return user;
     } on FirebaseException catch (e, st) {
-      // Permission-denied can surface for a split-second during logout;
-      // swallow it and return null so dependents reset gracefully.
       if (e.code == 'permission-denied') return null;
       debugPrint('❌ AuthController.build: $e');
       debugPrintStack(stackTrace: st);
@@ -56,11 +43,8 @@ class AuthController extends _$AuthController {
     }
   }
 
-/*───────────────────────────────────────────────────────────────
-  signIn(email, password)
-───────────────────────────────────────────────────────────────*/
   Future<void> signIn(String email, String password) async {
-    state = const AsyncValue.loading(); // notify UI
+    state = const AsyncValue.loading();
 
     final result = await AsyncValue.guard(() async {
       final cred = await FirebaseAuth.instance
@@ -75,26 +59,31 @@ class AuthController extends _$AuthController {
           )
           .get();
 
-      return snap.data();
+      final user = snap.data();
+
+      // ✅ Set active agency from primary
+      if (user != null) {
+        await ref
+            .read(sessionAgencyProvider.notifier)
+            .setAgency(user.activeAgencyId);
+      }
+
+      return user;
     });
 
-    state = result; // → data / error
-    ref.invalidate(userProfileControllerProvider); // refresh one-shot cache
-    // DO NOT invalidate userProfileStreamProvider – it depends on us and
-    // will rebuild automatically when `state` changes.
+    state = result;
+    ref.invalidate(userProfileControllerProvider);
   }
 
-/*───────────────────────────────────────────────────────────────
-  signOut() – teardown order is important
-───────────────────────────────────────────────────────────────*/
   Future<void> signOut() async {
-    // 1️⃣  Notify listeners that auth is gone (UI navigates to /login)
+    // Clear UI immediately
     state = const AsyncValue.data(null);
 
-    // 2️⃣  Revoke Firebase credentials
+    // Revoke auth and session
     await FirebaseAuth.instance.signOut();
+    await ref.read(sessionAgencyProvider.notifier).clear();
 
-    // 3️⃣  Clear any cached value / error in this controller
+    // Invalidate ourself
     ref.invalidateSelf();
   }
 }

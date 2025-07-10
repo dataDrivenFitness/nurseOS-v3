@@ -27,6 +27,8 @@ void main() {
       level: 5,
       role: UserRole.nurse,
       photoUrl: 'https://example.com/avatar.png',
+      activeAgencyId: 'test_agency',
+      agencyRoles: {}, // ✅ Fixed: was agencyRoleMap, now agencyRoles
     );
   });
 

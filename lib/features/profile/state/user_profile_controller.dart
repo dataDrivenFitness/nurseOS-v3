@@ -60,6 +60,10 @@ class UserProfileController extends AsyncNotifier<UserModel?> {
         firstName: cachedFirst,
         lastName: cachedLast,
         role: UserRole.nurse, // best-effort fallback
+        activeAgencyId: 'default_agency',
+        agencyRoles: const {}, // ✅ Fixed: was agencyRoleMap, now agencyRoles
+        level: 1, // ✅ fallback default
+        xp: 0, // ✅ fallback default
       );
     }
 

@@ -25,6 +25,9 @@ mixin _$Patient {
   /// NOTE: Keeping field name as `location` for Firestore compatibility
   String get location;
 
+  /// 🏢 Multi-agency support - REQUIRED field per v2.2 specs
+  String? get agencyId;
+
   /// 🕐 Admission & visibility timestamps
   @TimestampConverter()
   DateTime? get admittedAt;
@@ -84,6 +87,8 @@ mixin _$Patient {
             (identical(other.mrn, mrn) || other.mrn == mrn) &&
             (identical(other.location, location) ||
                 other.location == location) &&
+            (identical(other.agencyId, agencyId) ||
+                other.agencyId == agencyId) &&
             (identical(other.admittedAt, admittedAt) ||
                 other.admittedAt == admittedAt) &&
             (identical(other.lastSeen, lastSeen) ||
@@ -141,6 +146,7 @@ mixin _$Patient {
         lastName,
         mrn,
         location,
+        agencyId,
         admittedAt,
         lastSeen,
         createdAt,
@@ -170,7 +176,7 @@ mixin _$Patient {
 
   @override
   String toString() {
-    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, lastSeen: $lastSeen, createdAt: $createdAt, birthDate: $birthDate, isIsolation: $isIsolation, isFallRisk: $isFallRisk, primaryDiagnoses: $primaryDiagnoses, manualRiskOverride: $manualRiskOverride, codeStatus: $codeStatus, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, language: $language, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, allergies: $allergies, dietRestrictions: $dietRestrictions, department: $department, roomNumber: $roomNumber, addressLine1: $addressLine1, addressLine2: $addressLine2, city: $city, state: $state, zip: $zip)';
+    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, agencyId: $agencyId, admittedAt: $admittedAt, lastSeen: $lastSeen, createdAt: $createdAt, birthDate: $birthDate, isIsolation: $isIsolation, isFallRisk: $isFallRisk, primaryDiagnoses: $primaryDiagnoses, manualRiskOverride: $manualRiskOverride, codeStatus: $codeStatus, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, language: $language, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, allergies: $allergies, dietRestrictions: $dietRestrictions, department: $department, roomNumber: $roomNumber, addressLine1: $addressLine1, addressLine2: $addressLine2, city: $city, state: $state, zip: $zip)';
   }
 }
 
@@ -185,6 +191,7 @@ abstract mixin class $PatientCopyWith<$Res> {
       String lastName,
       String? mrn,
       String location,
+      String? agencyId,
       @TimestampConverter() DateTime? admittedAt,
       @TimestampConverter() DateTime? lastSeen,
       @TimestampConverter() DateTime? createdAt,
@@ -229,6 +236,7 @@ class _$PatientCopyWithImpl<$Res> implements $PatientCopyWith<$Res> {
     Object? lastName = null,
     Object? mrn = freezed,
     Object? location = null,
+    Object? agencyId = freezed,
     Object? admittedAt = freezed,
     Object? lastSeen = freezed,
     Object? createdAt = freezed,
@@ -276,6 +284,10 @@ class _$PatientCopyWithImpl<$Res> implements $PatientCopyWith<$Res> {
           ? _self.location
           : location // ignore: cast_nullable_to_non_nullable
               as String,
+      agencyId: freezed == agencyId
+          ? _self.agencyId
+          : agencyId // ignore: cast_nullable_to_non_nullable
+              as String?,
       admittedAt: freezed == admittedAt
           ? _self.admittedAt
           : admittedAt // ignore: cast_nullable_to_non_nullable
@@ -479,6 +491,7 @@ extension PatientPatterns on Patient {
             String lastName,
             String? mrn,
             String location,
+            String? agencyId,
             @TimestampConverter() DateTime? admittedAt,
             @TimestampConverter() DateTime? lastSeen,
             @TimestampConverter() DateTime? createdAt,
@@ -516,6 +529,7 @@ extension PatientPatterns on Patient {
             _that.lastName,
             _that.mrn,
             _that.location,
+            _that.agencyId,
             _that.admittedAt,
             _that.lastSeen,
             _that.createdAt,
@@ -567,6 +581,7 @@ extension PatientPatterns on Patient {
             String lastName,
             String? mrn,
             String location,
+            String? agencyId,
             @TimestampConverter() DateTime? admittedAt,
             @TimestampConverter() DateTime? lastSeen,
             @TimestampConverter() DateTime? createdAt,
@@ -603,6 +618,7 @@ extension PatientPatterns on Patient {
             _that.lastName,
             _that.mrn,
             _that.location,
+            _that.agencyId,
             _that.admittedAt,
             _that.lastSeen,
             _that.createdAt,
@@ -653,6 +669,7 @@ extension PatientPatterns on Patient {
             String lastName,
             String? mrn,
             String location,
+            String? agencyId,
             @TimestampConverter() DateTime? admittedAt,
             @TimestampConverter() DateTime? lastSeen,
             @TimestampConverter() DateTime? createdAt,
@@ -689,6 +706,7 @@ extension PatientPatterns on Patient {
             _that.lastName,
             _that.mrn,
             _that.location,
+            _that.agencyId,
             _that.admittedAt,
             _that.lastSeen,
             _that.createdAt,
@@ -729,6 +747,7 @@ class _Patient implements Patient {
       required this.lastName,
       this.mrn,
       required this.location,
+      this.agencyId,
       @TimestampConverter() this.admittedAt,
       @TimestampConverter() this.lastSeen,
       @TimestampConverter() this.createdAt,
@@ -776,6 +795,10 @@ class _Patient implements Patient {
   /// NOTE: Keeping field name as `location` for Firestore compatibility
   @override
   final String location;
+
+  /// 🏢 Multi-agency support - REQUIRED field per v2.2 specs
+  @override
+  final String? agencyId;
 
   /// 🕐 Admission & visibility timestamps
   @override
@@ -917,6 +940,8 @@ class _Patient implements Patient {
             (identical(other.mrn, mrn) || other.mrn == mrn) &&
             (identical(other.location, location) ||
                 other.location == location) &&
+            (identical(other.agencyId, agencyId) ||
+                other.agencyId == agencyId) &&
             (identical(other.admittedAt, admittedAt) ||
                 other.admittedAt == admittedAt) &&
             (identical(other.lastSeen, lastSeen) ||
@@ -975,6 +1000,7 @@ class _Patient implements Patient {
         lastName,
         mrn,
         location,
+        agencyId,
         admittedAt,
         lastSeen,
         createdAt,
@@ -1004,7 +1030,7 @@ class _Patient implements Patient {
 
   @override
   String toString() {
-    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, admittedAt: $admittedAt, lastSeen: $lastSeen, createdAt: $createdAt, birthDate: $birthDate, isIsolation: $isIsolation, isFallRisk: $isFallRisk, primaryDiagnoses: $primaryDiagnoses, manualRiskOverride: $manualRiskOverride, codeStatus: $codeStatus, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, language: $language, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, allergies: $allergies, dietRestrictions: $dietRestrictions, department: $department, roomNumber: $roomNumber, addressLine1: $addressLine1, addressLine2: $addressLine2, city: $city, state: $state, zip: $zip)';
+    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, agencyId: $agencyId, admittedAt: $admittedAt, lastSeen: $lastSeen, createdAt: $createdAt, birthDate: $birthDate, isIsolation: $isIsolation, isFallRisk: $isFallRisk, primaryDiagnoses: $primaryDiagnoses, manualRiskOverride: $manualRiskOverride, codeStatus: $codeStatus, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, language: $language, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, allergies: $allergies, dietRestrictions: $dietRestrictions, department: $department, roomNumber: $roomNumber, addressLine1: $addressLine1, addressLine2: $addressLine2, city: $city, state: $state, zip: $zip)';
   }
 }
 
@@ -1020,6 +1046,7 @@ abstract mixin class _$PatientCopyWith<$Res> implements $PatientCopyWith<$Res> {
       String lastName,
       String? mrn,
       String location,
+      String? agencyId,
       @TimestampConverter() DateTime? admittedAt,
       @TimestampConverter() DateTime? lastSeen,
       @TimestampConverter() DateTime? createdAt,
@@ -1064,6 +1091,7 @@ class __$PatientCopyWithImpl<$Res> implements _$PatientCopyWith<$Res> {
     Object? lastName = null,
     Object? mrn = freezed,
     Object? location = null,
+    Object? agencyId = freezed,
     Object? admittedAt = freezed,
     Object? lastSeen = freezed,
     Object? createdAt = freezed,
@@ -1111,6 +1139,10 @@ class __$PatientCopyWithImpl<$Res> implements _$PatientCopyWith<$Res> {
           ? _self.location
           : location // ignore: cast_nullable_to_non_nullable
               as String,
+      agencyId: freezed == agencyId
+          ? _self.agencyId
+          : agencyId // ignore: cast_nullable_to_non_nullable
+              as String?,
       admittedAt: freezed == admittedAt
           ? _self.admittedAt
           : admittedAt // ignore: cast_nullable_to_non_nullable

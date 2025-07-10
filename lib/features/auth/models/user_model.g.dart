@@ -36,6 +36,12 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
               ?.map((e) => e as String)
               .toList() ??
           const [],
+      activeAgencyId: json['activeAgencyId'] as String,
+      agencyRoles: (json['agencyRoles'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(
+                k, AgencyRoleModel.fromJson(e as Map<String, dynamic>)),
+          ) ??
+          const {},
     );
 
 Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
@@ -65,4 +71,6 @@ Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
       'level': instance.level,
       'xp': instance.xp,
       'badges': instance.badges,
+      'activeAgencyId': instance.activeAgencyId,
+      'agencyRoles': instance.agencyRoles,
     };

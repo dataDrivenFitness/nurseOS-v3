@@ -1,3 +1,5 @@
+// lib/features/patient/models/patient_model.dart
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:nurseos_v3/features/patient/models/patient_risk.dart';
 import 'package:nurseos_v3/shared/converters/timestamp_converter.dart';
@@ -22,6 +24,9 @@ abstract class Patient with _$Patient {
     /// e.g. "residence", "hospital", "snf", "rehab", "other"
     /// NOTE: Keeping field name as `location` for Firestore compatibility
     required String location,
+
+    /// 🏢 Multi-agency support - REQUIRED field per v2.2 specs
+    String? agencyId,
 
     /// 🕐 Admission & visibility timestamps
     @TimestampConverter() DateTime? admittedAt,

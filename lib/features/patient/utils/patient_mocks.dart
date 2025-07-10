@@ -12,6 +12,7 @@ final mockPatients = [
     pronouns: 'she/her',
     createdBy: 'nurse_001',
     assignedNurses: ['nurse_001'],
+    agencyId: 'demo-agency',
   ),
   Patient(
     id: 'mock_2',
@@ -28,5 +29,6 @@ final mockPatients = [
     pronouns: 'he/him',
     createdBy: 'nurse_001',
     assignedNurses: ['nurse_001'],
+    agencyId: 'demo-agency',
   ),
 ];

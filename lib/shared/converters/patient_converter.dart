@@ -82,9 +82,8 @@ class PatientConverter {
     _setBoolField(data, rawData, 'isFallRisk', defaultValue: false);
     _setBoolField(data, rawData, 'isIsolation', defaultValue: false);
 
-    // List fields
+    // List fields - ⭐ REMOVED assignedNurses per shift-centric architecture
     _setListField(data, rawData, 'primaryDiagnoses');
-    _setListField(data, rawData, 'assignedNurses');
     _setListField(data, rawData, 'allergies');
     _setListField(data, rawData, 'dietRestrictions');
 

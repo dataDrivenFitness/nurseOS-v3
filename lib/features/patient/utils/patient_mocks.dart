@@ -11,7 +11,7 @@ final mockPatients = [
     biologicalSex: 'female',
     pronouns: 'she/her',
     createdBy: 'nurse_001',
-    assignedNurses: ['nurse_001'],
+    //assignedNurses: ['nurse_001'],
     agencyId: 'demo-agency',
   ),
   Patient(
@@ -25,10 +25,11 @@ final mockPatients = [
     allergies: ['penicillin'],
     codeStatus: 'DNR',
     birthDate: DateTime(1942, 9, 2),
+
     biologicalSex: 'male',
     pronouns: 'he/him',
     createdBy: 'nurse_001',
-    assignedNurses: ['nurse_001'],
+    //assignedNurses: ['nurse_001'],
     agencyId: 'demo-agency',
   ),
 ];

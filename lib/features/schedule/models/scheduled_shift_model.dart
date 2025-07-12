@@ -24,6 +24,7 @@ Object? _timestampToJson(DateTime dateTime) =>
 abstract class ScheduledShiftModel with _$ScheduledShiftModel {
   const factory ScheduledShiftModel({
     required String id,
+    String? agencyId,
     required String assignedTo,
     required String status,
     required String locationType,

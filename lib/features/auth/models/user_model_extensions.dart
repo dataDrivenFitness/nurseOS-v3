@@ -103,7 +103,7 @@ extension UserModelExtensions on UserModel {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // 🏥 Multi-Agency Extension Methods
+  // 🏥 Multi-Agency Extension Methods (FIXED for nullable activeAgencyId)
   // ═══════════════════════════════════════════════════════════════════
 
   /// Check if user has access to a specific agency
@@ -118,7 +118,8 @@ extension UserModelExtensions on UserModel {
 
   /// Get the user's role at the currently active agency
   AgencyRoleModel? get currentAgencyRole {
-    return agencyRoles[activeAgencyId];
+    if (activeAgencyId == null) return null;
+    return agencyRoles[activeAgencyId!];
   }
 
   /// Get all agencies where user has access
@@ -184,7 +185,8 @@ extension UserModelExtensions on UserModel {
 
   /// Check if user needs to select an agency (has access but none active)
   bool get needsAgencySelection {
-    return agencyRoles.isNotEmpty && !hasAccessToAgency(activeAgencyId);
+    return agencyRoles.isNotEmpty &&
+        (activeAgencyId == null || !hasAccessToAgency(activeAgencyId!));
   }
 
   /// Get agency role display text for current agency

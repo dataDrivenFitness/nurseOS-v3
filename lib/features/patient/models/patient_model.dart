@@ -10,7 +10,11 @@ part 'patient_model.g.dart';
 /// 🔍 Patient model representing a single patient record.
 ///
 /// This model is used across the app and supports Firestore serialization,
-/// structured patient metadata, care flags, and now enhanced location data.
+/// structured patient metadata, care flags, and enhanced location data.
+///
+/// 🚨 SHIFT-CENTRIC ARCHITECTURE: Patients are ONLY assigned to nurses through
+/// scheduled shifts. No direct assignedNurses field - use ScheduledShift.assignedPatientIds
+/// as the single source of truth for patient-nurse relationships.
 @freezed
 abstract class Patient with _$Patient {
   const factory Patient({
@@ -49,8 +53,8 @@ abstract class Patient with _$Patient {
     String? photoUrl,
     String? language,
 
-    // 👩‍⚕️ Assigned nurses & ownership
-    @Default([]) List<String>? assignedNurses,
+    // 👤 Ownership & Audit Fields
+    // NOTE: No assignedNurses field - use ScheduledShift.assignedPatientIds instead
     String? ownerUid,
     String? createdBy,
 

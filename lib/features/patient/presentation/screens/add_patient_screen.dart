@@ -1,4 +1,5 @@
 // 📁 lib/features/patient/presentation/screens/add_patient_screen.dart
+// Updated for shift-centric architecture
 
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
 import 'package:nurseos_v3/features/patient/data/patient_repository_provider.dart';
 import 'package:nurseos_v3/features/patient/models/patient_model.dart';
+import 'package:nurseos_v3/features/schedule/models/scheduled_shift_model.dart';
 import 'package:nurseos_v3/features/patient/presentation/widgets/add_patient_basic_info_step.dart';
 import 'package:nurseos_v3/features/patient/presentation/widgets/add_patient_location_step.dart';
 import 'package:nurseos_v3/features/patient/presentation/widgets/add_patient_clinical_step.dart';
@@ -33,7 +35,7 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
   final _formKey = GlobalKey<FormState>();
   final PageController _pageController = PageController();
 
-  // Controllers
+  // Existing Controllers
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _mrnController = TextEditingController();
@@ -47,22 +49,31 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
   final _pronounsController = TextEditingController();
   final _codeStatusController = TextEditingController();
 
+  // Existing Form State
   String? _location;
   String? _language;
   String? _biologicalSex;
   DateTime? _birthDate;
   File? _profileImage;
-
   List<String> _diagnoses = [];
   List<String> _allergies = [];
   List<String> _dietaryRestrictions = [];
-
   bool _isFallRisk = false;
   bool _isIsolation = false;
 
+  // 🆕 SHIFT-CENTRIC: New State Variables
+  String? _selectedAgencyId;
+  String? _selectedShiftId;
+  bool _createNewShift = true;
+  DateTime? _shiftStartTime;
+  DateTime? _shiftEndTime;
+  List<ScheduledShiftModel> _availableShifts = [];
+
+  // Existing UX State
   int _currentStep = 0;
   bool _mrnExists = false;
   bool _isValidatingMrn = false;
+  bool _isSubmitting = false;
 
   bool get _isResidence => _location?.toLowerCase() == 'residence';
 
@@ -70,6 +81,7 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
   void initState() {
     super.initState();
     _mrnController.addListener(_checkMrn);
+    _initializeAgencyContext();
   }
 
   @override
@@ -90,16 +102,76 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
     super.dispose();
   }
 
+  /// 🆕 Initialize agency context and set defaults
+  void _initializeAgencyContext() {
+    final user = ref.read(authControllerProvider).value;
+    if (user?.activeAgencyId != null) {
+      _selectedAgencyId = user!.activeAgencyId;
+      _loadAvailableShifts();
+    }
+  }
+
+  /// 🆕 Load available shifts for selected agency
+  Future<void> _loadAvailableShifts() async {
+    if (_selectedAgencyId == null) return;
+
+    final user = ref.read(authControllerProvider).value;
+    if (user == null) return;
+
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final now = DateTime.now();
+      final todayStart = DateTime(now.year, now.month, now.day);
+      final weekFromNow = now.add(const Duration(days: 7));
+
+      // Query for nurse's shifts in the selected agency within the next week
+      final query = await firestore
+          .collection('agencies')
+          .doc(_selectedAgencyId!)
+          .collection('scheduledShifts')
+          .where('assignedTo', isEqualTo: user.uid)
+          .where('startTime',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart))
+          .where('startTime',
+              isLessThanOrEqualTo: Timestamp.fromDate(weekFromNow))
+          .orderBy('startTime')
+          .get();
+
+      final shifts = query.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return ScheduledShiftModel.fromJson(data);
+      }).toList();
+
+      setState(() {
+        _availableShifts = shifts;
+        // If we have shifts, default to adding to existing
+        if (shifts.isNotEmpty) {
+          _createNewShift = false;
+          _selectedShiftId = shifts.first.id;
+        }
+      });
+    } catch (e) {
+      debugPrint('Error loading available shifts: $e');
+    }
+  }
+
+  // Existing methods remain the same...
   Future<void> _checkMrn() async {
     final mrn = _mrnController.text.trim();
     if (mrn.isEmpty) return;
 
     setState(() => _isValidatingMrn = true);
+
+    // 🔧 Update to use agency-scoped collection
     final existing = await FirebaseFirestore.instance
+        .collection('agencies')
+        .doc(_selectedAgencyId ?? 'default_agency')
         .collection('patients')
         .where('mrn', isEqualTo: mrn)
         .limit(1)
         .get();
+
     setState(() {
       _mrnExists = existing.docs.isNotEmpty;
       _isValidatingMrn = false;
@@ -152,77 +224,180 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
       setState(() => _dietaryRestrictions = List<String>.from(selected));
   }
 
+  /// 🆕 SHIFT-CENTRIC: Updated submit method
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate() || _mrnExists) return;
 
     final user = ref.read(authControllerProvider).value;
     if (user == null) return;
 
-    final id = FirebaseFirestore.instance.collection('patients').doc().id;
-    String? photoUrl;
+    final repo = ref.read(patientRepositoryProvider);
+    if (repo == null) return;
 
-    if (_profileImage != null) {
-      final fileRef =
-          FirebaseStorage.instance.ref('patients/profile_photos/$id.jpg');
-      final upload = await fileRef.putFile(_profileImage!);
-      photoUrl = await upload.ref.getDownloadURL();
-    }
+    setState(() => _isSubmitting = true);
 
-    final patient = Patient(
-      id: id,
-      agencyId: user.activeAgencyId, // ✅ REQUIRED
-      firstName: _firstNameController.text.trim(),
-      lastName: _lastNameController.text.trim(),
-      location: _location!,
-      createdAt: DateTime.now(),
-      createdBy: user.uid,
-      admittedAt: DateTime.now(),
-      ownerUid: user.uid,
-      isFallRisk: _isFallRisk,
-      isIsolation: _isIsolation,
-      primaryDiagnoses: _diagnoses,
-      allergies: _allergies,
-      dietRestrictions: _dietaryRestrictions,
-      assignedNurses: [],
-      mrn: _mrnController.text.trim().isEmpty
-          ? null
-          : _mrnController.text.trim(),
-      birthDate: _birthDate,
-      biologicalSex: _biologicalSex ?? 'unspecified',
-      language: _language,
-      photoUrl: photoUrl,
-      department: !_isResidence ? _departmentController.text.trim() : null,
-      roomNumber: !_isResidence ? _roomController.text.trim() : null,
-      addressLine1: _isResidence ? _address1Controller.text.trim() : null,
-      addressLine2: _isResidence ? _address2Controller.text.trim() : null,
-      city: _isResidence ? _cityController.text.trim() : null,
-      state: _isResidence ? _stateController.text.trim() : null,
-      zip: _isResidence ? _zipController.text.trim() : null,
-      pronouns: _pronounsController.text.trim().isEmpty
-          ? null
-          : _pronounsController.text.trim(),
-      codeStatus: _codeStatusController.text.trim().isEmpty
-          ? null
-          : _codeStatusController.text.trim(),
-    );
+    try {
+      // Step 1: Upload profile image if exists
+      String? photoUrl;
+      if (_profileImage != null) {
+        final id = FirebaseFirestore.instance.collection('patients').doc().id;
+        final fileRef =
+            FirebaseStorage.instance.ref('patients/profile_photos/$id.jpg');
+        final upload = await fileRef.putFile(_profileImage!);
+        photoUrl = await upload.ref.getDownloadURL();
+      }
 
-    final repo = ref.read(patientRepositoryProvider)!;
-    final result = await repo.save(patient);
+      // Step 2: Create patient (WITHOUT assignedNurses field)
+      final patient = Patient(
+        id: '', // Will be set by repository
+        agencyId: _selectedAgencyId,
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        location: _location!,
+        createdAt: DateTime.now(),
+        createdBy: user.uid,
+        admittedAt: DateTime.now(),
+        ownerUid: user.uid,
+        isFallRisk: _isFallRisk,
+        isIsolation: _isIsolation,
+        primaryDiagnoses: _diagnoses,
+        allergies: _allergies,
+        dietRestrictions: _dietaryRestrictions,
+        // ✅ NO assignedNurses field - this is the key change!
+        mrn: _mrnController.text.trim().isEmpty
+            ? null
+            : _mrnController.text.trim(),
+        birthDate: _birthDate,
+        biologicalSex: _biologicalSex ?? 'unspecified',
+        language: _language,
+        photoUrl: photoUrl,
+        department: !_isResidence
+            ? _departmentController.text.trim().nullIfEmpty
+            : null,
+        roomNumber:
+            !_isResidence ? _roomController.text.trim().nullIfEmpty : null,
+        addressLine1:
+            _isResidence ? _address1Controller.text.trim().nullIfEmpty : null,
+        addressLine2:
+            _isResidence ? _address2Controller.text.trim().nullIfEmpty : null,
+        city: _isResidence ? _cityController.text.trim().nullIfEmpty : null,
+        state: _isResidence ? _stateController.text.trim().nullIfEmpty : null,
+        zip: _isResidence ? _zipController.text.trim().nullIfEmpty : null,
+        pronouns: _pronounsController.text.trim().nullIfEmpty,
+        codeStatus: _codeStatusController.text.trim().nullIfEmpty,
+      );
 
-    result.fold(
-      (error) => ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Error: ${error.message}'),
-            backgroundColor: Colors.red),
-      ),
-      (_) {
+      // Step 3: Save patient to get generated ID
+      String? savedPatientId;
+      final result = await repo.save(patient);
+
+      await result.fold(
+        (failure) async {
+          throw Exception('Failed to save patient: ${failure.message}');
+        },
+        (success) async {
+          // Patient saved successfully, get the ID for shift assignment
+          savedPatientId =
+              patient.id.isNotEmpty ? patient.id : _generatePatientId();
+        },
+      );
+
+      // Step 4: 🚨 SHIFT-CENTRIC: Create or update shift with patient assignment
+      if (savedPatientId != null) {
+        if (_createNewShift) {
+          await _createNewShiftWithPatient(savedPatientId!, user.uid);
+        } else {
+          await _addPatientToExistingShift(savedPatientId!, _selectedShiftId!);
+        }
+      }
+
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('✅ Patient saved'), backgroundColor: Colors.green),
+          SnackBar(
+            content: Text(_createNewShift
+                ? '✅ Patient added and new shift created'
+                : '✅ Patient added to existing shift'),
+            backgroundColor: Colors.green,
+          ),
         );
-        Navigator.pop(context);
-      },
-    );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Failed to add patient: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
+  }
+
+  /// 🆕 Create new shift with patient assigned
+  Future<void> _createNewShiftWithPatient(
+      String patientId, String nurseUid) async {
+    final firestore = FirebaseFirestore.instance;
+
+    // Create default shift times if not set
+    final now = DateTime.now();
+    final startTime =
+        _shiftStartTime ?? DateTime(now.year, now.month, now.day, 8); // 8 AM
+    final endTime = _shiftEndTime ??
+        startTime.add(const Duration(hours: 8)); // 8-hour shift
+
+    final shiftData = {
+      'agencyId': _selectedAgencyId,
+      'assignedTo': nurseUid,
+      'status': 'scheduled',
+      'locationType': _isResidence ? 'residence' : 'facility',
+      'facilityName':
+          !_isResidence ? _departmentController.text.trim().nullIfEmpty : null,
+      'addressLine1':
+          _isResidence ? _address1Controller.text.trim().nullIfEmpty : null,
+      'addressLine2':
+          _isResidence ? _address2Controller.text.trim().nullIfEmpty : null,
+      'city': _isResidence ? _cityController.text.trim().nullIfEmpty : null,
+      'state': _isResidence ? _stateController.text.trim().nullIfEmpty : null,
+      'zip': _isResidence ? _zipController.text.trim().nullIfEmpty : null,
+      'assignedPatientIds': [
+        patientId
+      ], // 🎯 This is where patient gets attached to shift
+      'startTime': Timestamp.fromDate(startTime),
+      'endTime': Timestamp.fromDate(endTime),
+      'isConfirmed': true,
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+
+    await firestore
+        .collection('agencies')
+        .doc(_selectedAgencyId ?? 'default_agency')
+        .collection('scheduledShifts')
+        .add(shiftData);
+  }
+
+  /// 🆕 Add patient to existing shift
+  Future<void> _addPatientToExistingShift(
+      String patientId, String shiftId) async {
+    final firestore = FirebaseFirestore.instance;
+
+    final shiftRef = firestore
+        .collection('agencies')
+        .doc(_selectedAgencyId ?? 'default_agency')
+        .collection('scheduledShifts')
+        .doc(shiftId);
+
+    await shiftRef.update({
+      'assignedPatientIds':
+          FieldValue.arrayUnion([patientId]), // 🎯 Add patient to shift
+    });
+  }
+
+  /// Helper to generate patient ID if repository doesn't return it
+  String _generatePatientId() {
+    return FirebaseFirestore.instance.collection('patients').doc().id;
   }
 
   @override
@@ -252,6 +427,7 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                     onLanguageChanged: (value) =>
                         setState(() => _language = value),
                   ),
+                  // 🆕 Updated location step will include agency/shift selection
                   AddPatientLocationStep(
                     location: _location,
                     departmentController: _departmentController,
@@ -263,6 +439,33 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                     zipController: _zipController,
                     onLocationChanged: (value) =>
                         setState(() => _location = value),
+                    // 🆕 NEW: Agency and shift parameters
+                    selectedAgencyId: _selectedAgencyId,
+                    selectedShiftId: _selectedShiftId,
+                    createNewShift: _createNewShift,
+                    availableShifts: _availableShifts,
+                    shiftStartTime: _shiftStartTime,
+                    shiftEndTime: _shiftEndTime,
+                    onAgencyChanged: (agencyId) {
+                      setState(() {
+                        _selectedAgencyId = agencyId;
+                        _availableShifts.clear();
+                        _selectedShiftId = null;
+                      });
+                      _loadAvailableShifts();
+                    },
+                    onShiftModeChanged: (createNew) {
+                      setState(() => _createNewShift = createNew);
+                    },
+                    onShiftSelected: (shiftId) {
+                      setState(() => _selectedShiftId = shiftId);
+                    },
+                    onShiftTimeChanged: (start, end) {
+                      setState(() {
+                        _shiftStartTime = start;
+                        _shiftEndTime = end;
+                      });
+                    },
                   ),
                   AddPatientClinicalStep(
                     mrnController: _mrnController,
@@ -311,16 +514,20 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: PrimaryButton(
-                    label: _currentStep < 3 ? 'Next' : 'Save Patient',
-                    onPressed: _currentStep < 3
-                        ? () {
-                            _pageController.nextPage(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOut,
-                            );
-                            setState(() => _currentStep++);
-                          }
-                        : _submit,
+                    label: _currentStep < 3
+                        ? 'Next'
+                        : (_isSubmitting ? 'Saving...' : 'Save Patient'),
+                    onPressed: _isSubmitting
+                        ? null
+                        : (_currentStep < 3
+                            ? () {
+                                _pageController.nextPage(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeInOut,
+                                );
+                                setState(() => _currentStep++);
+                              }
+                            : _submit),
                   ),
                 ),
               ],
@@ -330,4 +537,9 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
       ),
     );
   }
+}
+
+// Extension helper for null-if-empty strings
+extension StringHelper on String {
+  String? get nullIfEmpty => isEmpty ? null : this;
 }

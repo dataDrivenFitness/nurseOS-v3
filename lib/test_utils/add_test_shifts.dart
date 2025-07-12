@@ -5,8 +5,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
 class TestShiftGenerator {
-  static Future<void> addTestAvailableShifts() async {
+  /// Add test shifts to agency-scoped collection
+  static Future<void> addTestAvailableShifts([String? agencyId]) async {
     final firestore = FirebaseFirestore.instance;
+    final targetAgencyId = agencyId ?? 'default_agency';
 
     // Generate test shifts for the next few days
     final now = DateTime.now();
@@ -107,7 +109,7 @@ class TestShiftGenerator {
         'city': 'San Jose',
         'state': 'CA',
         'zip': '95110',
-        'specialRequirements': ['NICU certification required'],
+        'specialRequirements': 'NICU certification required',
         'startTime':
             Timestamp.fromDate(now.add(const Duration(days: 2, hours: 7))),
         'endTime':
@@ -188,16 +190,23 @@ class TestShiftGenerator {
       },
     ];
 
-    // Add each shift to Firestore
+    // Add each shift to agency-scoped collection
     for (final shift in testShifts) {
       final shiftId = shift['id'] as String;
       final shiftData = Map<String, dynamic>.from(shift);
       shiftData.remove('id'); // Don't store ID in the document data
+      shiftData['agencyId'] = targetAgencyId; // Add agency context
 
       try {
-        await firestore.collection('shifts').doc(shiftId).set(shiftData);
+        await firestore
+            .collection('agencies')
+            .doc(targetAgencyId)
+            .collection('shifts')
+            .doc(shiftId)
+            .set(shiftData);
         if (kDebugMode) {
-          print('✅ Added test shift: $shiftId - ${shift['location']}');
+          print(
+              '✅ Added test shift: $shiftId - ${shift['location']} (Agency: $targetAgencyId)');
         }
       } catch (e) {
         if (kDebugMode) {
@@ -207,13 +216,14 @@ class TestShiftGenerator {
     }
 
     if (kDebugMode) {
-      print('🎉 Test available shifts added to Firestore!');
+      print('🎉 Test available shifts added to agency $targetAgencyId!');
     }
   }
 
   // Helper to clear test shifts if needed
-  static Future<void> clearTestShifts() async {
+  static Future<void> clearTestShifts([String? agencyId]) async {
     final firestore = FirebaseFirestore.instance;
+    final targetAgencyId = agencyId ?? 'default_agency';
 
     final testShiftIds = [
       'shift_001',
@@ -223,14 +233,19 @@ class TestShiftGenerator {
       'shift_005',
       'shift_006',
       'shift_007',
-      'shift_008', // Added new shift
+      'shift_008',
     ];
 
     for (final shiftId in testShiftIds) {
       try {
-        await firestore.collection('shifts').doc(shiftId).delete();
+        await firestore
+            .collection('agencies')
+            .doc(targetAgencyId)
+            .collection('shifts')
+            .doc(shiftId)
+            .delete();
         if (kDebugMode) {
-          print('🗑️ Deleted test shift: $shiftId');
+          print('🗑️ Deleted test shift: $shiftId (Agency: $targetAgencyId)');
         }
       } catch (e) {
         if (kDebugMode) {
@@ -240,13 +255,14 @@ class TestShiftGenerator {
     }
 
     if (kDebugMode) {
-      print('🧹 Test shifts cleared from Firestore!');
+      print('🧹 Test shifts cleared from agency $targetAgencyId!');
     }
   }
 
   // Helper to add some emergency coverage requests for testing
-  static Future<void> addEmergencyTestShifts() async {
+  static Future<void> addEmergencyTestShifts([String? agencyId]) async {
     final firestore = FirebaseFirestore.instance;
+    final targetAgencyId = agencyId ?? 'default_agency';
     final now = DateTime.now();
 
     final emergencyShifts = [
@@ -299,11 +315,18 @@ class TestShiftGenerator {
       final shiftId = shift['id'] as String;
       final shiftData = Map<String, dynamic>.from(shift);
       shiftData.remove('id');
+      shiftData['agencyId'] = targetAgencyId; // Add agency context
 
       try {
-        await firestore.collection('shifts').doc(shiftId).set(shiftData);
+        await firestore
+            .collection('agencies')
+            .doc(targetAgencyId)
+            .collection('shifts')
+            .doc(shiftId)
+            .set(shiftData);
         if (kDebugMode) {
-          print('🚨 Added emergency shift: $shiftId - ${shift['location']}');
+          print(
+              '🚨 Added emergency shift: $shiftId - ${shift['location']} (Agency: $targetAgencyId)');
         }
       } catch (e) {
         if (kDebugMode) {
@@ -313,7 +336,7 @@ class TestShiftGenerator {
     }
 
     if (kDebugMode) {
-      print('🚨 Emergency test shifts added to Firestore!');
+      print('🚨 Emergency test shifts added to agency $targetAgencyId!');
     }
   }
 }

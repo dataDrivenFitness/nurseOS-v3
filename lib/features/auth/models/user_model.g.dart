@@ -30,18 +30,17 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
       lastStatusChange:
           const TimestampConverter().fromJson(json['lastStatusChange']),
       currentSessionId: json['currentSessionId'] as String?,
+      activeAgencyId: json['activeAgencyId'] as String?,
+      agencyRoles: json['agencyRoles'] == null
+          ? const {}
+          : const AgencyRoleMapConverter()
+              .fromJson(json['agencyRoles'] as Map<String, dynamic>),
       level: (json['level'] as num?)?.toInt() ?? 1,
       xp: (json['xp'] as num?)?.toInt() ?? 0,
       badges: (json['badges'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           const [],
-      activeAgencyId: json['activeAgencyId'] as String,
-      agencyRoles: (json['agencyRoles'] as Map<String, dynamic>?)?.map(
-            (k, e) => MapEntry(
-                k, AgencyRoleModel.fromJson(e as Map<String, dynamic>)),
-          ) ??
-          const {},
     );
 
 Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
@@ -68,9 +67,10 @@ Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
       'lastStatusChange':
           const TimestampConverter().toJson(instance.lastStatusChange),
       'currentSessionId': instance.currentSessionId,
+      'activeAgencyId': instance.activeAgencyId,
+      'agencyRoles':
+          const AgencyRoleMapConverter().toJson(instance.agencyRoles),
       'level': instance.level,
       'xp': instance.xp,
       'badges': instance.badges,
-      'activeAgencyId': instance.activeAgencyId,
-      'agencyRoles': instance.agencyRoles,
     };

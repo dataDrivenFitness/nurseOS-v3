@@ -1,0 +1,43 @@
+{
+  "indexes": [
+    {
+      "collectionId": "shifts",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "mode": "ASCENDING"
+        },
+        {
+          "fieldPath": "location",
+          "mode": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionId": "shifts",
+      "fields": [
+        {
+          "fieldPath": "status", 
+          "mode": "ASCENDING"
+        },
+        {
+          "fieldPath": "agencyId",
+          "mode": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionId": "shifts",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "mode": "ASCENDING"
+        },
+        {
+          "fieldPath": "startTime",
+          "mode": "ASCENDING"
+        }
+      ]
+    }
+  ]
+}

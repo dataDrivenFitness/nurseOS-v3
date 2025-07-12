@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "nurseos-docs": {
+      "type": "file",
+      "rootDir": "/mnt/data/docs",
+      "description": "Modular, on-demand context injection for NurseOS dev and design docs"
+    }
+  }
+}

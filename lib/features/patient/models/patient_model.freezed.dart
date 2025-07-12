@@ -48,8 +48,8 @@ mixin _$Patient {
   String? get pronouns;
   String? get biologicalSex;
   String? get photoUrl;
-  String? get language; // 👩‍⚕️ Assigned nurses & ownership
-  List<String>? get assignedNurses;
+  String? get language; // 👤 Ownership & Audit Fields
+// NOTE: No assignedNurses field - use ScheduledShift.assignedPatientIds instead
   String? get ownerUid;
   String? get createdBy; // 🌿 Medical Notes & Dietary Flags
   List<String>? get allergies;
@@ -115,8 +115,6 @@ mixin _$Patient {
                 other.photoUrl == photoUrl) &&
             (identical(other.language, language) ||
                 other.language == language) &&
-            const DeepCollectionEquality()
-                .equals(other.assignedNurses, assignedNurses) &&
             (identical(other.ownerUid, ownerUid) ||
                 other.ownerUid == ownerUid) &&
             (identical(other.createdBy, createdBy) ||
@@ -160,7 +158,6 @@ mixin _$Patient {
         biologicalSex,
         photoUrl,
         language,
-        const DeepCollectionEquality().hash(assignedNurses),
         ownerUid,
         createdBy,
         const DeepCollectionEquality().hash(allergies),
@@ -176,7 +173,7 @@ mixin _$Patient {
 
   @override
   String toString() {
-    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, agencyId: $agencyId, admittedAt: $admittedAt, lastSeen: $lastSeen, createdAt: $createdAt, birthDate: $birthDate, isIsolation: $isIsolation, isFallRisk: $isFallRisk, primaryDiagnoses: $primaryDiagnoses, manualRiskOverride: $manualRiskOverride, codeStatus: $codeStatus, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, language: $language, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, allergies: $allergies, dietRestrictions: $dietRestrictions, department: $department, roomNumber: $roomNumber, addressLine1: $addressLine1, addressLine2: $addressLine2, city: $city, state: $state, zip: $zip)';
+    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, agencyId: $agencyId, admittedAt: $admittedAt, lastSeen: $lastSeen, createdAt: $createdAt, birthDate: $birthDate, isIsolation: $isIsolation, isFallRisk: $isFallRisk, primaryDiagnoses: $primaryDiagnoses, manualRiskOverride: $manualRiskOverride, codeStatus: $codeStatus, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, language: $language, ownerUid: $ownerUid, createdBy: $createdBy, allergies: $allergies, dietRestrictions: $dietRestrictions, department: $department, roomNumber: $roomNumber, addressLine1: $addressLine1, addressLine2: $addressLine2, city: $city, state: $state, zip: $zip)';
   }
 }
 
@@ -205,7 +202,6 @@ abstract mixin class $PatientCopyWith<$Res> {
       String? biologicalSex,
       String? photoUrl,
       String? language,
-      List<String>? assignedNurses,
       String? ownerUid,
       String? createdBy,
       List<String>? allergies,
@@ -250,7 +246,6 @@ class _$PatientCopyWithImpl<$Res> implements $PatientCopyWith<$Res> {
     Object? biologicalSex = freezed,
     Object? photoUrl = freezed,
     Object? language = freezed,
-    Object? assignedNurses = freezed,
     Object? ownerUid = freezed,
     Object? createdBy = freezed,
     Object? allergies = freezed,
@@ -340,10 +335,6 @@ class _$PatientCopyWithImpl<$Res> implements $PatientCopyWith<$Res> {
           ? _self.language
           : language // ignore: cast_nullable_to_non_nullable
               as String?,
-      assignedNurses: freezed == assignedNurses
-          ? _self.assignedNurses
-          : assignedNurses // ignore: cast_nullable_to_non_nullable
-              as List<String>?,
       ownerUid: freezed == ownerUid
           ? _self.ownerUid
           : ownerUid // ignore: cast_nullable_to_non_nullable
@@ -505,7 +496,6 @@ extension PatientPatterns on Patient {
             String? biologicalSex,
             String? photoUrl,
             String? language,
-            List<String>? assignedNurses,
             String? ownerUid,
             String? createdBy,
             List<String>? allergies,
@@ -543,7 +533,6 @@ extension PatientPatterns on Patient {
             _that.biologicalSex,
             _that.photoUrl,
             _that.language,
-            _that.assignedNurses,
             _that.ownerUid,
             _that.createdBy,
             _that.allergies,
@@ -595,7 +584,6 @@ extension PatientPatterns on Patient {
             String? biologicalSex,
             String? photoUrl,
             String? language,
-            List<String>? assignedNurses,
             String? ownerUid,
             String? createdBy,
             List<String>? allergies,
@@ -632,7 +620,6 @@ extension PatientPatterns on Patient {
             _that.biologicalSex,
             _that.photoUrl,
             _that.language,
-            _that.assignedNurses,
             _that.ownerUid,
             _that.createdBy,
             _that.allergies,
@@ -683,7 +670,6 @@ extension PatientPatterns on Patient {
             String? biologicalSex,
             String? photoUrl,
             String? language,
-            List<String>? assignedNurses,
             String? ownerUid,
             String? createdBy,
             List<String>? allergies,
@@ -720,7 +706,6 @@ extension PatientPatterns on Patient {
             _that.biologicalSex,
             _that.photoUrl,
             _that.language,
-            _that.assignedNurses,
             _that.ownerUid,
             _that.createdBy,
             _that.allergies,
@@ -761,7 +746,6 @@ class _Patient implements Patient {
       this.biologicalSex = 'unspecified',
       this.photoUrl,
       this.language,
-      final List<String>? assignedNurses = const [],
       this.ownerUid,
       this.createdBy,
       final List<String>? allergies = const [],
@@ -774,7 +758,6 @@ class _Patient implements Patient {
       this.state,
       this.zip})
       : _primaryDiagnoses = primaryDiagnoses,
-        _assignedNurses = assignedNurses,
         _allergies = allergies,
         _dietRestrictions = dietRestrictions;
   factory _Patient.fromJson(Map<String, dynamic> json) =>
@@ -849,19 +832,8 @@ class _Patient implements Patient {
   final String? photoUrl;
   @override
   final String? language;
-// 👩‍⚕️ Assigned nurses & ownership
-  final List<String>? _assignedNurses;
-// 👩‍⚕️ Assigned nurses & ownership
-  @override
-  @JsonKey()
-  List<String>? get assignedNurses {
-    final value = _assignedNurses;
-    if (value == null) return null;
-    if (_assignedNurses is EqualUnmodifiableListView) return _assignedNurses;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(value);
-  }
-
+// 👤 Ownership & Audit Fields
+// NOTE: No assignedNurses field - use ScheduledShift.assignedPatientIds instead
   @override
   final String? ownerUid;
   @override
@@ -968,8 +940,6 @@ class _Patient implements Patient {
                 other.photoUrl == photoUrl) &&
             (identical(other.language, language) ||
                 other.language == language) &&
-            const DeepCollectionEquality()
-                .equals(other._assignedNurses, _assignedNurses) &&
             (identical(other.ownerUid, ownerUid) ||
                 other.ownerUid == ownerUid) &&
             (identical(other.createdBy, createdBy) ||
@@ -1014,7 +984,6 @@ class _Patient implements Patient {
         biologicalSex,
         photoUrl,
         language,
-        const DeepCollectionEquality().hash(_assignedNurses),
         ownerUid,
         createdBy,
         const DeepCollectionEquality().hash(_allergies),
@@ -1030,7 +999,7 @@ class _Patient implements Patient {
 
   @override
   String toString() {
-    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, agencyId: $agencyId, admittedAt: $admittedAt, lastSeen: $lastSeen, createdAt: $createdAt, birthDate: $birthDate, isIsolation: $isIsolation, isFallRisk: $isFallRisk, primaryDiagnoses: $primaryDiagnoses, manualRiskOverride: $manualRiskOverride, codeStatus: $codeStatus, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, language: $language, assignedNurses: $assignedNurses, ownerUid: $ownerUid, createdBy: $createdBy, allergies: $allergies, dietRestrictions: $dietRestrictions, department: $department, roomNumber: $roomNumber, addressLine1: $addressLine1, addressLine2: $addressLine2, city: $city, state: $state, zip: $zip)';
+    return 'Patient(id: $id, firstName: $firstName, lastName: $lastName, mrn: $mrn, location: $location, agencyId: $agencyId, admittedAt: $admittedAt, lastSeen: $lastSeen, createdAt: $createdAt, birthDate: $birthDate, isIsolation: $isIsolation, isFallRisk: $isFallRisk, primaryDiagnoses: $primaryDiagnoses, manualRiskOverride: $manualRiskOverride, codeStatus: $codeStatus, pronouns: $pronouns, biologicalSex: $biologicalSex, photoUrl: $photoUrl, language: $language, ownerUid: $ownerUid, createdBy: $createdBy, allergies: $allergies, dietRestrictions: $dietRestrictions, department: $department, roomNumber: $roomNumber, addressLine1: $addressLine1, addressLine2: $addressLine2, city: $city, state: $state, zip: $zip)';
   }
 }
 
@@ -1060,7 +1029,6 @@ abstract mixin class _$PatientCopyWith<$Res> implements $PatientCopyWith<$Res> {
       String? biologicalSex,
       String? photoUrl,
       String? language,
-      List<String>? assignedNurses,
       String? ownerUid,
       String? createdBy,
       List<String>? allergies,
@@ -1105,7 +1073,6 @@ class __$PatientCopyWithImpl<$Res> implements _$PatientCopyWith<$Res> {
     Object? biologicalSex = freezed,
     Object? photoUrl = freezed,
     Object? language = freezed,
-    Object? assignedNurses = freezed,
     Object? ownerUid = freezed,
     Object? createdBy = freezed,
     Object? allergies = freezed,
@@ -1195,10 +1162,6 @@ class __$PatientCopyWithImpl<$Res> implements _$PatientCopyWith<$Res> {
           ? _self.language
           : language // ignore: cast_nullable_to_non_nullable
               as String?,
-      assignedNurses: freezed == assignedNurses
-          ? _self._assignedNurses
-          : assignedNurses // ignore: cast_nullable_to_non_nullable
-              as List<String>?,
       ownerUid: freezed == ownerUid
           ? _self.ownerUid
           : ownerUid // ignore: cast_nullable_to_non_nullable

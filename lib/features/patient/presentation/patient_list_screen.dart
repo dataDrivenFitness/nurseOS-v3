@@ -13,6 +13,8 @@ import 'package:nurseos_v3/core/theme/animation_tokens.dart';
 import '../../../shared/widgets/error/error_retry_tile.dart';
 import '../../../shared/widgets/loading/patient_list_shimmer.dart';
 import '../state/patient_providers.dart';
+import '../../agency/state/agency_context_provider.dart';
+import '../../auth/state/auth_controller.dart';
 
 class PatientListScreen extends ConsumerStatefulWidget {
   const PatientListScreen({super.key});
@@ -173,10 +175,29 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen>
     super.dispose();
   }
 
+  void _fixUserAgency() async {
+    try {
+      final user = ref.read(authControllerProvider).value;
+      if (user != null && user.activeAgencyId == null) {
+        print('🔧 Fixing user agency - setting activeAgencyId to rising-phoenix');
+        await ref.read(agencyContextNotifierProvider.notifier).setInitialAgency('rising-phoenix');
+        print('✅ User agency fixed');
+      }
+    } catch (e) {
+      print('❌ Failed to fix user agency: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final patients = ref.watch(patientProvider);
     final userAsync = ref.watch(userProfileStreamProvider);
+
+    // Auto-fix user agency if needed
+    final user = ref.watch(authControllerProvider).value;
+    if (user != null && user.activeAgencyId == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _fixUserAgency());
+    }
 
     return NurseScaffold(
       child: Scaffold(

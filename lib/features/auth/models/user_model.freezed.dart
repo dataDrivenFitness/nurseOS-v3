@@ -60,7 +60,7 @@ mixin _$UserModel {
   /// Professional certifications (e.g., ["BLS", "ACLS", "PALS", "CCRN"])
   List<String>?
       get certifications; // ═══════════════════════════════════════════════════════════════
-// Work Status Fields
+// Work Status Fields (Updated for Work History)
 // ═══════════════════════════════════════════════════════════════
   /// Current duty status (true = on duty, false = off duty, null = unknown)
   bool? get isOnDuty;
@@ -73,6 +73,17 @@ mixin _$UserModel {
   /// Points to: /users/{uid}/workHistory/{sessionId}
   String?
       get currentSessionId; // ═══════════════════════════════════════════════════════════════
+// 🏢 MULTI-AGENCY SUPPORT FIELDS (NEW)
+// ═══════════════════════════════════════════════════════════════
+  /// Currently active agency ID for the user's session
+  /// This determines which agency's data the user sees
+  String? get activeAgencyId;
+
+  /// Map of agency ID to user's role within that agency
+  /// Enables nurses to work across multiple healthcare organizations
+  @AgencyRoleMapConverter()
+  Map<String, AgencyRoleModel>
+      get agencyRoles; // ═══════════════════════════════════════════════════════════════
 // Gamification Fields (DEPRECATED - will be moved to GamificationProfile)
 // ═══════════════════════════════════════════════════════════════
   /// @deprecated Use GamificationProfile.level instead
@@ -85,18 +96,7 @@ mixin _$UserModel {
 
   /// @deprecated Use GamificationProfile.badges instead
   /// Keeping for backward compatibility during migration
-  List<String>
-      get badges; // ═══════════════════════════════════════════════════════════════
-// Multi-Agency Support Fields
-// ═══════════════════════════════════════════════════════════════
-  /// Currently active agency - determines data context for all operations
-  /// This field controls which agency's patients, schedules, etc. the user sees
-  String get activeAgencyId;
-
-  /// Map of agency ID to role assignments
-  /// Allows nurses to work across multiple hospitals/agencies with different roles
-  /// Example: {"hospital_123": AgencyRoleModel(role: "nurse", department: "ICU")}
-  Map<String, AgencyRoleModel> get agencyRoles;
+  List<String> get badges;
 
   /// Create a copy of UserModel
   /// with the given fields replaced by the non-null parameter values.
@@ -148,13 +148,13 @@ mixin _$UserModel {
                 other.lastStatusChange == lastStatusChange) &&
             (identical(other.currentSessionId, currentSessionId) ||
                 other.currentSessionId == currentSessionId) &&
-            (identical(other.level, level) || other.level == level) &&
-            (identical(other.xp, xp) || other.xp == xp) &&
-            const DeepCollectionEquality().equals(other.badges, badges) &&
             (identical(other.activeAgencyId, activeAgencyId) ||
                 other.activeAgencyId == activeAgencyId) &&
             const DeepCollectionEquality()
-                .equals(other.agencyRoles, agencyRoles));
+                .equals(other.agencyRoles, agencyRoles) &&
+            (identical(other.level, level) || other.level == level) &&
+            (identical(other.xp, xp) || other.xp == xp) &&
+            const DeepCollectionEquality().equals(other.badges, badges));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -181,16 +181,16 @@ mixin _$UserModel {
         isOnDuty,
         lastStatusChange,
         currentSessionId,
+        activeAgencyId,
+        const DeepCollectionEquality().hash(agencyRoles),
         level,
         xp,
-        const DeepCollectionEquality().hash(badges),
-        activeAgencyId,
-        const DeepCollectionEquality().hash(agencyRoles)
+        const DeepCollectionEquality().hash(badges)
       ]);
 
   @override
   String toString() {
-    return 'UserModel(uid: $uid, firstName: $firstName, lastName: $lastName, email: $email, photoUrl: $photoUrl, createdAt: $createdAt, authProvider: $authProvider, role: $role, licenseNumber: $licenseNumber, licenseExpiry: $licenseExpiry, specialty: $specialty, department: $department, unit: $unit, shift: $shift, phoneExtension: $phoneExtension, hireDate: $hireDate, certifications: $certifications, isOnDuty: $isOnDuty, lastStatusChange: $lastStatusChange, currentSessionId: $currentSessionId, level: $level, xp: $xp, badges: $badges, activeAgencyId: $activeAgencyId, agencyRoles: $agencyRoles)';
+    return 'UserModel(uid: $uid, firstName: $firstName, lastName: $lastName, email: $email, photoUrl: $photoUrl, createdAt: $createdAt, authProvider: $authProvider, role: $role, licenseNumber: $licenseNumber, licenseExpiry: $licenseExpiry, specialty: $specialty, department: $department, unit: $unit, shift: $shift, phoneExtension: $phoneExtension, hireDate: $hireDate, certifications: $certifications, isOnDuty: $isOnDuty, lastStatusChange: $lastStatusChange, currentSessionId: $currentSessionId, activeAgencyId: $activeAgencyId, agencyRoles: $agencyRoles, level: $level, xp: $xp, badges: $badges)';
   }
 }
 
@@ -220,11 +220,11 @@ abstract mixin class $UserModelCopyWith<$Res> {
       bool? isOnDuty,
       @TimestampConverter() DateTime? lastStatusChange,
       String? currentSessionId,
+      String? activeAgencyId,
+      @AgencyRoleMapConverter() Map<String, AgencyRoleModel> agencyRoles,
       int level,
       int xp,
-      List<String> badges,
-      String activeAgencyId,
-      Map<String, AgencyRoleModel> agencyRoles});
+      List<String> badges});
 }
 
 /// @nodoc
@@ -259,11 +259,11 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
     Object? isOnDuty = freezed,
     Object? lastStatusChange = freezed,
     Object? currentSessionId = freezed,
+    Object? activeAgencyId = freezed,
+    Object? agencyRoles = null,
     Object? level = null,
     Object? xp = null,
     Object? badges = null,
-    Object? activeAgencyId = null,
-    Object? agencyRoles = null,
   }) {
     return _then(_self.copyWith(
       uid: null == uid
@@ -346,6 +346,14 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
           ? _self.currentSessionId
           : currentSessionId // ignore: cast_nullable_to_non_nullable
               as String?,
+      activeAgencyId: freezed == activeAgencyId
+          ? _self.activeAgencyId
+          : activeAgencyId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      agencyRoles: null == agencyRoles
+          ? _self.agencyRoles
+          : agencyRoles // ignore: cast_nullable_to_non_nullable
+              as Map<String, AgencyRoleModel>,
       level: null == level
           ? _self.level
           : level // ignore: cast_nullable_to_non_nullable
@@ -358,14 +366,6 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
           ? _self.badges
           : badges // ignore: cast_nullable_to_non_nullable
               as List<String>,
-      activeAgencyId: null == activeAgencyId
-          ? _self.activeAgencyId
-          : activeAgencyId // ignore: cast_nullable_to_non_nullable
-              as String,
-      agencyRoles: null == agencyRoles
-          ? _self.agencyRoles
-          : agencyRoles // ignore: cast_nullable_to_non_nullable
-              as Map<String, AgencyRoleModel>,
     ));
   }
 }
@@ -484,11 +484,11 @@ extension UserModelPatterns on UserModel {
             bool? isOnDuty,
             @TimestampConverter() DateTime? lastStatusChange,
             String? currentSessionId,
+            String? activeAgencyId,
+            @AgencyRoleMapConverter() Map<String, AgencyRoleModel> agencyRoles,
             int level,
             int xp,
-            List<String> badges,
-            String activeAgencyId,
-            Map<String, AgencyRoleModel> agencyRoles)?
+            List<String> badges)?
         $default, {
     required TResult orElse(),
   }) {
@@ -516,11 +516,11 @@ extension UserModelPatterns on UserModel {
             _that.isOnDuty,
             _that.lastStatusChange,
             _that.currentSessionId,
+            _that.activeAgencyId,
+            _that.agencyRoles,
             _that.level,
             _that.xp,
-            _that.badges,
-            _that.activeAgencyId,
-            _that.agencyRoles);
+            _that.badges);
       case _:
         return orElse();
     }
@@ -562,11 +562,11 @@ extension UserModelPatterns on UserModel {
             bool? isOnDuty,
             @TimestampConverter() DateTime? lastStatusChange,
             String? currentSessionId,
+            String? activeAgencyId,
+            @AgencyRoleMapConverter() Map<String, AgencyRoleModel> agencyRoles,
             int level,
             int xp,
-            List<String> badges,
-            String activeAgencyId,
-            Map<String, AgencyRoleModel> agencyRoles)
+            List<String> badges)
         $default,
   ) {
     final _that = this;
@@ -593,11 +593,11 @@ extension UserModelPatterns on UserModel {
             _that.isOnDuty,
             _that.lastStatusChange,
             _that.currentSessionId,
+            _that.activeAgencyId,
+            _that.agencyRoles,
             _that.level,
             _that.xp,
-            _that.badges,
-            _that.activeAgencyId,
-            _that.agencyRoles);
+            _that.badges);
       case _:
         throw StateError('Unexpected subclass');
     }
@@ -638,11 +638,11 @@ extension UserModelPatterns on UserModel {
             bool? isOnDuty,
             @TimestampConverter() DateTime? lastStatusChange,
             String? currentSessionId,
+            String? activeAgencyId,
+            @AgencyRoleMapConverter() Map<String, AgencyRoleModel> agencyRoles,
             int level,
             int xp,
-            List<String> badges,
-            String activeAgencyId,
-            Map<String, AgencyRoleModel> agencyRoles)?
+            List<String> badges)?
         $default,
   ) {
     final _that = this;
@@ -669,11 +669,11 @@ extension UserModelPatterns on UserModel {
             _that.isOnDuty,
             _that.lastStatusChange,
             _that.currentSessionId,
+            _that.activeAgencyId,
+            _that.agencyRoles,
             _that.level,
             _that.xp,
-            _that.badges,
-            _that.activeAgencyId,
-            _that.agencyRoles);
+            _that.badges);
       case _:
         return null;
     }
@@ -704,14 +704,15 @@ class _UserModel implements UserModel {
       this.isOnDuty,
       @TimestampConverter() this.lastStatusChange,
       this.currentSessionId,
+      this.activeAgencyId,
+      @AgencyRoleMapConverter()
+      final Map<String, AgencyRoleModel> agencyRoles = const {},
       this.level = 1,
       this.xp = 0,
-      final List<String> badges = const [],
-      required this.activeAgencyId,
-      final Map<String, AgencyRoleModel> agencyRoles = const {}})
+      final List<String> badges = const []})
       : _certifications = certifications,
-        _badges = badges,
-        _agencyRoles = agencyRoles;
+        _agencyRoles = agencyRoles,
+        _badges = badges;
   factory _UserModel.fromJson(Map<String, dynamic> json) =>
       _$UserModelFromJson(json);
 
@@ -788,7 +789,7 @@ class _UserModel implements UserModel {
   }
 
 // ═══════════════════════════════════════════════════════════════
-// Work Status Fields
+// Work Status Fields (Updated for Work History)
 // ═══════════════════════════════════════════════════════════════
   /// Current duty status (true = on duty, false = off duty, null = unknown)
   @override
@@ -803,6 +804,29 @@ class _UserModel implements UserModel {
   /// Points to: /users/{uid}/workHistory/{sessionId}
   @override
   final String? currentSessionId;
+// ═══════════════════════════════════════════════════════════════
+// 🏢 MULTI-AGENCY SUPPORT FIELDS (NEW)
+// ═══════════════════════════════════════════════════════════════
+  /// Currently active agency ID for the user's session
+  /// This determines which agency's data the user sees
+  @override
+  final String? activeAgencyId;
+
+  /// Map of agency ID to user's role within that agency
+  /// Enables nurses to work across multiple healthcare organizations
+  final Map<String, AgencyRoleModel> _agencyRoles;
+
+  /// Map of agency ID to user's role within that agency
+  /// Enables nurses to work across multiple healthcare organizations
+  @override
+  @JsonKey()
+  @AgencyRoleMapConverter()
+  Map<String, AgencyRoleModel> get agencyRoles {
+    if (_agencyRoles is EqualUnmodifiableMapView) return _agencyRoles;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_agencyRoles);
+  }
+
 // ═══════════════════════════════════════════════════════════════
 // Gamification Fields (DEPRECATED - will be moved to GamificationProfile)
 // ═══════════════════════════════════════════════════════════════
@@ -830,30 +854,6 @@ class _UserModel implements UserModel {
     if (_badges is EqualUnmodifiableListView) return _badges;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_badges);
-  }
-
-// ═══════════════════════════════════════════════════════════════
-// Multi-Agency Support Fields
-// ═══════════════════════════════════════════════════════════════
-  /// Currently active agency - determines data context for all operations
-  /// This field controls which agency's patients, schedules, etc. the user sees
-  @override
-  final String activeAgencyId;
-
-  /// Map of agency ID to role assignments
-  /// Allows nurses to work across multiple hospitals/agencies with different roles
-  /// Example: {"hospital_123": AgencyRoleModel(role: "nurse", department: "ICU")}
-  final Map<String, AgencyRoleModel> _agencyRoles;
-
-  /// Map of agency ID to role assignments
-  /// Allows nurses to work across multiple hospitals/agencies with different roles
-  /// Example: {"hospital_123": AgencyRoleModel(role: "nurse", department: "ICU")}
-  @override
-  @JsonKey()
-  Map<String, AgencyRoleModel> get agencyRoles {
-    if (_agencyRoles is EqualUnmodifiableMapView) return _agencyRoles;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(_agencyRoles);
   }
 
   /// Create a copy of UserModel
@@ -911,13 +911,13 @@ class _UserModel implements UserModel {
                 other.lastStatusChange == lastStatusChange) &&
             (identical(other.currentSessionId, currentSessionId) ||
                 other.currentSessionId == currentSessionId) &&
-            (identical(other.level, level) || other.level == level) &&
-            (identical(other.xp, xp) || other.xp == xp) &&
-            const DeepCollectionEquality().equals(other._badges, _badges) &&
             (identical(other.activeAgencyId, activeAgencyId) ||
                 other.activeAgencyId == activeAgencyId) &&
             const DeepCollectionEquality()
-                .equals(other._agencyRoles, _agencyRoles));
+                .equals(other._agencyRoles, _agencyRoles) &&
+            (identical(other.level, level) || other.level == level) &&
+            (identical(other.xp, xp) || other.xp == xp) &&
+            const DeepCollectionEquality().equals(other._badges, _badges));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -944,16 +944,16 @@ class _UserModel implements UserModel {
         isOnDuty,
         lastStatusChange,
         currentSessionId,
+        activeAgencyId,
+        const DeepCollectionEquality().hash(_agencyRoles),
         level,
         xp,
-        const DeepCollectionEquality().hash(_badges),
-        activeAgencyId,
-        const DeepCollectionEquality().hash(_agencyRoles)
+        const DeepCollectionEquality().hash(_badges)
       ]);
 
   @override
   String toString() {
-    return 'UserModel(uid: $uid, firstName: $firstName, lastName: $lastName, email: $email, photoUrl: $photoUrl, createdAt: $createdAt, authProvider: $authProvider, role: $role, licenseNumber: $licenseNumber, licenseExpiry: $licenseExpiry, specialty: $specialty, department: $department, unit: $unit, shift: $shift, phoneExtension: $phoneExtension, hireDate: $hireDate, certifications: $certifications, isOnDuty: $isOnDuty, lastStatusChange: $lastStatusChange, currentSessionId: $currentSessionId, level: $level, xp: $xp, badges: $badges, activeAgencyId: $activeAgencyId, agencyRoles: $agencyRoles)';
+    return 'UserModel(uid: $uid, firstName: $firstName, lastName: $lastName, email: $email, photoUrl: $photoUrl, createdAt: $createdAt, authProvider: $authProvider, role: $role, licenseNumber: $licenseNumber, licenseExpiry: $licenseExpiry, specialty: $specialty, department: $department, unit: $unit, shift: $shift, phoneExtension: $phoneExtension, hireDate: $hireDate, certifications: $certifications, isOnDuty: $isOnDuty, lastStatusChange: $lastStatusChange, currentSessionId: $currentSessionId, activeAgencyId: $activeAgencyId, agencyRoles: $agencyRoles, level: $level, xp: $xp, badges: $badges)';
   }
 }
 
@@ -986,11 +986,11 @@ abstract mixin class _$UserModelCopyWith<$Res>
       bool? isOnDuty,
       @TimestampConverter() DateTime? lastStatusChange,
       String? currentSessionId,
+      String? activeAgencyId,
+      @AgencyRoleMapConverter() Map<String, AgencyRoleModel> agencyRoles,
       int level,
       int xp,
-      List<String> badges,
-      String activeAgencyId,
-      Map<String, AgencyRoleModel> agencyRoles});
+      List<String> badges});
 }
 
 /// @nodoc
@@ -1025,11 +1025,11 @@ class __$UserModelCopyWithImpl<$Res> implements _$UserModelCopyWith<$Res> {
     Object? isOnDuty = freezed,
     Object? lastStatusChange = freezed,
     Object? currentSessionId = freezed,
+    Object? activeAgencyId = freezed,
+    Object? agencyRoles = null,
     Object? level = null,
     Object? xp = null,
     Object? badges = null,
-    Object? activeAgencyId = null,
-    Object? agencyRoles = null,
   }) {
     return _then(_UserModel(
       uid: null == uid
@@ -1112,6 +1112,14 @@ class __$UserModelCopyWithImpl<$Res> implements _$UserModelCopyWith<$Res> {
           ? _self.currentSessionId
           : currentSessionId // ignore: cast_nullable_to_non_nullable
               as String?,
+      activeAgencyId: freezed == activeAgencyId
+          ? _self.activeAgencyId
+          : activeAgencyId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      agencyRoles: null == agencyRoles
+          ? _self._agencyRoles
+          : agencyRoles // ignore: cast_nullable_to_non_nullable
+              as Map<String, AgencyRoleModel>,
       level: null == level
           ? _self.level
           : level // ignore: cast_nullable_to_non_nullable
@@ -1124,14 +1132,6 @@ class __$UserModelCopyWithImpl<$Res> implements _$UserModelCopyWith<$Res> {
           ? _self._badges
           : badges // ignore: cast_nullable_to_non_nullable
               as List<String>,
-      activeAgencyId: null == activeAgencyId
-          ? _self.activeAgencyId
-          : activeAgencyId // ignore: cast_nullable_to_non_nullable
-              as String,
-      agencyRoles: null == agencyRoles
-          ? _self._agencyRoles
-          : agencyRoles // ignore: cast_nullable_to_non_nullable
-              as Map<String, AgencyRoleModel>,
     ));
   }
 }

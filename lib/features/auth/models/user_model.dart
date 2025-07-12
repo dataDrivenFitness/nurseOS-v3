@@ -1,9 +1,10 @@
-// 📁 lib/features/auth/models/user_model.dart
+// 📁 lib/features/auth/models/user_model.dart (UPDATED FOR MULTI-AGENCY)
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:nurseos_v3/core/models/user_role.dart';
 import 'package:nurseos_v3/shared/converters/timestamp_converter.dart';
 import 'package:nurseos_v3/features/agency/models/agency_role_model.dart';
+import 'package:nurseos_v3/shared/converters/agency_role_map_converter.dart';
 
 part 'user_model.freezed.dart';
 part 'user_model.g.dart';
@@ -56,7 +57,7 @@ abstract class UserModel with _$UserModel {
     List<String>? certifications,
 
     // ═══════════════════════════════════════════════════════════════
-    // Work Status Fields
+    // Work Status Fields (Updated for Work History)
     // ═══════════════════════════════════════════════════════════════
 
     /// Current duty status (true = on duty, false = off duty, null = unknown)
@@ -68,6 +69,20 @@ abstract class UserModel with _$UserModel {
     /// Reference to current active work session (if on duty)
     /// Points to: /users/{uid}/workHistory/{sessionId}
     String? currentSessionId,
+
+    // ═══════════════════════════════════════════════════════════════
+    // 🏢 MULTI-AGENCY SUPPORT FIELDS (NEW)
+    // ═══════════════════════════════════════════════════════════════
+
+    /// Currently active agency ID for the user's session
+    /// This determines which agency's data the user sees
+    String? activeAgencyId,
+
+    /// Map of agency ID to user's role within that agency
+    /// Enables nurses to work across multiple healthcare organizations
+    @AgencyRoleMapConverter()
+    @Default({})
+    Map<String, AgencyRoleModel> agencyRoles,
 
     // ═══════════════════════════════════════════════════════════════
     // Gamification Fields (DEPRECATED - will be moved to GamificationProfile)
@@ -84,19 +99,6 @@ abstract class UserModel with _$UserModel {
     /// @deprecated Use GamificationProfile.badges instead
     /// Keeping for backward compatibility during migration
     @Default([]) List<String> badges,
-
-    // ═══════════════════════════════════════════════════════════════
-    // Multi-Agency Support Fields
-    // ═══════════════════════════════════════════════════════════════
-
-    /// Currently active agency - determines data context for all operations
-    /// This field controls which agency's patients, schedules, etc. the user sees
-    required String activeAgencyId,
-
-    /// Map of agency ID to role assignments
-    /// Allows nurses to work across multiple hospitals/agencies with different roles
-    /// Example: {"hospital_123": AgencyRoleModel(role: "nurse", department: "ICU")}
-    @Default({}) Map<String, AgencyRoleModel> agencyRoles,
   }) = _UserModel;
 
   factory UserModel.fromJson(Map<String, dynamic> json) =>

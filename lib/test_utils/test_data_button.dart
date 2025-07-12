@@ -2,27 +2,56 @@
 // Add this button temporarily to any screen to generate test data
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nurseos_v3/test_utils/add_test_shifts.dart';
+import '../features/agency/state/agency_context_provider.dart';
 
-class TestDataButton extends StatelessWidget {
+class TestDataButton extends ConsumerWidget {
   const TestDataButton({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return FloatingActionButton.extended(
-      onPressed: () => _showTestDataDialog(context),
+      onPressed: () => _showTestDataDialog(context, ref),
       icon: const Icon(Icons.science),
       label: const Text('Test Data'),
       backgroundColor: Colors.purple,
     );
   }
 
-  void _showTestDataDialog(BuildContext context) {
+  void _showTestDataDialog(BuildContext context, WidgetRef ref) {
+    final agencyId = ref.read(currentAgencyIdProvider);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Test Data Generator'),
-        content: const Text('Generate test available shifts for testing?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Generate test available shifts for testing?'),
+            const SizedBox(height: 12),
+            if (agencyId != null)
+              Text(
+                'Target Agency: $agencyId',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+              )
+            else
+              Text(
+                'Warning: No agency selected. Using default_agency.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.orange[700],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -50,13 +79,15 @@ class TestDataButton extends StatelessWidget {
               );
 
               try {
-                await TestShiftGenerator.addTestAvailableShifts();
+                await TestShiftGenerator.addTestAvailableShifts(agencyId);
 
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).clearSnackBars();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('✅ Test shifts added successfully!'),
+                    SnackBar(
+                      content: Text(
+                        '✅ Test shifts added to ${agencyId ?? 'default_agency'}!',
+                      ),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -97,13 +128,15 @@ class TestDataButton extends StatelessWidget {
               );
 
               try {
-                await TestShiftGenerator.clearTestShifts();
+                await TestShiftGenerator.clearTestShifts(agencyId);
 
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).clearSnackBars();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('🧹 Test shifts cleared successfully!'),
+                    SnackBar(
+                      content: Text(
+                        '🧹 Test shifts cleared from ${agencyId ?? 'default_agency'}!',
+                      ),
                       backgroundColor: Colors.orange,
                     ),
                   );

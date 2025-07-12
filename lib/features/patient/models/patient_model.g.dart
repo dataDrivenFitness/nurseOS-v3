@@ -30,10 +30,6 @@ _Patient _$PatientFromJson(Map<String, dynamic> json) => _Patient(
       biologicalSex: json['biologicalSex'] as String? ?? 'unspecified',
       photoUrl: json['photoUrl'] as String?,
       language: json['language'] as String?,
-      assignedNurses: (json['assignedNurses'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toList() ??
-          const [],
       ownerUid: json['ownerUid'] as String?,
       createdBy: json['createdBy'] as String?,
       allergies: (json['allergies'] as List<dynamic>?)
@@ -74,7 +70,6 @@ Map<String, dynamic> _$PatientToJson(_Patient instance) => <String, dynamic>{
       'biologicalSex': instance.biologicalSex,
       'photoUrl': instance.photoUrl,
       'language': instance.language,
-      'assignedNurses': instance.assignedNurses,
       'ownerUid': instance.ownerUid,
       'createdBy': instance.createdBy,
       'allergies': instance.allergies,

@@ -5,7 +5,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../models/user_model.dart';
 import '../../profile/state/user_profile_controller.dart';
-import '../../agency/state/session_agency_provider.dart'; // 👈 NEW
 
 part 'auth_controller.g.dart';
 
@@ -28,12 +27,8 @@ class AuthController extends _$AuthController {
 
       final user = snap.data();
 
-      // ✅ Set active agency from cached value or fallback to primary
-      final agencyCtrl = ref.read(sessionAgencyProvider.notifier);
-      if (agencyCtrl.state == null && user != null) {
-        await agencyCtrl.setAgency(user.activeAgencyId);
-      }
-
+      // AgencyContextProvider will automatically read activeAgencyId from UserModel
+      // No need to manually set agency state here
       return user;
     } on FirebaseException catch (e, st) {
       if (e.code == 'permission-denied') return null;
@@ -61,13 +56,8 @@ class AuthController extends _$AuthController {
 
       final user = snap.data();
 
-      // ✅ Set active agency from primary
-      if (user != null) {
-        await ref
-            .read(sessionAgencyProvider.notifier)
-            .setAgency(user.activeAgencyId);
-      }
-
+      // AgencyContextProvider will automatically read activeAgencyId from UserModel
+      // No need to manually set agency state here
       return user;
     });
 
@@ -79,11 +69,10 @@ class AuthController extends _$AuthController {
     // Clear UI immediately
     state = const AsyncValue.data(null);
 
-    // Revoke auth and session
+    // Revoke auth
     await FirebaseAuth.instance.signOut();
-    await ref.read(sessionAgencyProvider.notifier).clear();
 
-    // Invalidate ourself
+    // Invalidate ourself (AgencyContextProvider will automatically clear when user is null)
     ref.invalidateSelf();
   }
 }

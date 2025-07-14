@@ -2,8 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nurseos_v3/core/providers/feature_flag_provider.dart';
 import 'package:nurseos_v3/features/preferences/presentation/accessibility_settings_screen.dart';
 import 'package:nurseos_v3/features/schedule/presentation/schedule_screen.dart';
+import 'package:nurseos_v3/features/navigation_v3/presentation/my_shift_screen.dart';
+import 'package:nurseos_v3/features/navigation_v3/presentation/available_shifts_screen.dart';
 
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/state/auth_controller.dart';
@@ -27,10 +30,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = ref.watch(authRefreshNotifierProvider);
   final suppressRedirect = ref.watch(suppressRedirectProvider);
 
+  // Check if new navigation is enabled to set appropriate initial location
+  final useNewNavigation = ref.watch(featureFlagProvider('navigation_v3'));
+  final initialLocation = useNewNavigation ? '/available-shifts' : '/tasks';
+
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     refreshListenable: refreshNotifier,
-    initialLocation: '/tasks',
+    initialLocation: initialLocation,
     redirect: (context, state) {
       final uri = state.uri;
       final path = uri.path;
@@ -53,7 +60,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       if (isAuthed) {
         if (isLoggingIn) {
-          return uri.queryParameters['from'] ?? '/tasks';
+          return uri.queryParameters['from'] ?? initialLocation;
         }
         if (isSplashing) return null;
       }
@@ -114,11 +121,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             pageBuilder: (_, __) =>
                 const NoTransitionPage(child: ProfileScreen()),
           ),
-          // 🚨 Temporary Admin Portal Route
           GoRoute(
             path: '/admin',
             pageBuilder: (_, __) =>
                 const NoTransitionPage(child: AdminPortalScreen()),
+          ),
+          // 🆕 New Navigation V3 Routes
+          GoRoute(
+            path: '/my-shift',
+            pageBuilder: (_, __) =>
+                const NoTransitionPage(child: MyShiftScreen()),
+          ),
+          GoRoute(
+            path: '/available-shifts',
+            pageBuilder: (_, __) =>
+                const NoTransitionPage(child: AvailableShiftsScreen()),
           ),
         ],
       ),

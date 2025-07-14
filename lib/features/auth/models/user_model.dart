@@ -1,4 +1,4 @@
-// 📁 lib/features/auth/models/user_model.dart (UPDATED FOR MULTI-AGENCY)
+// 📁 lib/features/auth/models/user_model.dart (UPDATED FOR MULTI-AGENCY + INDEPENDENT NURSES)
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:nurseos_v3/core/models/user_role.dart';
@@ -71,7 +71,7 @@ abstract class UserModel with _$UserModel {
     String? currentSessionId,
 
     // ═══════════════════════════════════════════════════════════════
-    // 🏢 MULTI-AGENCY SUPPORT FIELDS (NEW)
+    // 🏢 MULTI-AGENCY SUPPORT FIELDS
     // ═══════════════════════════════════════════════════════════════
 
     /// Currently active agency ID for the user's session
@@ -83,6 +83,20 @@ abstract class UserModel with _$UserModel {
     @AgencyRoleMapConverter()
     @Default({})
     Map<String, AgencyRoleModel> agencyRoles,
+
+    // ═══════════════════════════════════════════════════════════════
+    // 🏠 INDEPENDENT NURSE SUPPORT FIELDS (NEW)
+    // ═══════════════════════════════════════════════════════════════
+
+    /// Indicates if the nurse can operate independently (self-employed)
+    /// When true, nurse can create their own shifts and manage patients
+    /// When false, nurse works only for agencies (current behavior)
+    @Default(false) bool isIndependentNurse,
+
+    /// Business information for independent practice (optional)
+    /// Only populated if isIndependentNurse is true
+    /// Example: "Smith Home Care Services"
+    String? businessName,
 
     // ═══════════════════════════════════════════════════════════════
     // Gamification Fields (DEPRECATED - will be moved to GamificationProfile)

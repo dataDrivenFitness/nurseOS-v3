@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:nurseos_v3/core/theme/spacing.dart';
 import 'package:nurseos_v3/features/patient/models/patient_field_options.dart';
 import 'package:nurseos_v3/features/schedule/models/scheduled_shift_model.dart';
+import 'package:nurseos_v3/features/schedule/models/scheduled_shift_model_extensions.dart';
 import 'package:nurseos_v3/shared/widgets/form_card.dart';
 
 class AddPatientLocationStep extends StatelessWidget {
@@ -97,15 +98,16 @@ class AddPatientLocationStep extends StatelessWidget {
                 Column(
                   children: [
                     RadioListTile<bool>(
-                      title: Text('Create new shift'),
-                      subtitle: Text('Start a new shift for this patient'),
+                      title: const Text('Create new shift'),
+                      subtitle:
+                          const Text('Start a new shift for this patient'),
                       value: true,
                       groupValue: createNewShift,
                       onChanged: (value) => onShiftModeChanged(value ?? true),
                       dense: true,
                     ),
                     RadioListTile<bool>(
-                      title: Text('Add to existing shift'),
+                      title: const Text('Add to existing shift'),
                       subtitle: Text(availableShifts.isEmpty
                           ? 'No available shifts found'
                           : '${availableShifts.length} shift(s) available'),
@@ -384,7 +386,7 @@ class AddPatientLocationStep extends StatelessWidget {
                 style: const TextStyle(fontWeight: FontWeight.w500),
               ),
               Text(
-                '${shift.facilityName ?? shift.addressLine1} • ${shift.assignedPatientIds?.length ?? 0} patients',
+                '${shift.locationDisplay} • ${shift.patientCount} patients', // Using extension methods
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey.shade600,

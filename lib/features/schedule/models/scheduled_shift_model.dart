@@ -1,4 +1,4 @@
-// lib/features/schedule/models/scheduled_shift_model.dart
+// 📁 lib/features/schedule/models/scheduled_shift_model.dart
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -24,24 +24,57 @@ Object? _timestampToJson(DateTime dateTime) =>
 abstract class ScheduledShiftModel with _$ScheduledShiftModel {
   const factory ScheduledShiftModel({
     required String id,
-    String? agencyId,
     required String assignedTo,
     required String status,
     required String locationType,
     String? facilityName,
-    String? address, // Keep for backward compatibility
-    // New structured address fields
-    String? addressLine1,
-    String? addressLine2,
-    String? city,
-    String? state,
-    String? zip,
+    String? address,
     List<String>? assignedPatientIds,
     @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
     required DateTime startTime,
     @JsonKey(fromJson: _timestampFromJson, toJson: _timestampToJson)
     required DateTime endTime,
     required bool isConfirmed,
+
+    // ═══════════════════════════════════════════════════════════════
+    // 🏠 INDEPENDENT NURSE SUPPORT FIELDS (NEW)
+    // ═══════════════════════════════════════════════════════════════
+
+    /// Identifies which agency created this shift (null for independent nurses)
+    /// When null, indicates this is an independently created shift
+    /// When populated, indicates agency-created shift with proper isolation
+    ///
+    /// CRITICAL: Agency-scoped shift architecture ensures:
+    /// - Data isolation between agencies
+    /// - Independent shifts separate from agency work
+    /// - Clear billing and compliance boundaries
+    /// - Agency admins only see their own shifts
+    String? agencyId,
+
+    /// Indicates if this shift was created by the nurse themselves
+    /// When true: Nurse created their own shift (independent practice)
+    /// When false: Shift was created by agency/admin (traditional model)
+    ///
+    /// Independent nurses can create multiple shifts per day:
+    /// - One shift per agency they work for
+    /// - One shift for independent practice
+    /// - Each shift maintains clear organizational boundaries
+    @Default(false) bool isUserCreated,
+
+    /// Who created this shift (for audit trail and HIPAA compliance)
+    /// Should be set to the nurse's UID for user-created shifts
+    /// Should be set to admin/agency UID for agency-created shifts
+    String? createdBy,
+
+    // ═══════════════════════════════════════════════════════════════
+    // 🔄 METADATA FIELDS (ENHANCED)
+    // ═══════════════════════════════════════════════════════════════
+
+    /// When this shift record was created
+    @TimestampConverter() DateTime? createdAt,
+
+    /// When this shift record was last modified
+    @TimestampConverter() DateTime? updatedAt,
   }) = _ScheduledShiftModel;
 
   factory ScheduledShiftModel.fromJson(Map<String, dynamic> json) =>

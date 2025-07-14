@@ -1,10 +1,11 @@
-// lib/features/schedule/widgets/scheduled_shift_card.dart
+// 📁 lib/features/schedule/widgets/scheduled_shift_card.dart
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:nurseos_v3/core/theme/app_colors.dart';
 import 'package:nurseos_v3/core/theme/spacing.dart';
 import 'package:nurseos_v3/features/schedule/models/scheduled_shift_model.dart';
+import 'package:nurseos_v3/features/schedule/models/scheduled_shift_model_extensions.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ScheduledShiftCard extends StatelessWidget {
@@ -48,7 +49,7 @@ class ScheduledShiftCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          shift.facilityName ?? 'Unknown Location',
+                          shift.locationDisplay, // Using extension method
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
@@ -78,8 +79,18 @@ class ScheduledShiftCard extends StatelessWidget {
                       tooltip: 'Open in Maps',
                     ),
                   ],
-                  // Status indicator
-                  _buildStatusChip(shift.status, shift.isConfirmed, colors),
+                  // Status indicator with ownership badge
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _buildStatusChip(
+                          shift.statusDisplay, shift.isConfirmed, colors),
+                      if (shift.isUserCreated) ...[
+                        const SizedBox(height: 4),
+                        _buildOwnershipBadge(colors),
+                      ],
+                    ],
+                  ),
                 ],
               ),
 
@@ -123,7 +134,7 @@ class ScheduledShiftCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    _formatDuration(shift.startTime, shift.endTime),
+                    shift.formattedDuration, // Using extension method
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colors.subdued,
                       fontWeight: FontWeight.w500,
@@ -142,17 +153,28 @@ class ScheduledShiftCard extends StatelessWidget {
                     color: colors.subdued,
                   ),
                   const SizedBox(width: SpacingTokens.sm),
+                  Expanded(
+                    child: Text(
+                      _formatLocationType(shift.locationType),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colors.subdued,
+                      ),
+                    ),
+                  ),
+                  // Shift source indicator
                   Text(
-                    _formatLocationType(shift.locationType),
+                    shift.ownershipType, // Using extension method
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: colors.subdued,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
 
               // Assigned patients (if any)
-              if (shift.assignedPatientIds?.isNotEmpty == true) ...[
+              if (shift.hasPatients) ...[
                 const SizedBox(height: SpacingTokens.sm),
                 Row(
                   children: [
@@ -163,7 +185,7 @@ class ScheduledShiftCard extends StatelessWidget {
                     ),
                     const SizedBox(width: SpacingTokens.sm),
                     Text(
-                      '${shift.assignedPatientIds!.length} patient${shift.assignedPatientIds!.length != 1 ? 's' : ''}',
+                      '${shift.patientCount} patient${shift.patientCount != 1 ? 's' : ''}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colors.subdued,
                       ),
@@ -173,7 +195,7 @@ class ScheduledShiftCard extends StatelessWidget {
               ],
 
               // Confirm button for unconfirmed shifts
-              if (!shift.isConfirmed && onConfirm != null) ...[
+              if (shift.needsConfirmation && onConfirm != null) ...[
                 const SizedBox(height: SpacingTokens.md),
                 SizedBox(
                   width: double.infinity,
@@ -194,68 +216,39 @@ class ScheduledShiftCard extends StatelessWidget {
     );
   }
 
-  /// Formats the full address from the new address structure
+  /// Formats the full address using only the address field (for now)
+  /// TODO: Update when structured address fields are added to the model
   String _formatFullAddress() {
-    // Check if we have the old single address field first
-    if (shift.address != null && shift.address!.isNotEmpty) {
-      return shift.address!;
-    }
-
-    // Build address from new structured fields
-    final addressParts = <String>[];
-
-    // Add address line 1
-    if (shift.addressLine1?.isNotEmpty == true) {
-      addressParts.add(shift.addressLine1!);
-    }
-
-    // Add address line 2 if present
-    if (shift.addressLine2?.isNotEmpty == true) {
-      addressParts.add(shift.addressLine2!);
-    }
-
-    // Add city, state zip on same line
-    final cityStateZip = <String>[];
-    if (shift.city?.isNotEmpty == true) {
-      cityStateZip.add(shift.city!);
-    }
-    if (shift.state?.isNotEmpty == true) {
-      cityStateZip.add(shift.state!);
-    }
-    if (shift.zip?.isNotEmpty == true) {
-      cityStateZip.add(shift.zip!);
-    }
-
-    if (cityStateZip.isNotEmpty) {
-      addressParts.add(cityStateZip.join(', '));
-    }
-
-    return addressParts.join(', ');
+    // Use the single address field that exists in the current model
+    return shift.address ?? '';
   }
 
   Widget _buildStatusChip(String status, bool isConfirmed, AppColors colors) {
-    final String displayText;
     final Color backgroundColor;
     final Color textColor;
 
     if (!isConfirmed) {
-      displayText = 'Pending';
       backgroundColor = colors.warning.withOpacity(0.1);
       textColor = colors.warning;
     } else {
       switch (status.toLowerCase()) {
-        case 'accepted':
-          displayText = 'Confirmed';
+        case 'confirmed':
           backgroundColor = colors.success.withOpacity(0.1);
           textColor = colors.success;
           break;
         case 'scheduled':
-          displayText = 'Scheduled';
           backgroundColor = colors.brandPrimary.withOpacity(0.1);
           textColor = colors.brandPrimary;
           break;
+        case 'in progress':
+          backgroundColor = colors.brandPrimary.withOpacity(0.1);
+          textColor = colors.brandPrimary;
+          break;
+        case 'completed':
+          backgroundColor = colors.subdued.withOpacity(0.1);
+          textColor = colors.subdued;
+          break;
         default:
-          displayText = status;
           backgroundColor = colors.subdued.withOpacity(0.1);
           textColor = colors.subdued;
       }
@@ -271,7 +264,7 @@ class ScheduledShiftCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        displayText,
+        status,
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
@@ -281,22 +274,32 @@ class ScheduledShiftCard extends StatelessWidget {
     );
   }
 
+  /// Build ownership badge for user-created shifts
+  Widget _buildOwnershipBadge(AppColors colors) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 6,
+        vertical: 2,
+      ),
+      decoration: BoxDecoration(
+        color: colors.brandAccent.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        'Self-Created',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: colors.brandAccent,
+        ),
+      ),
+    );
+  }
+
   String _formatTimeRange(DateTime start, DateTime end) {
     final startTime = DateFormat('h:mm a').format(start);
     final endTime = DateFormat('h:mm a').format(end);
     return '$startTime - $endTime';
-  }
-
-  String _formatDuration(DateTime start, DateTime end) {
-    final duration = end.difference(start);
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes % 60;
-
-    if (hours > 0) {
-      return '${hours}h ${minutes}m';
-    } else {
-      return '${minutes}m';
-    }
   }
 
   String _formatLocationType(String locationType) {

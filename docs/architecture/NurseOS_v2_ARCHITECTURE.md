@@ -48,72 +48,11 @@ Each feature lives in `lib/features/{name}/` and includes:
 
 ## 💾 Firestore Strategy
 
-### **Core Principles**
 - All models use `.withConverter<T>()`
 - No `.data()` or `.map()` in widgets or controllers
-- Required metadata fields: `createdAt`, `updatedAt`, `createdBy`, `modifiedBy`
-
-### **Shift-Centric Data Model** ⭐
-
-**CRITICAL**: Patient-nurse relationships are ONLY defined through shifts.
-
-```dart
-// ✅ CORRECT: Shifts define patient assignments
-ScheduledShift {
-  assignedTo: nurseId,
-  assignedPatientIds: [patient1, patient2, patient3]
-}
-
-// ❌ DEPRECATED: No direct patient-nurse relationships
-Patient {
-  // assignedNurses: [...] ← REMOVED
-}
-```
-
-### **Collection Structure**
-
-#### **Agency-Scoped Collections**
-```
-/agencies/{agencyId}/
-  ├── patients/          ← Patient records (NO assignedNurses field)
-  ├── shifts/            ← Available shifts for request
-  ├── scheduledShifts/   ← Assigned shifts (defines patient relationships)
-  └── workSessions/      ← Nurse work history
-```
-
-#### **Global Collections**
-```
-/users/                  ← Nurse profiles, XP, roles
-/leaderboards/          ← Gamification metrics (admin-only)
-/auditLogs/             ← HIPAA compliance logs
-```
-
-### **Patient Query Pattern** 
-
-**Repository Implementation**:
-```dart
-// Multi-step query: Shifts → Patient IDs → Patients
-@override
-Future<List<Patient>> getAllPatients(String nurseId) async {
-  // 1. Get nurse's shifts
-  final shifts = await _firestore
-      .collectionGroup('scheduledShifts')
-      .where('assignedTo', isEqualTo: nurseId)
-      .get();
-  
-  // 2. Collect patient IDs
-  final patientIds = shifts.docs
-      .expand((doc) => doc.data()['assignedPatientIds'] ?? [])
-      .toSet();
-  
-  // 3. Query patients by IDs
-  return _firestore
-      .collectionGroup('patients')
-      .where(FieldPath.documentId, whereIn: patientIds.toList())
-      .get()
-      .then((snap) => snap.docs.map((doc) => Patient.fromJson(doc.data())));
-}
-```
+- Required metadata fields:
+  - `createdAt`, `updatedAt`
+  - `createdBy`, `modifiedBy`
 
 ---
 
@@ -130,110 +69,236 @@ Future<List<Patient>> getAllPatients(String nurseId) async {
 
 Every feature must include:
 
-| Type         | Required? | Purpose                           |
-|--------------|-----------|-----------------------------------|
-| Unit         | ✅ Yes    | Repository logic, business rules  |
-| Widget       | ✅ Yes    | Screen interactions, form validation |
-| Golden       | ✅ Yes    | Visual consistency, type scaling |
-
-### **Shift-Centric Testing Requirements**
-
-- **Repository Tests**: Multi-step patient queries
-- **Integration Tests**: Shift assignment → patient list updates
-- **Performance Tests**: Large caseload query timing
-- **Migration Tests**: Data integrity during patient-shift migration
+| Type     | Required? | Testing Pattern |
+|----------|-----------|-----------------|
+| Unit     | ✅        | Repository + model logic |
+| Widget   | ✅        | User interactions |
+| Golden   | ✅        | Visual consistency + scaling |
 
 ---
 
-## 🔒 HIPAA Compliance
+## 🏥 **Shift-Centric Architecture (v2.0)**
 
-### **Shift-Based Security Benefits**
+### **Core Principle: Agency-Scoped Shifts**
 
-- **Audit Trail**: Every patient access tied to specific shift
-- **Time-Bounded Access**: Patient data only accessible during active shifts
-- **Automatic Deprovisioning**: Access ends when shift ends
-- **Agency Isolation**: Cross-agency data leakage prevented by shift scope
+**Critical:** Patient access is controlled through shifts, not direct assignments. Each shift belongs to exactly one agency OR is independent.
 
-### **Security Rules Example**
-```javascript
-// Firestore Security Rules
-rules_version = '2';
-service cloud.firestore {
-  match /agencies/{agencyId}/patients/{patientId} {
-    allow read: if isNurseAssignedToPatientViaShift(agencyId, patientId);
-  }
-  
-  function isNurseAssignedToPatientViaShift(agencyId, patientId) {
-    return exists(/databases/$(database)/documents/agencies/$(agencyId)/scheduledShifts/$(getUserActiveShift())) &&
-           patientId in get(/databases/$(database)/documents/agencies/$(agencyId)/scheduledShifts/$(getUserActiveShift())).data.assignedPatientIds;
-  }
+```dart
+// ✅ CORRECT: Access patients via shifts
+1. Get shifts where assignedTo == nurseId
+2. Collect assignedPatientIds from shifts  
+3. Query patients where id in [patientIds]
+
+// ❌ FORBIDDEN: Direct patient-nurse relationships
+patients.where('assignedNurses', arrayContains: nurseId) // NEVER USE
+```
+
+### **Multi-Shift Daily Model**
+
+Nurses can work multiple shifts per day across different organizational contexts:
+
+```
+Nurse's Tuesday Schedule:
+├── Metro Hospital Shift (8am-4pm)    [agencyId: 'metro_hospital']
+├── Sunrise Care Shift (6pm-10pm)     [agencyId: 'sunrise_care']  
+└── Independent Shift (11pm-7am)      [agencyId: null]
+```
+
+### **Data Storage Architecture**
+
+```
+/agencies/{agencyId}/scheduledShifts/{shiftId}  ← Agency shifts
+/independentShifts/{shiftId}                    ← Independent shifts
+/scheduledShifts/{shiftId}                      ← Legacy (migration only)
+```
+
+### **Shift-Centric Security Benefits**
+
+- ✅ **HIPAA Compliance**: Time-bounded patient access
+- ✅ **Agency Isolation**: Complete data separation between organizations
+- ✅ **Audit Trail**: Clear shift-based access logging
+- ✅ **Independent Support**: Self-managed patient relationships
+
+### **Patient Assignment Rules**
+
+```dart
+// Agency patient → Agency shift (same agency)
+if (patient.agencyId == shift.agencyId) ✅
+
+// Independent patient → Independent shift  
+if (patient.agencyId == null && shift.agencyId == null) ✅
+
+// Cross-agency assignment FORBIDDEN
+if (patient.agencyId != shift.agencyId) ❌
+```
+
+---
+
+## 👩‍⚕️ **Independent Nurse Support**
+
+### **Three Nurse Types**
+
+| Type | Description | Capabilities |
+|------|-------------|--------------|
+| **Agency-Only** | `isIndependentNurse: false` | Request/work agency shifts only |
+| **Independent-Only** | `isIndependentNurse: true`, no agencies | Create own shifts, manage own patients |
+| **Dual-Mode** | `isIndependentNurse: true` + agencies | Both agency work AND independent practice |
+
+### **UserModel Extensions**
+
+```dart
+@freezed
+abstract class UserModel with _$UserModel {
+  const factory UserModel({
+    // ... existing fields ...
+    
+    // Independent nurse support
+    @Default(false) bool isIndependentNurse,
+    String? businessName,
+    
+    // Multi-agency support  
+    String? activeAgencyId,
+    @Default({}) Map<String, AgencyRoleModel> agencyRoles,
+  }) = _UserModel;
 }
 ```
 
 ---
 
-## 🚀 Shift Management Features
+## 🔄 **Navigation Architecture (v3)**
 
-### **Agency Nurses**
-- Receive shift assignments from admin
-- Confirm assigned shifts
-- Access patients during shift periods
+### **New 4-Tab Navigation**
 
-### **Independent Nurses**
-- Create their own shifts (caseload, private duty, recurring visits)
-- Assign patients to self-created shifts
-- Manage ongoing patient relationships through shift model
+Replaces current 5-tab system when `navigation_v3` feature flag is enabled:
 
-### **Admin Portal**
-- Bulk assign facility patients to shifts
-- Approve nurse shift requests
-- Emergency coverage with patient handoff
-
----
-
-## 📊 Performance Considerations
-
-### **Query Optimization**
-- **Collection Group Queries**: Enable cross-agency patient access
-- **Firestore Indexes**: Required for `assignedTo + agencyId + startTime`
-- **Caching Strategy**: Cache nurse's patient list with shift invalidation
-- **Pagination**: Support for large patient caseloads
-
-### **Required Indexes**
 ```
-Collection Group: scheduledShifts
-Fields: assignedTo (Ascending), agencyId (Ascending), startTime (Ascending)
+Current: [Tasks] [Schedule] [Patients] [Profile] [Admin]
+New:     [Available Shifts] [My Shift] [Profile] [Admin]
+```
 
-Collection Group: patients  
-Fields: agencyId (Ascending), location (Ascending), department (Ascending)
+### **Feature Flag Integration**
+
+```dart
+// AppShell with feature flag routing
+final useNewNavigation = ref.watch(featureFlagProvider('navigation_v3'));
+
+return useNewNavigation 
+  ? ThreeTabNavigation()   // New shift-centric navigation
+  : AppShell(child: child); // Current navigation
+```
+
+### **My Shift Screen Structure**
+
+```
+My Shift
+├── [Patients] tab    ← Shift-filtered patient list
+└── [Tasks] tab       ← Gamified task management
 ```
 
 ---
 
-## 🚫 Anti-Patterns
+## 🎮 **Gamification Integration**
 
-- ❌ **No direct patient-nurse relationships** in Patient model
-- ❌ **No Firebase calls in widgets** - use repositories only
-- ❌ **No XP from system events** - only nurse-initiated actions
-- ❌ **No hardcoded roles** in frontend logic
-- ❌ **No `assignedNurses` field** in any Patient-related code
+### **XP Attribution Rules**
+
+- ✅ **Nurse actions only**: Task completion, patient care activities
+- ❌ **No system events**: Automatic XP generation forbidden
+- ✅ **Shift-based tracking**: XP tied to specific work sessions
+
+### **Task-Centric Gamification**
+
+```dart
+// XP triggers within shift context
+- Complete vitals assessment: 5 XP
+- Document patient notes: 8 XP  
+- Finish medication round: 10 XP
+- Complete full shift: 25 XP
+```
+
+### **Separation of Concerns**
+
+```
+users/{uid}                    ← Professional data only
+gamificationProfiles/{uid}     ← XP, badges, achievements
+```
 
 ---
 
-## 🎯 Migration Strategy
+## 🔒 **Security & Compliance**
 
-### **From Patient-Centric to Shift-Centric**
+### **HIPAA-Ready Patterns**
 
-1. **Data Migration**: Create shifts for existing patient assignments
-2. **Code Migration**: Update repositories to shift-based queries  
-3. **Model Updates**: Remove `assignedNurses` from Patient model
-4. **Validation**: Ensure all patients remain accessible to correct nurses
+- **Time-bounded access**: Patient data only during shift hours
+- **Agency isolation**: No cross-agency data visibility
+- **Audit logging**: All patient access tied to shifts
+- **Independent privacy**: Nurse-controlled patient relationships
 
-### **Rollback Plan**
-- Preserve original patient data during migration
-- Maintain backup of `assignedNurses` relationships
-- Ability to revert to patient-centric model if critical issues found
+### **Firestore Security Rules**
+
+```javascript
+// Agency shift access
+match /agencies/{agencyId}/scheduledShifts/{shiftId} {
+  allow read, write: if userIsAgencyMemberOrAssignedNurse(agencyId, shiftId);
+}
+
+// Independent shift access  
+match /independentShifts/{shiftId} {
+  allow read, write: if resource.data.createdBy == request.auth.uid;
+}
+```
 
 ---
 
-**This architecture provides a unified, scalable foundation for both agency and independent nursing practice while maintaining HIPAA compliance and optimal performance.**
+## 📋 **Development Standards**
+
+### **Anti-Patterns (Forbidden)**
+
+- ❌ **assignedNurses field** in Patient model
+- ❌ **Direct patient-nurse queries** outside shift context
+- ❌ **Cross-agency data access** in any form
+- ❌ **XP from system events** (only nurse actions)
+
+### **Required Patterns**
+
+- ✅ **Shift-centric patient queries** always
+- ✅ **Agency boundary enforcement** in all patient operations
+- ✅ **Extension methods** for model logic (keep models clean)
+- ✅ **Feature flag** controlled rollouts
+
+### **Testing Requirements**
+
+```dart
+// Required shift-centric tests
+group('Shift-Centric Patient Repository', () {
+  test('returns patients from nurse shifts only');
+  test('enforces agency boundaries');  
+  test('handles independent nurse patients');
+  test('prevents cross-agency access');
+});
+```
+
+---
+
+## 🚀 **Migration Path**
+
+### **Phase 1: Foundation** ✅
+- [x] Extended UserModel with independent nurse fields
+- [x] Enhanced ScheduledShiftModel with agency scoping
+- [x] Created agency-scoped Firestore converters
+- [x] Built feature flag system for navigation
+
+### **Phase 2: Navigation** 🔄
+- [ ] Implement Available Shifts Screen
+- [ ] Build My Shift Screen with sub-tabs
+- [ ] Create shift creation wizard
+- [ ] Add patient assignment workflows
+
+### **Phase 3: Data Migration** 📋
+- [ ] Migrate existing shifts to agency collections
+- [ ] Update patient assignments to shift-based model
+- [ ] Remove deprecated assignedNurses fields
+- [ ] Validate data integrity across all collections
+
+---
+
+This architecture ensures scalable, compliant, and maintainable nursing workflows while supporting independent practice growth and multi-agency operations.

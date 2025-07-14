@@ -73,7 +73,7 @@ mixin _$UserModel {
   /// Points to: /users/{uid}/workHistory/{sessionId}
   String?
       get currentSessionId; // ═══════════════════════════════════════════════════════════════
-// 🏢 MULTI-AGENCY SUPPORT FIELDS (NEW)
+// 🏢 MULTI-AGENCY SUPPORT FIELDS
 // ═══════════════════════════════════════════════════════════════
   /// Currently active agency ID for the user's session
   /// This determines which agency's data the user sees
@@ -84,6 +84,18 @@ mixin _$UserModel {
   @AgencyRoleMapConverter()
   Map<String, AgencyRoleModel>
       get agencyRoles; // ═══════════════════════════════════════════════════════════════
+// 🏠 INDEPENDENT NURSE SUPPORT FIELDS (NEW)
+// ═══════════════════════════════════════════════════════════════
+  /// Indicates if the nurse can operate independently (self-employed)
+  /// When true, nurse can create their own shifts and manage patients
+  /// When false, nurse works only for agencies (current behavior)
+  bool get isIndependentNurse;
+
+  /// Business information for independent practice (optional)
+  /// Only populated if isIndependentNurse is true
+  /// Example: "Smith Home Care Services"
+  String?
+      get businessName; // ═══════════════════════════════════════════════════════════════
 // Gamification Fields (DEPRECATED - will be moved to GamificationProfile)
 // ═══════════════════════════════════════════════════════════════
   /// @deprecated Use GamificationProfile.level instead
@@ -152,6 +164,10 @@ mixin _$UserModel {
                 other.activeAgencyId == activeAgencyId) &&
             const DeepCollectionEquality()
                 .equals(other.agencyRoles, agencyRoles) &&
+            (identical(other.isIndependentNurse, isIndependentNurse) ||
+                other.isIndependentNurse == isIndependentNurse) &&
+            (identical(other.businessName, businessName) ||
+                other.businessName == businessName) &&
             (identical(other.level, level) || other.level == level) &&
             (identical(other.xp, xp) || other.xp == xp) &&
             const DeepCollectionEquality().equals(other.badges, badges));
@@ -183,6 +199,8 @@ mixin _$UserModel {
         currentSessionId,
         activeAgencyId,
         const DeepCollectionEquality().hash(agencyRoles),
+        isIndependentNurse,
+        businessName,
         level,
         xp,
         const DeepCollectionEquality().hash(badges)
@@ -190,7 +208,7 @@ mixin _$UserModel {
 
   @override
   String toString() {
-    return 'UserModel(uid: $uid, firstName: $firstName, lastName: $lastName, email: $email, photoUrl: $photoUrl, createdAt: $createdAt, authProvider: $authProvider, role: $role, licenseNumber: $licenseNumber, licenseExpiry: $licenseExpiry, specialty: $specialty, department: $department, unit: $unit, shift: $shift, phoneExtension: $phoneExtension, hireDate: $hireDate, certifications: $certifications, isOnDuty: $isOnDuty, lastStatusChange: $lastStatusChange, currentSessionId: $currentSessionId, activeAgencyId: $activeAgencyId, agencyRoles: $agencyRoles, level: $level, xp: $xp, badges: $badges)';
+    return 'UserModel(uid: $uid, firstName: $firstName, lastName: $lastName, email: $email, photoUrl: $photoUrl, createdAt: $createdAt, authProvider: $authProvider, role: $role, licenseNumber: $licenseNumber, licenseExpiry: $licenseExpiry, specialty: $specialty, department: $department, unit: $unit, shift: $shift, phoneExtension: $phoneExtension, hireDate: $hireDate, certifications: $certifications, isOnDuty: $isOnDuty, lastStatusChange: $lastStatusChange, currentSessionId: $currentSessionId, activeAgencyId: $activeAgencyId, agencyRoles: $agencyRoles, isIndependentNurse: $isIndependentNurse, businessName: $businessName, level: $level, xp: $xp, badges: $badges)';
   }
 }
 
@@ -222,6 +240,8 @@ abstract mixin class $UserModelCopyWith<$Res> {
       String? currentSessionId,
       String? activeAgencyId,
       @AgencyRoleMapConverter() Map<String, AgencyRoleModel> agencyRoles,
+      bool isIndependentNurse,
+      String? businessName,
       int level,
       int xp,
       List<String> badges});
@@ -261,6 +281,8 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
     Object? currentSessionId = freezed,
     Object? activeAgencyId = freezed,
     Object? agencyRoles = null,
+    Object? isIndependentNurse = null,
+    Object? businessName = freezed,
     Object? level = null,
     Object? xp = null,
     Object? badges = null,
@@ -354,6 +376,14 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
           ? _self.agencyRoles
           : agencyRoles // ignore: cast_nullable_to_non_nullable
               as Map<String, AgencyRoleModel>,
+      isIndependentNurse: null == isIndependentNurse
+          ? _self.isIndependentNurse
+          : isIndependentNurse // ignore: cast_nullable_to_non_nullable
+              as bool,
+      businessName: freezed == businessName
+          ? _self.businessName
+          : businessName // ignore: cast_nullable_to_non_nullable
+              as String?,
       level: null == level
           ? _self.level
           : level // ignore: cast_nullable_to_non_nullable
@@ -486,6 +516,8 @@ extension UserModelPatterns on UserModel {
             String? currentSessionId,
             String? activeAgencyId,
             @AgencyRoleMapConverter() Map<String, AgencyRoleModel> agencyRoles,
+            bool isIndependentNurse,
+            String? businessName,
             int level,
             int xp,
             List<String> badges)?
@@ -518,6 +550,8 @@ extension UserModelPatterns on UserModel {
             _that.currentSessionId,
             _that.activeAgencyId,
             _that.agencyRoles,
+            _that.isIndependentNurse,
+            _that.businessName,
             _that.level,
             _that.xp,
             _that.badges);
@@ -564,6 +598,8 @@ extension UserModelPatterns on UserModel {
             String? currentSessionId,
             String? activeAgencyId,
             @AgencyRoleMapConverter() Map<String, AgencyRoleModel> agencyRoles,
+            bool isIndependentNurse,
+            String? businessName,
             int level,
             int xp,
             List<String> badges)
@@ -595,6 +631,8 @@ extension UserModelPatterns on UserModel {
             _that.currentSessionId,
             _that.activeAgencyId,
             _that.agencyRoles,
+            _that.isIndependentNurse,
+            _that.businessName,
             _that.level,
             _that.xp,
             _that.badges);
@@ -640,6 +678,8 @@ extension UserModelPatterns on UserModel {
             String? currentSessionId,
             String? activeAgencyId,
             @AgencyRoleMapConverter() Map<String, AgencyRoleModel> agencyRoles,
+            bool isIndependentNurse,
+            String? businessName,
             int level,
             int xp,
             List<String> badges)?
@@ -671,6 +711,8 @@ extension UserModelPatterns on UserModel {
             _that.currentSessionId,
             _that.activeAgencyId,
             _that.agencyRoles,
+            _that.isIndependentNurse,
+            _that.businessName,
             _that.level,
             _that.xp,
             _that.badges);
@@ -707,6 +749,8 @@ class _UserModel implements UserModel {
       this.activeAgencyId,
       @AgencyRoleMapConverter()
       final Map<String, AgencyRoleModel> agencyRoles = const {},
+      this.isIndependentNurse = false,
+      this.businessName,
       this.level = 1,
       this.xp = 0,
       final List<String> badges = const []})
@@ -805,7 +849,7 @@ class _UserModel implements UserModel {
   @override
   final String? currentSessionId;
 // ═══════════════════════════════════════════════════════════════
-// 🏢 MULTI-AGENCY SUPPORT FIELDS (NEW)
+// 🏢 MULTI-AGENCY SUPPORT FIELDS
 // ═══════════════════════════════════════════════════════════════
   /// Currently active agency ID for the user's session
   /// This determines which agency's data the user sees
@@ -827,6 +871,21 @@ class _UserModel implements UserModel {
     return EqualUnmodifiableMapView(_agencyRoles);
   }
 
+// ═══════════════════════════════════════════════════════════════
+// 🏠 INDEPENDENT NURSE SUPPORT FIELDS (NEW)
+// ═══════════════════════════════════════════════════════════════
+  /// Indicates if the nurse can operate independently (self-employed)
+  /// When true, nurse can create their own shifts and manage patients
+  /// When false, nurse works only for agencies (current behavior)
+  @override
+  @JsonKey()
+  final bool isIndependentNurse;
+
+  /// Business information for independent practice (optional)
+  /// Only populated if isIndependentNurse is true
+  /// Example: "Smith Home Care Services"
+  @override
+  final String? businessName;
 // ═══════════════════════════════════════════════════════════════
 // Gamification Fields (DEPRECATED - will be moved to GamificationProfile)
 // ═══════════════════════════════════════════════════════════════
@@ -915,6 +974,10 @@ class _UserModel implements UserModel {
                 other.activeAgencyId == activeAgencyId) &&
             const DeepCollectionEquality()
                 .equals(other._agencyRoles, _agencyRoles) &&
+            (identical(other.isIndependentNurse, isIndependentNurse) ||
+                other.isIndependentNurse == isIndependentNurse) &&
+            (identical(other.businessName, businessName) ||
+                other.businessName == businessName) &&
             (identical(other.level, level) || other.level == level) &&
             (identical(other.xp, xp) || other.xp == xp) &&
             const DeepCollectionEquality().equals(other._badges, _badges));
@@ -946,6 +1009,8 @@ class _UserModel implements UserModel {
         currentSessionId,
         activeAgencyId,
         const DeepCollectionEquality().hash(_agencyRoles),
+        isIndependentNurse,
+        businessName,
         level,
         xp,
         const DeepCollectionEquality().hash(_badges)
@@ -953,7 +1018,7 @@ class _UserModel implements UserModel {
 
   @override
   String toString() {
-    return 'UserModel(uid: $uid, firstName: $firstName, lastName: $lastName, email: $email, photoUrl: $photoUrl, createdAt: $createdAt, authProvider: $authProvider, role: $role, licenseNumber: $licenseNumber, licenseExpiry: $licenseExpiry, specialty: $specialty, department: $department, unit: $unit, shift: $shift, phoneExtension: $phoneExtension, hireDate: $hireDate, certifications: $certifications, isOnDuty: $isOnDuty, lastStatusChange: $lastStatusChange, currentSessionId: $currentSessionId, activeAgencyId: $activeAgencyId, agencyRoles: $agencyRoles, level: $level, xp: $xp, badges: $badges)';
+    return 'UserModel(uid: $uid, firstName: $firstName, lastName: $lastName, email: $email, photoUrl: $photoUrl, createdAt: $createdAt, authProvider: $authProvider, role: $role, licenseNumber: $licenseNumber, licenseExpiry: $licenseExpiry, specialty: $specialty, department: $department, unit: $unit, shift: $shift, phoneExtension: $phoneExtension, hireDate: $hireDate, certifications: $certifications, isOnDuty: $isOnDuty, lastStatusChange: $lastStatusChange, currentSessionId: $currentSessionId, activeAgencyId: $activeAgencyId, agencyRoles: $agencyRoles, isIndependentNurse: $isIndependentNurse, businessName: $businessName, level: $level, xp: $xp, badges: $badges)';
   }
 }
 
@@ -988,6 +1053,8 @@ abstract mixin class _$UserModelCopyWith<$Res>
       String? currentSessionId,
       String? activeAgencyId,
       @AgencyRoleMapConverter() Map<String, AgencyRoleModel> agencyRoles,
+      bool isIndependentNurse,
+      String? businessName,
       int level,
       int xp,
       List<String> badges});
@@ -1027,6 +1094,8 @@ class __$UserModelCopyWithImpl<$Res> implements _$UserModelCopyWith<$Res> {
     Object? currentSessionId = freezed,
     Object? activeAgencyId = freezed,
     Object? agencyRoles = null,
+    Object? isIndependentNurse = null,
+    Object? businessName = freezed,
     Object? level = null,
     Object? xp = null,
     Object? badges = null,
@@ -1120,6 +1189,14 @@ class __$UserModelCopyWithImpl<$Res> implements _$UserModelCopyWith<$Res> {
           ? _self._agencyRoles
           : agencyRoles // ignore: cast_nullable_to_non_nullable
               as Map<String, AgencyRoleModel>,
+      isIndependentNurse: null == isIndependentNurse
+          ? _self.isIndependentNurse
+          : isIndependentNurse // ignore: cast_nullable_to_non_nullable
+              as bool,
+      businessName: freezed == businessName
+          ? _self.businessName
+          : businessName // ignore: cast_nullable_to_non_nullable
+              as String?,
       level: null == level
           ? _self.level
           : level // ignore: cast_nullable_to_non_nullable

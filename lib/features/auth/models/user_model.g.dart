@@ -35,6 +35,8 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
           ? const {}
           : const AgencyRoleMapConverter()
               .fromJson(json['agencyRoles'] as Map<String, dynamic>),
+      isIndependentNurse: json['isIndependentNurse'] as bool? ?? false,
+      businessName: json['businessName'] as String?,
       level: (json['level'] as num?)?.toInt() ?? 1,
       xp: (json['xp'] as num?)?.toInt() ?? 0,
       badges: (json['badges'] as List<dynamic>?)
@@ -70,6 +72,8 @@ Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
       'activeAgencyId': instance.activeAgencyId,
       'agencyRoles':
           const AgencyRoleMapConverter().toJson(instance.agencyRoles),
+      'isIndependentNurse': instance.isIndependentNurse,
+      'businessName': instance.businessName,
       'level': instance.level,
       'xp': instance.xp,
       'badges': instance.badges,

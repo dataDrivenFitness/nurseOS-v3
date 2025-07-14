@@ -1,377 +1,980 @@
-# NurseOS Shift-Centric Architecture Reference
+# 🏥 Shift-Centric Architecture Reference Guide
 
-> **Version**: 2.1  
-> **Date**: July 11, 2025  
-> **Context**: Migration from patient-centric to shift-centric patient assignments
-
----
-
-## 🎯 **Core Principle**
-
-**Patients are ONLY assigned to nurses through shifts.** This creates a single source of truth for all patient-nurse relationships and supports both agency and independent nursing practice.
+**Document Version:** 1.0  
+**Date Created:** January 13, 2025  
+**Status:** 🟢 Architectural Standard  
+**Purpose:** Comprehensive reference for shift-centric patient relationships and agency-scoped data architecture
 
 ---
 
-## 🏗️ **Data Model Changes**
+## 📖 **Table of Contents**
 
-### **BEFORE: Patient-Centric (Deprecated)**
+1. [Core Principles](#core-principles)
+2. [Data Architecture](#data-architecture)
+3. [Nurse Workflow Types](#nurse-workflow-types)
+4. [Security & Compliance](#security--compliance)
+5. [Implementation Patterns](#implementation-patterns)
+6. [Testing Standards](#testing-standards)
+7. [Migration Guide](#migration-guide)
+8. [Troubleshooting](#troubleshooting)
+
+---
+
+## 🎯 **Core Principles**
+
+### **Principle 1: Shifts Control Patient Access**
+Patient access is **always** mediated through shifts. No direct patient-nurse relationships exist in the system.
+
 ```dart
-// ❌ OLD MODEL - Being removed
-Patient {
-  id: string,
-  firstName: string,
-  lastName: string,
-  assignedNurses: [nurseId1, nurseId2], // ← REMOVING THIS
-  // ... other fields
-}
+// ✅ CORRECT: Shift-mediated access
+nurseShifts → assignedPatientIds → patients
 
-// Query patients by nurse
+// ❌ FORBIDDEN: Direct patient access  
 patients.where('assignedNurses', arrayContains: nurseId)
 ```
 
-### **AFTER: Shift-Centric (New Standard)**
+### **Principle 2: Agency Boundaries Are Sacred**
+Each agency operates as an isolated tenant. No cross-agency data access is permitted.
+
 ```dart
-// ✅ NEW MODEL - Single source of truth
-Patient {
-  id: string,
-  firstName: string,
-  lastName: string,
-  // NO assignedNurses field
-  // ... other fields
+// ✅ CORRECT: Agency isolation
+/agencies/metro_hospital/shifts/{id}    ← Metro data only
+/agencies/sunrise_care/shifts/{id}      ← Sunrise data only
+/independentShifts/{id}                 ← Independent data only
+
+// ❌ FORBIDDEN: Cross-agency access
+if (user.agencyId != patient.agencyId) { /* allow anyway */ }
+```
+
+### **Principle 3: Time-Bounded Access (HIPAA)**
+Patient data access is tied to active work sessions. Off-duty = no patient access.
+
+```dart
+// ✅ CORRECT: Duty-aware access
+if (!user.isOnDuty || currentShift == null) {
+  return OffDutyView();
 }
 
-ScheduledShift {
-  id: string,
-  assignedTo: nurseId,
-  assignedPatientIds: [patient1, patient2, patient3], // ← Truth lives here
-  shiftType: ShiftType,
-  agencyId?: string, // null for independent practice
-  // ... other fields
-}
+// ❌ FORBIDDEN: Always-on patient access
+return PatientListView(); // Without duty check
+```
 
-// Query patients by finding nurse's shifts first
-1. Get shifts: shifts.where('assignedTo', isEqualTo: nurseId)
-2. Collect all assignedPatientIds
-3. Query patients: patients.where('id', whereIn: patientIds)
+### **Principle 4: Independent Nurse Support**
+Independent nurses can create their own shifts and manage their own patients, completely separate from agency work.
+
+```dart
+// ✅ CORRECT: Independent nurse capabilities
+- Create shifts with agencyId: null
+- Manage nurse-owned patients (patient.agencyId: null)
+- Dual-mode: Work for agencies AND independently
 ```
 
 ---
 
-## 🔄 **Shift Types & Use Cases**
+## 🏗️ **Data Architecture**
 
-### **Agency Nurses**
+### **Firestore Collection Structure**
+
+```
+📁 /agencies/{agencyId}/
+├── scheduledShifts/{shiftId}          ← Agency shift management
+├── patients/{patientId}               ← Agency patient roster  
+├── notes/{noteId}                     ← Agency patient notes
+├── visits/{visitId}                   ← Agency visit tracking
+└── analytics/{reportId}               ← Agency reporting data
+
+📁 /independentShifts/{shiftId}        ← Independent nurse shifts
+
+📁 /users/{userId}/
+├── profile                            ← Professional information
+├── ownedPatients/{patientId}          ← Independent nurse patients
+├── independentNotes/{noteId}          ← Independent patient notes
+└── workHistory/{sessionId}            ← Work session tracking
+
+📁 /gamificationProfiles/{userId}      ← XP, badges (separated from professional data)
+```
+
+### **Shift Model Architecture**
+
 ```dart
-enum AgencyShiftType {
-  facility,    // Hospital, SNF, assisted living
-  home_care,   // Agency-scheduled home visits
-  emergency,   // Urgent coverage requests
-}
-
-// Example: ICU shift
-ScheduledShift {
-  assignedTo: 'nurse_sarah_123',
-  assignedPatientIds: ['patient_001', 'patient_002', 'patient_003'],
-  shiftType: 'facility',
-  agencyId: 'mercy_hospital',
-  facilityName: 'Mercy General Hospital',
-  department: 'ICU',
-  startTime: '2025-07-12T07:00:00Z',
-  endTime: '2025-07-12T19:00:00Z'
+@freezed
+abstract class ScheduledShiftModel with _$ScheduledShiftModel {
+  const factory ScheduledShiftModel({
+    required String id,
+    required String assignedTo,
+    required DateTime startTime,
+    required DateTime endTime,
+    required String status,
+    required bool isConfirmed,
+    
+    // 🏢 Agency Scoping
+    String? agencyId,                    // null = independent shift
+    
+    // 👩‍⚕️ Independent Nurse Support  
+    @Default(false) bool isUserCreated,  // true = nurse created
+    String? createdBy,                   // audit trail
+    
+    // 👥 Patient Relationships (Core)
+    List<String>? assignedPatientIds,    // THE patient relationship
+    
+    // 📍 Location & Context
+    required String locationType,
+    String? facilityName,
+    String? address,
+    
+    // 📊 Metadata
+    @TimestampConverter() DateTime? createdAt,
+    @TimestampConverter() DateTime? updatedAt,
+  }) = _ScheduledShiftModel;
 }
 ```
 
-### **Independent Nurses**
-```dart
-enum IndependentShiftType {
-  private_duty,  // 1:1 patient care
-  caseload,      // Ongoing patient management
-  recurring,     // Regular scheduled visits
-  consultation,  // One-time assessments
-}
+### **Patient Model (Updated)**
 
-// Example: Private duty nurse
-ScheduledShift {
-  assignedTo: 'nurse_mike_456',
-  assignedPatientIds: ['patient_mrs_johnson'],
-  shiftType: 'private_duty',
-  agencyId: null, // Independent practice
-  startTime: '2025-07-12T08:00:00Z',
-  endTime: '2025-07-12T16:00:00Z',
-  recurringPattern: 'weekly_tuesday'
+```dart
+@freezed
+abstract class Patient with _$Patient {
+  const factory Patient({
+    required String id,
+    required String firstName,
+    required String lastName,
+    required String location,
+    
+    // 🏢 Agency Scoping (Critical)
+    String? agencyId,                    // null = independent patient
+    String? ownerUid,                    // independent nurse who owns patient
+    
+    // ❌ REMOVED: Direct nurse assignments
+    // List<String>? assignedNurses,     // FORBIDDEN FIELD
+    
+    // ... all other patient fields remain the same
+  }) = _Patient;
 }
 ```
 
 ---
 
-## 📊 **Repository Implementation**
+## 👩‍⚕️ **Nurse Workflow Types**
 
-### **Patient Repository Pattern**
+### **Type 1: Agency-Only Nurse**
+
 ```dart
-class FirebasePatientRepository implements PatientRepository {
+UserModel(
+  isIndependentNurse: false,
+  agencyRoles: {'metro_hospital': AgencyRole(...)},
+  activeAgencyId: 'metro_hospital',
+)
+```
+
+**Capabilities:**
+- ✅ View available Metro Hospital shifts
+- ✅ Request Metro Hospital shifts  
+- ✅ Work assigned shifts with agency patients
+- ❌ Cannot create own shifts
+- ❌ Cannot manage independent patients
+
+**Daily Workflow:**
+1. Check available agency shifts
+2. Request shifts or work assigned shifts
+3. Access patients only during shift hours
+4. Complete shift-based tasks and documentation
+
+### **Type 2: Independent-Only Nurse**
+
+```dart
+UserModel(
+  isIndependentNurse: true,
+  agencyRoles: {},
+  businessName: 'Smith Nursing Services',
+)
+```
+
+**Capabilities:**
+- ✅ Create independent shifts (agencyId: null)
+- ✅ Manage own patient roster
+- ✅ Set own schedule and rates
+- ✅ Independent business reporting
+- ❌ Cannot access agency shifts or patients
+
+**Daily Workflow:**
+1. Create shifts for patient care
+2. Manage own patient roster
+3. Schedule patient visits and care
+4. Independent business management
+
+### **Type 3: Dual-Mode Nurse (Recommended)**
+
+```dart
+UserModel(
+  isIndependentNurse: true,
+  agencyRoles: {
+    'metro_hospital': AgencyRole(...),
+    'sunrise_care': AgencyRole(...),
+  },
+  businessName: 'Dual Practice Nursing',
+)
+```
+
+**Capabilities:**
+- ✅ Request/work agency shifts from affiliated agencies
+- ✅ Create independent shifts for own practice
+- ✅ Context switching between agency and independent work
+- ✅ Manage both agency and independent patient rosters
+- ✅ Maximum workflow flexibility
+
+**Daily Workflow Example:**
+```
+Tuesday Schedule:
+8am-4pm:   Metro Hospital Shift (agency patients)
+6pm-10pm:  Sunrise Care Shift (agency patients)  
+11pm-7am:  Independent Shift (own patients)
+```
+
+---
+
+## 🔒 **Security & Compliance**
+
+### **HIPAA Compliance Features**
+
+#### **Time-Bounded Access**
+```dart
+// Patient access only during active shifts
+if (currentShift == null || !currentShift.isActive) {
+  return NoPatientAccessView();
+}
+```
+
+#### **Audit Trail Requirements**
+```dart
+// All patient access must be logged with shift context
+AuditLog.record(
+  userId: nurseId,
+  action: 'patient_viewed',
+  patientId: patientId,
+  shiftId: currentShift.id,
+  agencyId: currentShift.agencyId,
+  timestamp: DateTime.now(),
+);
+```
+
+#### **Data Isolation**
+```dart
+// Agency admins can only see their own data
+if (admin.agencyId != shift.agencyId) {
+  throw UnauthorizedAccessException();
+}
+```
+
+### **Firestore Security Rules**
+
+```javascript
+// Agency shift access
+match /agencies/{agencyId}/scheduledShifts/{shiftId} {
+  allow read, write: if (
+    // User is agency admin OR assigned nurse
+    userIsAgencyAdmin(agencyId) || 
+    resource.data.assignedTo == request.auth.uid
+  );
+}
+
+// Independent shift access
+match /independentShifts/{shiftId} {
+  allow read, write: if resource.data.createdBy == request.auth.uid;
+}
+
+// Agency patient access
+match /agencies/{agencyId}/patients/{patientId} {
+  allow read: if (
+    userIsAgencyAdmin(agencyId) ||
+    userHasActiveShiftWithPatient(agencyId, patientId)
+  );
+}
+
+// Independent patient access
+match /users/{userId}/ownedPatients/{patientId} {
+  allow read, write: if request.auth.uid == userId;
+}
+```
+
+---
+
+## 🛠️ **Implementation Patterns**
+
+### **Repository Pattern: Shift-Centric Patient Access**
+
+```dart
+class FirebasePatientRepository implements AbstractPatientRepository {
+  @override
+  Future<List<Patient>> getShiftPatients(String shiftId) async {
+    // Get shift to determine agency context
+    final shift = await _shiftRepo.getById(shiftId);
+    if (shift == null) return [];
+    
+    // Get patients assigned to this shift
+    final patientIds = shift.assignedPatientIds ?? [];
+    if (patientIds.isEmpty) return [];
+    
+    // Query patients from appropriate collection
+    if (shift.agencyId != null) {
+      // Agency patients
+      return await _getAgencyPatients(shift.agencyId!, patientIds);
+    } else {
+      // Independent patients
+      return await _getIndependentPatients(shift.createdBy!, patientIds);
+    }
+  }
   
   @override
-  Future<Either<Failure, List<Patient>>> getAllPatients(String nurseId) async {
-    try {
-      // Step 1: Get nurse's shifts
-      final shiftsQuery = _firestore
-          .collectionGroup('scheduledShifts')
-          .where('assignedTo', isEqualTo: nurseId);
-      
-      final shiftsSnapshot = await shiftsQuery.get();
-      
-      // Step 2: Collect all patient IDs from shifts
-      final patientIds = <String>{};
-      for (final shiftDoc in shiftsSnapshot.docs) {
-        final shift = ScheduledShiftModel.fromJson(shiftDoc.data());
-        patientIds.addAll(shift.assignedPatientIds ?? []);
+  Future<void> assignPatientToShift(String patientId, String shiftId) async {
+    final patient = await getById(patientId);
+    final shift = await _shiftRepo.getById(shiftId);
+    
+    // Enforce agency boundaries
+    if (patient.agencyId != shift.agencyId) {
+      throw AgencyBoundaryViolation(
+        'Cannot assign patient from agency ${patient.agencyId} '
+        'to shift in agency ${shift.agencyId}'
+      );
+    }
+    
+    // Update shift with patient assignment
+    await _shiftRepo.addPatientToShift(shiftId, patientId);
+  }
+}
+```
+
+### **State Management Pattern: Context-Aware Providers**
+
+```dart
+// Current shift provider (duty status aware)
+@riverpod
+Future<ScheduledShiftModel?> currentShift(CurrentShiftRef ref) async {
+  final user = ref.watch(authControllerProvider).value;
+  if (user == null || !user.isOnDuty) return null;
+  
+  final shifts = await ref.watch(userShiftsProvider(user.uid).future);
+  return shifts.firstWhereOrNull((s) => s.isActive);
+}
+
+// Shift patients provider (auto-updates when shift changes)
+@riverpod
+Future<List<Patient>> currentShiftPatients(CurrentShiftPatientsRef ref) async {
+  final currentShift = await ref.watch(currentShiftProvider.future);
+  if (currentShift == null) return [];
+  
+  final repo = ref.watch(patientRepositoryProvider);
+  return await repo.getShiftPatients(currentShift.id);
+}
+
+// Agency context provider (for dual-mode nurses)
+@riverpod
+String? activeAgencyContext(ActiveAgencyContextRef ref) {
+  final user = ref.watch(authControllerProvider).value;
+  return user?.activeAgencyId;
+}
+```
+
+### **UI Pattern: Duty Status Enforcement**
+
+```dart
+class PatientListScreen extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentShift = ref.watch(currentShiftProvider);
+    
+    return currentShift.when(
+      data: (shift) {
+        if (shift == null) {
+          // No active shift = no patient access
+          return OffDutyView(
+            title: 'Clock In Required',
+            message: 'Start a shift to access patient information',
+            action: ClockInButton(),
+          );
+        }
+        
+        // Active shift = show shift patients
+        final patients = ref.watch(currentShiftPatientsProvider);
+        return ShiftPatientListView(
+          shift: shift,
+          patients: patients,
+        );
+      },
+      loading: () => LoadingView(),
+      error: (error, stack) => ErrorView(error),
+    );
+  }
+}
+```
+
+### **Service Pattern: Agency Boundary Enforcement**
+
+```dart
+class ShiftManagementService {
+  Future<ScheduledShiftModel> createShift({
+    required String nurseId,
+    required DateTime startTime,
+    required DateTime endTime,
+    String? agencyId,
+    List<String>? patientIds,
+  }) async {
+    // Validate nurse permissions
+    final user = await _userRepo.getById(nurseId);
+    
+    if (agencyId != null) {
+      // Agency shift - verify nurse has access
+      if (!user.hasAccessToAgency(agencyId)) {
+        throw UnauthorizedAgencyAccess('Nurse not affiliated with agency $agencyId');
       }
-      
-      if (patientIds.isEmpty) {
-        return const Right([]);
+    } else {
+      // Independent shift - verify nurse is independent
+      if (!user.isIndependentNurse) {
+        throw IndependentNurseRequired('Only independent nurses can create independent shifts');
       }
+    }
+    
+    // Validate patient assignments if provided
+    if (patientIds?.isNotEmpty == true) {
+      await _validatePatientAssignments(patientIds!, agencyId);
+    }
+    
+    // Create shift in appropriate collection
+    final shift = ScheduledShiftModel(
+      id: generateId(),
+      assignedTo: nurseId,
+      startTime: startTime,
+      endTime: endTime,
+      agencyId: agencyId,
+      isUserCreated: true,
+      createdBy: nurseId,
+      assignedPatientIds: patientIds ?? [],
+      status: 'scheduled',
+      isConfirmed: false,
+      locationType: 'facility', // Default, can be customized
+      createdAt: DateTime.now(),
+    );
+    
+    if (agencyId != null) {
+      await _shiftConverters.createShift(agencyId, shift);
+    } else {
+      await _shiftConverters.createIndependentShift(shift);
+    }
+    
+    return shift;
+  }
+  
+  Future<void> _validatePatientAssignments(List<String> patientIds, String? agencyId) async {
+    for (final patientId in patientIds) {
+      final patient = await _patientRepo.getById(patientId);
       
-      // Step 3: Query patients by collected IDs
-      final patientsQuery = _firestore
-          .collectionGroup('patients')
-          .where(FieldPath.documentId, whereIn: patientIds.toList());
-      
-      final patientsSnapshot = await patientsQuery.get();
-      final patients = patientsSnapshot.docs
-          .map((doc) => Patient.fromJson(doc.data()))
-          .toList();
-      
-      return Right(patients);
-    } catch (e) {
-      return Left(Failure.unexpected('Failed to fetch patients: $e'));
+      // Enforce agency boundaries
+      if (patient.agencyId != agencyId) {
+        throw AgencyBoundaryViolation(
+          'Patient $patientId belongs to agency ${patient.agencyId}, '
+          'cannot assign to ${agencyId ?? 'independent'} shift'
+        );
+      }
     }
   }
 }
 ```
 
-### **Optimized Stream Query**
-```dart
-@override
-Stream<Either<Failure, List<Patient>>> watchAllPatients(String nurseId) {
-  return _firestore
-      .collectionGroup('scheduledShifts')
-      .where('assignedTo', isEqualTo: nurseId)
-      .snapshots()
-      .asyncMap((shiftsSnapshot) async {
-        try {
-          // Collect patient IDs from current shifts
-          final patientIds = <String>{};
-          for (final doc in shiftsSnapshot.docs) {
-            final shift = ScheduledShiftModel.fromJson(doc.data());
-            patientIds.addAll(shift.assignedPatientIds ?? []);
-          }
-          
-          if (patientIds.isEmpty) {
-            return const Right(<Patient>[]);
-          }
-          
-          // Query patients
-          final patientsSnapshot = await _firestore
-              .collectionGroup('patients')
-              .where(FieldPath.documentId, whereIn: patientIds.toList())
-              .get();
-          
-          final patients = patientsSnapshot.docs
-              .map((doc) => Patient.fromJson(doc.data()))
-              .toList();
-          
-          return Right<Failure, List<Patient>>(patients);
-        } catch (e) {
-          return Left<Failure, List<Patient>>(
-            Failure.unexpected('Failed to stream patients: $e')
-          );
-        }
-      });
-}
-```
-
 ---
 
-## 🔧 **Migration Strategy**
+## 🧪 **Testing Standards**
 
-### **Phase 1: Data Migration**
-1. **Backup existing data** with `assignedNurses` fields
-2. **Create shifts for existing patient assignments**:
-   ```dart
-   // For each patient with assignedNurses
-   for (patient in patients) {
-     for (nurseId in patient.assignedNurses) {
-       // Create ongoing caseload shift
-       createScheduledShift({
-         assignedTo: nurseId,
-         assignedPatientIds: [patient.id],
-         shiftType: 'caseload',
-         agencyId: inferAgencyFromNurse(nurseId),
-         isOngoing: true
-       });
-     }
-   }
-   ```
+### **Required Test Categories**
 
-### **Phase 2: Code Migration**
-1. **Update Patient model** - Remove `assignedNurses` field
-2. **Update PatientRepository** - Implement shift-based queries
-3. **Update all patient queries** throughout the app
-4. **Add shift management UI** for independent nurses
-
-### **Phase 3: Validation**
-1. **Verify all patients** still appear for correct nurses
-2. **Test independent nurse** shift creation workflows
-3. **Performance testing** of multi-step queries
-
----
-
-## 🚀 **New Features Enabled**
-
-### **Independent Nurse Workflows**
+#### **1. Shift-Centric Access Tests**
 ```dart
-// Create ongoing caseload shift
-await shiftService.createCaseloadShift(
-  nurseId: currentUser.uid,
-  patientIds: [selectedPatient.id],
-  recurringPattern: 'weekly_monday_wednesday'
-);
-
-// Schedule specific visit
-await shiftService.createVisitShift(
-  nurseId: currentUser.uid,
-  patientId: patient.id,
-  startTime: DateTime(2025, 7, 15, 10, 0),
-  duration: Duration(hours: 2)
-);
+group('Shift-Centric Patient Access', () {
+  test('returns patients only from active shifts', () async {
+    // Setup
+    final nurse = MockUser(id: 'nurse1');
+    final activeShift = MockShift(assignedTo: 'nurse1', patientIds: ['pat1', 'pat2']);
+    final inactiveShift = MockShift(assignedTo: 'nurse1', patientIds: ['pat3'], isActive: false);
+    
+    // Test
+    final patients = await repo.getCurrentShiftPatients('nurse1');
+    
+    // Assert
+    expect(patients.map((p) => p.id), equals(['pat1', 'pat2']));
+    expect(patients.map((p) => p.id), isNot(contains('pat3')));
+  });
+  
+  test('returns empty list when nurse is off duty', () async {
+    // Setup
+    final nurse = MockUser(id: 'nurse1', isOnDuty: false);
+    
+    // Test
+    final patients = await repo.getCurrentShiftPatients('nurse1');
+    
+    // Assert
+    expect(patients, isEmpty);
+  });
+});
 ```
 
-### **Agency Admin Features**
+#### **2. Agency Boundary Tests**
 ```dart
-// Bulk assign facility patients to shift
-await adminService.assignFacilityShift(
-  shiftId: facilityShift.id,
-  facilityName: 'Mercy General ICU',
-  department: 'ICU',
-  // Automatically assigns all ICU patients
-);
-
-// Emergency coverage with patient handoff
-await adminService.createEmergencyShift(
-  originalShiftId: 'sick_nurse_shift',
-  coverageNurseId: 'backup_nurse_123',
-  // Transfers all patients from original shift
-);
+group('Agency Boundary Enforcement', () {
+  test('prevents cross-agency patient assignment', () async {
+    // Setup
+    final metroPatient = MockPatient(id: 'pat1', agencyId: 'metro_hospital');
+    final sunriseShift = MockShift(id: 'shift1', agencyId: 'sunrise_care');
+    
+    // Test & Assert
+    expect(
+      () => service.assignPatientToShift('pat1', 'shift1'),
+      throwsA(isA<AgencyBoundaryViolation>()),
+    );
+  });
+  
+  test('allows same-agency patient assignment', () async {
+    // Setup
+    final metroPatient = MockPatient(id: 'pat1', agencyId: 'metro_hospital');
+    final metroShift = MockShift(id: 'shift1', agencyId: 'metro_hospital');
+    
+    // Test
+    await service.assignPatientToShift('pat1', 'shift1');
+    
+    // Assert
+    final shift = await repo.getShiftById('shift1');
+    expect(shift.assignedPatientIds, contains('pat1'));
+  });
+});
 ```
 
----
-
-## ⚡ **Performance Considerations**
-
-### **Query Optimization**
-- **Collection Group Queries**: Use for cross-agency patient access
-- **Firestore Indexes**: Required for `assignedTo + agencyId` combinations
-- **Caching Strategy**: Cache nurse's patient list with shift invalidation
-- **Pagination**: For nurses with large patient caseloads
-
-### **Firestore Indexes Required**
-```
-Collection Group: scheduledShifts
-Fields: assignedTo (Ascending), agencyId (Ascending), startTime (Ascending)
-
-Collection Group: patients  
-Fields: agencyId (Ascending), location (Ascending), department (Ascending)
-```
-
----
-
-## 🔒 **HIPAA & Security**
-
-### **Benefits of Shift-Centric Model**
-- **Clear Audit Trail**: Every patient access tied to specific shift
-- **Time-Bounded Access**: Patients only accessible during shift periods
-- **Automatic Deprovisioning**: Patient access ends when shift ends
-- **Agency Isolation**: Cross-agency data leakage prevented
-
-### **Access Control Rules**
+#### **3. Independent Nurse Tests**
 ```dart
-// Firestore Security Rules
-rules_version = '2';
-service cloud.firestore {
-  match /agencies/{agencyId}/patients/{patientId} {
-    allow read: if isNurseAssignedToPatientViaShift(agencyId, patientId);
+group('Independent Nurse Workflows', () {
+  test('allows independent nurse to create independent shifts', () async {
+    // Setup
+    final independentNurse = MockUser(
+      id: 'nurse1', 
+      isIndependentNurse: true,
+      businessName: 'Smith Nursing',
+    );
+    
+    // Test
+    final shift = await service.createIndependentShift(
+      nurseId: 'nurse1',
+      startTime: DateTime.now().add(Duration(hours: 1)),
+      endTime: DateTime.now().add(Duration(hours: 9)),
+    );
+    
+    // Assert
+    expect(shift.agencyId, isNull);
+    expect(shift.isUserCreated, isTrue);
+    expect(shift.createdBy, equals('nurse1'));
+  });
+  
+  test('prevents agency-only nurse from creating independent shifts', () async {
+    // Setup
+    final agencyNurse = MockUser(
+      id: 'nurse1', 
+      isIndependentNurse: false,
+      agencyRoles: {'metro_hospital': MockAgencyRole()},
+    );
+    
+    // Test & Assert
+    expect(
+      () => service.createIndependentShift(nurseId: 'nurse1'),
+      throwsA(isA<IndependentNurseRequired>()),
+    );
+  });
+});
+```
+
+#### **4. Dual-Mode Nurse Tests**
+```dart
+group('Dual-Mode Nurse Workflows', () {
+  test('supports context switching between agency and independent work', () async {
+    // Setup
+    final dualModeNurse = MockUser(
+      id: 'nurse1',
+      isIndependentNurse: true,
+      agencyRoles: {'metro_hospital': MockAgencyRole()},
+      activeAgencyId: 'metro_hospital',
+    );
+    
+    // Test agency context
+    await service.switchToAgencyContext('nurse1', 'metro_hospital');
+    final agencyPatients = await repo.getContextPatients('nurse1');
+    
+    // Test independent context  
+    await service.switchToIndependentContext('nurse1');
+    final independentPatients = await repo.getContextPatients('nurse1');
+    
+    // Assert
+    expect(agencyPatients.every((p) => p.agencyId == 'metro_hospital'), isTrue);
+    expect(independentPatients.every((p) => p.agencyId == null), isTrue);
+  });
+});
+```
+
+### **Mock Data Patterns**
+
+```dart
+class ShiftTestingMocks {
+  static ScheduledShiftModel agencyShift({
+    String? id,
+    String? agencyId,
+    String? assignedTo,
+    List<String>? patientIds,
+  }) {
+    return ScheduledShiftModel(
+      id: id ?? generateId(),
+      agencyId: agencyId ?? 'metro_hospital',
+      assignedTo: assignedTo ?? 'nurse1',
+      isUserCreated: false,
+      createdBy: 'admin1',
+      assignedPatientIds: patientIds ?? ['pat1', 'pat2'],
+      status: 'scheduled',
+      isConfirmed: true,
+      startTime: DateTime.now().add(Duration(hours: 1)),
+      endTime: DateTime.now().add(Duration(hours: 9)),
+      locationType: 'facility',
+      facilityName: 'Metro General Hospital',
+    );
   }
   
-  function isNurseAssignedToPatientViaShift(agencyId, patientId) {
-    return exists(/databases/$(database)/documents/agencies/$(agencyId)/scheduledShifts/$(getUserActiveShift())) &&
-           patientId in get(/databases/$(database)/documents/agencies/$(agencyId)/scheduledShifts/$(getUserActiveShift())).data.assignedPatientIds;
+  static ScheduledShiftModel independentShift({
+    String? id,
+    String? assignedTo,
+    List<String>? patientIds,
+  }) {
+    return ScheduledShiftModel(
+      id: id ?? generateId(),
+      agencyId: null,
+      assignedTo: assignedTo ?? 'nurse1',
+      isUserCreated: true,
+      createdBy: assignedTo ?? 'nurse1',
+      assignedPatientIds: patientIds ?? ['pat_ind_1'],
+      status: 'scheduled',
+      isConfirmed: true,
+      startTime: DateTime.now().add(Duration(hours: 1)),
+      endTime: DateTime.now().add(Duration(hours: 9)),
+      locationType: 'residence',
+      address: '123 Main St, Independent Care',
+    );
+  }
+  
+  static Patient agencyPatient({
+    String? id,
+    String? agencyId,
+  }) {
+    return Patient(
+      id: id ?? generateId(),
+      firstName: 'John',
+      lastName: 'Doe',
+      location: 'facility',
+      agencyId: agencyId ?? 'metro_hospital',
+      department: 'ICU',
+      roomNumber: '201A',
+    );
+  }
+  
+  static Patient independentPatient({
+    String? id,
+    String? ownerUid,
+  }) {
+    return Patient(
+      id: id ?? generateId(),
+      firstName: 'Jane',
+      lastName: 'Smith',
+      location: 'residence',
+      agencyId: null,
+      ownerUid: ownerUid ?? 'nurse1',
+      addressLine1: '456 Oak Street',
+      city: 'Independent City',
+    );
   }
 }
 ```
 
 ---
 
-## 🧪 **Testing Strategy**
+## 📋 **Migration Guide**
 
-### **Unit Tests**
-- **Repository Logic**: Multi-step patient queries
-- **Shift Creation**: Independent nurse workflows  
-- **Patient Assignment**: Agency admin bulk assignment
+### **Phase 1: Model Updates (Completed)**
+- [x] Extended ScheduledShiftModel with agency scoping fields
+- [x] Updated UserModel with independent nurse support
+- [x] Created agency-scoped Firestore converters
+- [x] Added extension methods for shift ownership logic
 
-### **Integration Tests**
-- **Cross-Agency Isolation**: Verify no data leakage
-- **Performance**: Large caseload query timing
-- **Real-time Updates**: Shift changes update patient lists
+### **Phase 2: Repository Migration**
 
-### **Migration Tests**
-- **Data Integrity**: All patients still accessible post-migration
-- **Backward Compatibility**: Existing workflows continue working
-- **Rollback Capability**: Ability to revert if issues found
+#### **Before: Direct Patient-Nurse Relationships**
+```dart
+// ❌ OLD: Direct patient queries
+class OldPatientRepository {
+  Future<List<Patient>> getAssignedPatients(String nurseId) async {
+    return await firestore
+        .collection('patients')
+        .where('assignedNurses', arrayContains: nurseId)
+        .get();
+  }
+}
+```
+
+#### **After: Shift-Centric Patient Access**
+```dart
+// ✅ NEW: Shift-mediated patient queries
+class NewPatientRepository {
+  Future<List<Patient>> getCurrentShiftPatients(String nurseId) async {
+    // Step 1: Get nurse's active shifts
+    final shifts = await shiftRepo.getActiveShifts(nurseId);
+    
+    // Step 2: Collect all patient IDs from shifts
+    final patientIds = shifts
+        .expand((shift) => shift.assignedPatientIds ?? [])
+        .toSet()
+        .toList();
+    
+    // Step 3: Query patients by IDs from appropriate collections
+    final patients = <Patient>[];
+    for (final shift in shifts) {
+      if (shift.agencyId != null) {
+        // Agency patients
+        patients.addAll(await getAgencyPatients(shift.agencyId!, patientIds));
+      } else {
+        // Independent patients
+        patients.addAll(await getIndependentPatients(shift.createdBy!, patientIds));
+      }
+    }
+    
+    return patients;
+  }
+}
+```
+
+### **Phase 3: Data Migration Scripts**
+
+#### **Migration Script: Patient Assignments to Shifts**
+```dart
+class PatientAssignmentMigration {
+  Future<void> migratePatientAssignments() async {
+    // Step 1: Backup existing data
+    await backupCollection('patients');
+    await backupCollection('scheduledShifts');
+    
+    // Step 2: Process each patient
+    final patients = await firestore.collection('patients').get();
+    
+    for (final patientDoc in patients.docs) {
+      final patient = Patient.fromJson(patientDoc.data());
+      final assignedNurses = patient.assignedNurses ?? [];
+      
+      for (final nurseId in assignedNurses) {
+        // Find or create appropriate shift for this nurse-patient relationship
+        await migratePatientToShift(patient.id, nurseId, patient.agencyId);
+      }
+    }
+    
+    // Step 3: Remove deprecated assignedNurses field
+    await removeDeprecatedFields();
+    
+    // Step 4: Validate data integrity
+    await validateMigration();
+  }
+  
+  Future<void> migratePatientToShift(String patientId, String nurseId, String? agencyId) async {
+    // Find existing shift or create new one
+    final existingShift = await findExistingShift(nurseId, agencyId);
+    
+    if (existingShift != null) {
+      // Add patient to existing shift
+      await addPatientToShift(existingShift.id, patientId);
+    } else {
+      // Create new shift for this relationship
+      final newShift = ScheduledShiftModel(
+        id: generateId(),
+        assignedTo: nurseId,
+        agencyId: agencyId,
+        isUserCreated: false, // Migrated from old system
+        createdBy: 'migration_script',
+        assignedPatientIds: [patientId],
+        status: 'scheduled',
+        isConfirmed: true,
+        startTime: DateTime.now(), // Default to now, can be updated later
+        endTime: DateTime.now().add(Duration(hours: 8)),
+        locationType: 'facility',
+      );
+      
+      if (agencyId != null) {
+        await ScheduledShiftModelConverters.createShift(agencyId, newShift);
+      } else {
+        await ScheduledShiftModelConverters.createIndependentShift(newShift);
+      }
+    }
+  }
+}
+```
+
+### **Phase 4: UI Migration**
+
+#### **Update Patient List Screen**
+```dart
+// ❌ OLD: Direct patient loading
+class OldPatientListScreen extends ConsumerWidget {
+  Widget build(context, ref) {
+    final patients = ref.watch(assignedPatientsProvider);
+    return PatientListView(patients: patients);
+  }
+}
+
+// ✅ NEW: Shift-aware patient loading
+class NewPatientListScreen extends ConsumerWidget {
+  Widget build(context, ref) {
+    final currentShift = ref.watch(currentShiftProvider);
+    
+    return currentShift.when(
+      data: (shift) {
+        if (shift == null) {
+          return OffDutyView();
+        }
+        
+        final patients = ref.watch(shiftPatientsProvider(shift.id));
+        return ShiftAwarePatientListView(
+          shift: shift,
+          patients: patients,
+        );
+      },
+      loading: () => LoadingView(),
+      error: (error, stack) => ErrorView(error),
+    );
+  }
+}
+```
 
 ---
 
-## 🎯 **Success Metrics**
+## 🔧 **Troubleshooting**
 
-### **Functional**
-- ✅ All existing patients remain accessible to correct nurses
-- ✅ Independent nurses can create and manage their own shifts
-- ✅ Agency admins can bulk-assign facility patients
-- ✅ No cross-agency data access violations
+### **Common Issues & Solutions**
 
-### **Performance**
-- ✅ Patient list loads in <2 seconds for caseloads up to 50 patients
-- ✅ Real-time shift updates propagate to patient list within 1 second
-- ✅ Query costs remain under current Firestore budget
+#### **Issue 1: "No patients showing for nurse"**
+```
+Symptoms: Nurse is on duty but patient list is empty
+Diagnosis: Check shift-patient relationships
 
-### **User Experience**
-- ✅ No disruption to existing nurse workflows
-- ✅ Intuitive shift creation for independent nurses
-- ✅ Clear patient assignment status in UI
+Solution:
+1. Verify nurse has active shift: currentShiftProvider
+2. Check shift has assigned patients: shift.assignedPatientIds
+3. Validate patient queries are shift-scoped
+4. Ensure agency boundaries are respected
+```
+
+#### **Issue 2: "Cross-agency data access error"**
+```
+Symptoms: AgencyBoundaryViolation exceptions
+Diagnosis: Patient-shift agency mismatch
+
+Solution:
+1. Validate patient.agencyId == shift.agencyId
+2. Check independent patient (agencyId: null) assignment rules
+3. Verify user agency permissions
+4. Ensure context switching works properly
+```
+
+#### **Issue 3: "Independent nurse cannot create shifts"**
+```
+Symptoms: IndependentNurseRequired exceptions
+Diagnosis: User permissions or flag issues
+
+Solution:
+1. Check user.isIndependentNurse == true
+2. Verify agencyId is null for independent shifts
+3. Validate shift creation permissions
+4. Check feature flag settings
+```
+
+#### **Issue 4: "Patient access when off duty"**
+```
+Symptoms: HIPAA violation warnings
+Diagnosis: Duty status not enforced
+
+Solution:
+1. Add currentShiftProvider checks to all patient screens
+2. Implement OffDutyView for null shift states
+3. Validate user.isOnDuty status
+4. Ensure shift timing is respected
+```
+
+### **Debug Helpers**
+
+```dart
+class ShiftDebugHelper {
+  static void logShiftContext(String nurseId) {
+    print('=== SHIFT CONTEXT DEBUG ===');
+    print('Nurse ID: $nurseId');
+    
+    final user = getCurrentUser(nurseId);
+    print('Is Independent: ${user?.isIndependentNurse}');
+    print('Agency Roles: ${user?.agencyRoles.keys}');
+    print('Active Agency: ${user?.activeAgencyId}');
+    
+    final shifts = getCurrentShifts(nurseId);
+    print('Active Shifts: ${shifts.length}');
+    
+    for (final shift in shifts) {
+      print('  Shift ${shift.id}:');
+      print('    Agency: ${shift.agencyId ?? 'Independent'}');
+      print('    Patients: ${shift.assignedPatientIds?.length ?? 0}');
+      print('    User Created: ${shift.isUserCreated}');
+    }
+  }
+  
+  static void validateAgencyBoundaries(String shiftId, List<String> patientIds) {
+    final shift = getShiftById(shiftId);
+    print('=== AGENCY BOUNDARY VALIDATION ===');
+    print('Shift Agency: ${shift.agencyId}');
+    
+    for (final patientId in patientIds) {
+      final patient = getPatientById(patientId);
+      final isValid = patient.agencyId == shift.agencyId;
+      print('Patient $patientId: ${patient.agencyId} -> ${isValid ? "✅" : "❌"}');
+    }
+  }
+}
+```
 
 ---
 
-## 📚 **Implementation Checklist**
+## 📚 **Additional Resources**
 
-### **Backend Changes**
-- [ ] Remove `assignedNurses` field from Patient model
-- [ ] Update Patient repository to shift-based queries
-- [ ] Create shift management service
-- [ ] Add Firestore indexes for new query patterns
-- [ ] Update security rules for shift-based access
+### **Related Documentation**
+- [NurseOS_v2_ARCHITECTURE.md](./NurseOS_v2_ARCHITECTURE.md) - Overall architecture
+- [NurseOS_Feature_Dev_Guide_v2-2.md](./NurseOS_Feature_Dev_Guide_v2-2.md) - Development patterns
+- [HIPAA_Readiness_Checklist.md](./HIPAA_Readiness_Checklist.md) - Compliance requirements
 
-### **Frontend Changes**  
-- [ ] Add "Create Shift" UI for independent nurses
-- [ ] Update patient list to show shift context
-- [ ] Add shift management screens
-- [ ] Update admin portal for bulk patient assignment
-- [ ] Add shift-patient relationship indicators
+### **Code Examples**
+- [ScheduledShiftModel](../lib/features/schedule/models/scheduled_shift_model.dart)
+- [ScheduledShiftModelConverters](../lib/features/schedule/models/scheduled_shift_model_converters.dart)
+- [UserModel Extensions](../lib/features/auth/models/user_model_extensions.dart)
 
-### **Migration**
-- [ ] Create data migration script
-- [ ] Test migration on staging environment  
-- [ ] Plan rollback strategy
-- [ ] Schedule production migration window
-- [ ] Monitor post-migration performance
+### **Implementation Checklist**
+
+#### **For New Features**
+- [ ] Does this feature respect shift-centric patient access?
+- [ ] Are agency boundaries properly enforced?
+- [ ] Is duty status checked before patient data access?
+- [ ] Does this work for independent nurses?
+- [ ] Are audit trails properly maintained?
+
+#### **For UI Components**
+- [ ] Shows appropriate off-duty state when no active shift
+- [ ] Displays shift context clearly to user
+- [ ] Handles agency context switching (for dual-mode nurses)
+- [ ] Provides clear ownership indicators for shifts
+
+#### **For Data Operations**
+- [ ] All patient queries go through shift context
+- [ ] Agency boundary validation is in place
+- [ ] Independent nurse workflows are supported
+- [ ] Proper error handling for boundary violations
 
 ---
 
-**This shift-centric architecture provides a unified, scalable foundation for both agency and independent nursing practice while maintaining HIPAA compliance and optimal performance.**
+This comprehensive reference guide ensures all developers understand and implement the shift-centric architecture correctly, maintaining data integrity, security, and user experience across all nursing workflows.

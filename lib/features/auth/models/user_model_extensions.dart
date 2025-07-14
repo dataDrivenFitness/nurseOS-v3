@@ -259,3 +259,59 @@ String formatLicenseDisplay(UserModel user) {
   }
   return display;
 }
+
+extension IndependentNurseExtensions on UserModel {
+  // ═══════════════════════════════════════════════════════════════════
+  // 🏠 Independent Nurse Extension Methods
+  // ═══════════════════════════════════════════════════════════════════
+
+  /// Check if nurse can create their own shifts
+  bool get canCreateShifts => isIndependentNurse;
+
+  /// Check if nurse can manage their own patients
+  bool get canManageOwnPatients => isIndependentNurse;
+
+  /// Get display name for business context
+  String get businessDisplayName {
+    if (!isIndependentNurse || businessName == null) {
+      return displayName; // Fallback to regular display name
+    }
+    return businessName!;
+  }
+
+  /// Check if nurse operates in dual mode (both agency and independent)
+  bool get isDualMode => isIndependentNurse && agencyRoles.isNotEmpty;
+
+  /// Get current working context (agency or independent)
+  String get currentWorkingContext {
+    if (activeAgencyId != null && hasAccessToAgency(activeAgencyId!)) {
+      final agencyRole = currentAgencyRole;
+      return agencyRole?.department ?? 'Agency Work';
+    }
+
+    if (isIndependentNurse) {
+      return businessName ?? 'Independent Practice';
+    }
+
+    return 'No active context';
+  }
+
+  /// Check if profile is complete for independent nursing
+  bool get isIndependentProfileComplete {
+    if (!isIndependentNurse) return true; // Not applicable
+
+    return licenseNumber != null &&
+        licenseExpiry != null &&
+        businessName != null;
+  }
+
+  /// Get working mode display text
+  String get workingModeDisplay {
+    if (isDualMode) return 'Agency + Independent';
+    if (isIndependentNurse) return 'Independent';
+    return 'Agency Only';
+  }
+
+  /// Check if nurse can switch between agency and independent mode
+  bool get canSwitchModes => isDualMode;
+}

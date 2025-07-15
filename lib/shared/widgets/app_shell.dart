@@ -22,7 +22,8 @@ class AppShell extends ConsumerWidget {
   }
 
   Widget _buildNewNavigation(BuildContext context) {
-    // New 4-tab navigation using proper GoRouter routes
+    // New 5-tab Context-First Navigation Architecture
+    // [Shifts] [Current] [Records] [Profile] [Admin]
     final location = GoRouterState.of(context).uri.path;
     final currentIndex = _getNewNavigationIndex(location);
 
@@ -34,36 +35,46 @@ class AppShell extends ConsumerWidget {
         onTap: (index) {
           switch (index) {
             case 0:
-              context.go('/available-shifts');
+              context.go('/shifts');
               break;
             case 1:
-              context.go('/my-shift');
+              context.go('/current');
               break;
             case 2:
-              context.go('/profile');
+              context.go('/records');
               break;
             case 3:
+              context.go('/profile');
+              break;
+            case 4:
               context.go('/admin');
               break;
           }
         },
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.work_outline),
-            activeIcon: Icon(Icons.work),
-            label: 'Available Shifts',
+            icon: Icon(Icons.calendar_today_outlined),
+            activeIcon: Icon(Icons.calendar_today),
+            label: 'Shifts',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.medical_services_outlined),
             activeIcon: Icon(Icons.medical_services),
-            label: 'My Shift',
+            label: 'Current',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person),
+            icon: Icon(Icons.history_outlined),
+            activeIcon: Icon(Icons.history),
+            label: 'Records',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
             label: 'Profile',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.admin_panel_settings),
+            icon: Icon(Icons.admin_panel_settings_outlined),
+            activeIcon: Icon(Icons.admin_panel_settings),
             label: 'Admin',
           ),
         ],
@@ -127,11 +138,19 @@ class AppShell extends ConsumerWidget {
   }
 
   int _getNewNavigationIndex(String location) {
-    if (location.startsWith('/available-shifts')) return 0;
-    if (location.startsWith('/my-shift')) return 1;
-    if (location.startsWith('/profile')) return 2;
-    if (location.startsWith('/admin')) return 3;
-    return 0; // Default to Available Shifts
+    // Context-First Navigation mapping
+    if (location.startsWith('/shifts')) return 0; // All shift management
+    if (location.startsWith('/current')) return 1; // Active work session
+    if (location.startsWith('/records')) return 2; // Work history & analytics
+    if (location.startsWith('/profile')) return 3; // Personal information
+    if (location.startsWith('/admin')) return 4; // System management
+
+    // Legacy route compatibility during transition
+    if (location.startsWith('/available-shifts'))
+      return 0; // Redirect to Shifts
+    if (location.startsWith('/my-shift')) return 1; // Redirect to Current
+
+    return 0; // Default to Shifts tab
   }
 
   int _getCurrentIndex(String location) {

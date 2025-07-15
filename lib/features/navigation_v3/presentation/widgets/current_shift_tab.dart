@@ -537,10 +537,11 @@ class _CurrentShiftTabState extends ConsumerState<CurrentShiftTab>
 
   // Action handlers
   void _handleClockIn(BuildContext context, WidgetRef ref) {
+    final dutyService = ref.read(dutyStatusServiceProvider);
     final user = ref.read(authControllerProvider).value;
+
     if (user != null) {
-      final dutyStatusService = ref.read(dutyStatusServiceProvider);
-      dutyStatusService.startShift(context: context, user: user);
+      dutyService.startShift(context: context, user: user);
     }
   }
 
@@ -560,17 +561,20 @@ class _CurrentShiftTabState extends ConsumerState<CurrentShiftTab>
           FilledButton(
             onPressed: () {
               Navigator.of(context).pop();
-              final dutyStatusService = ref.read(dutyStatusServiceProvider);
-              dutyStatusService.endShift(
-                context: context,
-                currentSession: workSession,
-              );
+              _performClockOut(context, ref, workSession);
             },
+            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade600),
             child: const Text('Clock Out'),
           ),
         ],
       ),
     );
+  }
+
+  void _performClockOut(
+      BuildContext context, WidgetRef ref, dynamic workSession) {
+    final dutyService = ref.read(dutyStatusServiceProvider);
+    dutyService.endShift(context: context, currentSession: workSession);
   }
 
   void _showCreateShiftDialog(BuildContext context) {

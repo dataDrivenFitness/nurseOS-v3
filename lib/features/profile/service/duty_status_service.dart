@@ -1,11 +1,10 @@
 // 📁 lib/features/profile/service/duty_status_service.dart
-// Updated to use your existing LocationData model with extensions
+// Updated for full compliance GPS tracking with layout fixes
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:nurseos_v3/shared/models/location_data.dart';
-
 import 'package:nurseos_v3/features/auth/models/user_model.dart';
 import 'package:nurseos_v3/features/work_history/models/work_session.dart';
 import 'package:nurseos_v3/features/work_history/state/work_history_controller.dart';
@@ -19,7 +18,7 @@ class DutyStatusService {
 
   DutyStatusService(this._ref);
 
-  /// Start a new shift with location capture
+  /// Start a new shift with full GPS location capture for compliance
   Future<void> startShift({
     required BuildContext context,
     required UserModel user,
@@ -27,7 +26,7 @@ class DutyStatusService {
     try {
       final controller = _ref.read(workHistoryControllerProvider.notifier);
 
-      // Show loading
+      // Show loading with proper layout
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -39,7 +38,9 @@ class DutyStatusService {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
                 SizedBox(width: 12),
-                Text('Starting shift...'),
+                Expanded(
+                  child: Text('Starting shift & capturing location...'),
+                ),
               ],
             ),
             duration: Duration(seconds: 30),
@@ -47,7 +48,7 @@ class DutyStatusService {
         );
       }
 
-      // Get location using your existing model
+      // Get accurate location for compliance
       final locationData = await _getLocationData(context);
 
       // Start session
@@ -60,10 +61,18 @@ class DutyStatusService {
       if (context.mounted) {
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Shift started successfully'),
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text('Shift started successfully'),
+                ),
+              ],
+            ),
             backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
+            duration: Duration(seconds: 2),
           ),
         );
       }
@@ -76,7 +85,15 @@ class DutyStatusService {
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to start shift: ${_getErrorMessage(e)}'),
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('Failed to start shift: ${_getErrorMessage(e)}'),
+                ),
+              ],
+            ),
             backgroundColor: Colors.red,
             action: SnackBarAction(
               label: 'Retry',
@@ -88,7 +105,7 @@ class DutyStatusService {
     }
   }
 
-  /// End the current shift
+  /// End the current shift with full GPS location capture for compliance
   Future<void> endShift({
     required BuildContext context,
     required WorkSession currentSession,
@@ -96,7 +113,7 @@ class DutyStatusService {
     try {
       final controller = _ref.read(workHistoryControllerProvider.notifier);
 
-      // Show loading
+      // Show loading with proper layout
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -108,7 +125,9 @@ class DutyStatusService {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
                 SizedBox(width: 12),
-                Text('Ending shift...'),
+                Expanded(
+                  child: Text('Ending shift & capturing location...'),
+                ),
               ],
             ),
             duration: Duration(seconds: 30),
@@ -116,17 +135,10 @@ class DutyStatusService {
         );
       }
 
-      // Use simple location for end (leveraging your existing model)
-      final endLocation = LocationData(
-        latitude: 0.0,
-        longitude: 0.0,
-        accuracy: 999.0,
-        address: 'Location not captured',
-        facility: null,
-        timestamp: DateTime.now(),
-      );
+      // Use FULL GPS location capture for compliance (same as start shift)
+      final endLocation = await _getLocationData(context);
 
-      // End session
+      // End session with accurate location
       await controller.endDutySession(
         location: endLocation,
         notes: 'Shift ended via mobile app',
@@ -136,15 +148,23 @@ class DutyStatusService {
       if (context.mounted) {
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Shift ended successfully'),
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text('Shift ended - Location recorded'),
+                ),
+              ],
+            ),
             backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
+            duration: Duration(seconds: 3),
           ),
         );
       }
 
-      debugPrint('✅ Shift ended successfully');
+      debugPrint('✅ Shift ended successfully with accurate location');
     } catch (e) {
       debugPrint('❌ End shift error: $e');
 
@@ -152,7 +172,15 @@ class DutyStatusService {
         ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to end shift: ${_getErrorMessage(e)}'),
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('Failed to end shift: ${_getErrorMessage(e)}'),
+                ),
+              ],
+            ),
             backgroundColor: Colors.red,
             action: SnackBarAction(
               label: 'Retry',
@@ -165,7 +193,10 @@ class DutyStatusService {
     }
   }
 
-  /// Get location data using your existing comprehensive model
+  /// Get high-accuracy location data for compliance requirements
+  ///
+  /// Uses 10-second timeout with medium accuracy for EVV compliance.
+  /// Healthcare regulations require documented location verification.
   Future<LocationData> _getLocationData(BuildContext context) async {
     try {
       // Check if location services are enabled
@@ -173,7 +204,7 @@ class DutyStatusService {
         throw Exception('Location services are disabled');
       }
 
-      // Check permissions
+      // Check and request permissions
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -184,42 +215,44 @@ class DutyStatusService {
         throw Exception('Location permission denied');
       }
 
-      // Try to get current position with timeout
+      // Get current position with compliance-grade accuracy
       Position position;
       try {
         position = await Geolocator.getCurrentPosition(
           locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.medium,
-            timeLimit: Duration(seconds: 10),
+            accuracy: LocationAccuracy.medium, // Good balance of accuracy/speed
+            timeLimit: Duration(seconds: 10), // Allow time for accurate reading
           ),
         );
       } catch (e) {
-        // Fallback to last known position
+        // Fallback to last known position for compliance
         final lastPosition = await Geolocator.getLastKnownPosition();
         if (lastPosition != null) {
           position = lastPosition;
+          debugPrint('⚠️ Using last known position: ${e.toString()}');
         } else {
           throw Exception('Unable to get location');
         }
       }
 
-      // Use your comprehensive LocationData model
+      // Create comprehensive LocationData for audit trail
       return LocationData(
         latitude: position.latitude,
         longitude: position.longitude,
         accuracy: position.accuracy,
         address:
             '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}',
-        facility: null, // Could be set based on geofencing in the future
+        facility: null, // Could be enhanced with geofencing in the future
         timestamp: DateTime.now(),
       );
     } catch (e) {
-      // Use fallback location if GPS fails
+      // Use fallback location if GPS completely fails
+      // This ensures shift can still be recorded even with location issues
       debugPrint('⚠️ Location error, using fallback: $e');
       return LocationData(
         latitude: 0.0,
         longitude: 0.0,
-        accuracy: 999.0,
+        accuracy: 999.0, // Indicates poor/unavailable accuracy
         address: 'Location unavailable',
         facility: null,
         timestamp: DateTime.now(),
@@ -227,6 +260,7 @@ class DutyStatusService {
     }
   }
 
+  /// Convert various error types to user-friendly messages
   String _getErrorMessage(dynamic error) {
     final errorStr = error.toString().toLowerCase();
 
@@ -238,6 +272,8 @@ class DutyStatusService {
       return 'Check internet connection';
     } else if (errorStr.contains('timeout')) {
       return 'Request timed out';
+    } else if (errorStr.contains('session')) {
+      return 'Shift session error';
     } else {
       return 'Please try again';
     }

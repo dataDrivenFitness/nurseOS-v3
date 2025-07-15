@@ -6,18 +6,21 @@ import 'package:nurseos_v3/core/theme/app_colors.dart';
 import 'package:nurseos_v3/core/theme/spacing.dart';
 import 'package:nurseos_v3/features/schedule/models/scheduled_shift_model.dart';
 import 'package:nurseos_v3/features/schedule/models/scheduled_shift_model_extensions.dart';
+import 'package:nurseos_v3/shared/widgets/buttons/primary_button.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ScheduledShiftCard extends StatelessWidget {
   final ScheduledShiftModel shift;
   final VoidCallback? onTap;
   final VoidCallback? onConfirm;
+  final VoidCallback? onClockIn; // New parameter
 
   const ScheduledShiftCard({
     super.key,
     required this.shift,
     this.onTap,
     this.onConfirm,
+    this.onClockIn, // New parameter
   });
 
   @override
@@ -194,20 +197,30 @@ class ScheduledShiftCard extends StatelessWidget {
                 ),
               ],
 
-              // Confirm button for unconfirmed shifts
-              if (shift.needsConfirmation && onConfirm != null) ...[
+              // Action buttons section - MODIFIED
+              if (shift.needsConfirmation && onConfirm != null ||
+                  onClockIn != null) ...[
                 const SizedBox(height: SpacingTokens.md),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
+
+                // Confirm button for unconfirmed shifts
+                if (shift.needsConfirmation && onConfirm != null) ...[
+                  PrimaryButton(
+                    label: 'Confirm Shift',
                     onPressed: onConfirm,
                     icon: const Icon(Icons.check, size: 18),
-                    label: const Text('Confirm Shift'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: colors.brandPrimary,
-                    ),
                   ),
-                ),
+                  if (onClockIn != null)
+                    const SizedBox(height: SpacingTokens.sm),
+                ],
+
+                // Clock-in button - NEW
+                if (onClockIn != null) ...[
+                  PrimaryButton(
+                    label: 'Clock In',
+                    onPressed: onClockIn,
+                    icon: const Icon(Icons.play_circle, size: 18),
+                  ),
+                ],
               ],
             ],
           ),

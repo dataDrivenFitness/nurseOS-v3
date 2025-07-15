@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nurseos_v3/core/theme/app_colors.dart';
 import 'package:nurseos_v3/core/theme/spacing.dart';
 import 'package:nurseos_v3/core/theme/text_styles.dart';
+import 'package:nurseos_v3/shared/widgets/app_snackbar.dart';
 import 'package:nurseos_v3/shared/widgets/nurse_scaffold.dart';
 import 'package:nurseos_v3/features/navigation_v3/presentation/widgets/current_shift_tab.dart';
 import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
@@ -123,10 +124,9 @@ class MyShiftScreen extends ConsumerWidget {
                         print('🔍 Debug: Creating test shift data');
                       }
                       // For debugging - show what shifts we have
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                            content: Text(
-                                'Found ${shifts.length} total shifts, ${approvedShifts.length} approved')),
+                      AppSnackbar.info(
+                        context,
+                        'Found ${shifts.length} total shifts, ${approvedShifts.length} approved',
                       );
                     },
                     child: const Text('Debug: Show Shift Data'),

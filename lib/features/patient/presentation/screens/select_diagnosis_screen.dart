@@ -6,6 +6,7 @@ import 'package:nurseos_v3/features/patient/models/diagnosis_catalog.dart';
 import 'package:nurseos_v3/features/patient/models/patient_risk.dart';
 import 'package:nurseos_v3/features/patient/services/favorites_service.dart';
 import 'package:nurseos_v3/shared/widgets/select_items_screen.dart';
+import 'package:nurseos_v3/shared/widgets/app_snackbar.dart';
 
 class SelectDiagnosisScreen extends StatefulWidget {
   final List<String> initialSelection;
@@ -72,12 +73,7 @@ class _SelectDiagnosisScreenState extends State<SelectDiagnosisScreen> {
     } catch (e) {
       print('⚠️ Error toggling favorite diagnosis: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to update favorites'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppSnackbar.error(context, 'Failed to update favorites');
       }
     }
   }

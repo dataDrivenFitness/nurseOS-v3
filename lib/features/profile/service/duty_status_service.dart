@@ -8,6 +8,7 @@ import 'package:nurseos_v3/shared/models/location_data.dart';
 import 'package:nurseos_v3/features/auth/models/user_model.dart';
 import 'package:nurseos_v3/features/work_history/models/work_session.dart';
 import 'package:nurseos_v3/features/work_history/state/work_history_controller.dart';
+import 'package:nurseos_v3/shared/widgets/app_snackbar.dart';
 
 final dutyStatusServiceProvider = Provider<DutyStatusService>((ref) {
   return DutyStatusService(ref);
@@ -28,24 +29,7 @@ class DutyStatusService {
 
       // Show loading with proper layout
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text('Starting shift & capturing location...'),
-                ),
-              ],
-            ),
-            duration: Duration(seconds: 30),
-          ),
-        );
+        AppSnackbar.loading(context, 'Starting shift & capturing location...');
       }
 
       // Get accurate location for compliance
@@ -59,22 +43,7 @@ class DutyStatusService {
 
       // Clear loading and show success
       if (context.mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white, size: 20),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text('Shift started successfully'),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
+        AppSnackbar.success(context, 'Shift started successfully');
       }
 
       debugPrint('✅ Shift started: $sessionId');
@@ -82,23 +51,12 @@ class DutyStatusService {
       debugPrint('❌ Start shift error: $e');
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error, color: Colors.white, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text('Failed to start shift: ${_getErrorMessage(e)}'),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.red,
-            action: SnackBarAction(
-              label: 'Retry',
-              onPressed: () => startShift(context: context, user: user),
-            ),
+        AppSnackbar.error(
+          context,
+          'Failed to start shift: ${_getErrorMessage(e)}',
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: () => startShift(context: context, user: user),
           ),
         );
       }
@@ -115,24 +73,7 @@ class DutyStatusService {
 
       // Show loading with proper layout
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text('Ending shift & capturing location...'),
-                ),
-              ],
-            ),
-            duration: Duration(seconds: 30),
-          ),
-        );
+        AppSnackbar.loading(context, 'Ending shift & capturing location...');
       }
 
       // Use FULL GPS location capture for compliance (same as start shift)
@@ -146,22 +87,7 @@ class DutyStatusService {
 
       // Clear loading and show success
       if (context.mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white, size: 20),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text('Shift ended - Location recorded'),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
-          ),
-        );
+        AppSnackbar.success(context, 'Shift ended - Location recorded');
       }
 
       debugPrint('✅ Shift ended successfully with accurate location');
@@ -169,24 +95,13 @@ class DutyStatusService {
       debugPrint('❌ End shift error: $e');
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error, color: Colors.white, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text('Failed to end shift: ${_getErrorMessage(e)}'),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.red,
-            action: SnackBarAction(
-              label: 'Retry',
-              onPressed: () =>
-                  endShift(context: context, currentSession: currentSession),
-            ),
+        AppSnackbar.error(
+          context,
+          'Failed to end shift: ${_getErrorMessage(e)}',
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: () =>
+                endShift(context: context, currentSession: currentSession),
           ),
         );
       }

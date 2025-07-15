@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nurseos_v3/core/theme/app_colors.dart';
 import 'package:nurseos_v3/core/theme/spacing.dart';
 import 'package:nurseos_v3/core/theme/text_styles.dart';
+import 'package:nurseos_v3/shared/widgets/app_snackbar.dart';
 import 'package:nurseos_v3/shared/widgets/form_card.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/primary_button.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/secondary_button.dart';
@@ -578,8 +579,6 @@ class _CurrentShiftTabState extends ConsumerState<CurrentShiftTab>
   }
 
   void _showCreateShiftDialog(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Create shift dialog - Coming soon')),
-    );
+    AppSnackbar.info(context, 'Create shift dialog - Coming soon');
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nurseos_v3/core/theme/app_colors.dart';
 import 'package:nurseos_v3/core/theme/spacing.dart';
 import 'package:nurseos_v3/core/theme/text_styles.dart';
+import 'package:nurseos_v3/shared/widgets/app_snackbar.dart';
 import 'package:nurseos_v3/shared/widgets/form_card.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/primary_button.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/secondary_button.dart';
@@ -581,29 +582,21 @@ class _UpcomingShiftsTabState extends ConsumerState<UpcomingShiftsTab> {
   // Action handlers
   void _showCreateShiftDialog(BuildContext context) {
     // TODO: Implement shift creation dialog
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Create shift dialog - Coming soon')),
-    );
+    AppSnackbar.info(context, 'Create shift dialog - Coming soon');
   }
 
   void _navigateToAvailableShifts(BuildContext context) {
     // TODO: Navigate to available shifts screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Available shifts screen - Coming soon')),
-    );
+    AppSnackbar.info(context, 'Available shifts screen - Coming soon');
   }
 
   void _showShiftDetails(dynamic shift) {
     // TODO: Navigate to shift details screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Shift details for ${shift.id} - Coming soon')),
-    );
+    AppSnackbar.info(context, 'Shift details for ${shift.id} - Coming soon');
   }
 
   void _confirmShift(dynamic shift) {
     // TODO: Implement shift confirmation
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Confirming shift ${shift.id} - Coming soon')),
-    );
+    AppSnackbar.info(context, 'Confirming shift ${shift.id} - Coming soon');
   }
 }

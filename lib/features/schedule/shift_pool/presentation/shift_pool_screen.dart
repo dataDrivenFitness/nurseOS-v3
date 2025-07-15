@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
+import 'package:nurseos_v3/shared/widgets/app_snackbar.dart';
 import '../state/shift_pool_provider.dart';
 import '../state/shift_request_controller.dart';
 
@@ -39,9 +40,7 @@ class ShiftPoolScreen extends ConsumerWidget {
                     await controller.requestShift(
                         shift.id, user.uid); // ✅ Fixed: Use real user ID
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Shift requested')),
-                      );
+                      AppSnackbar.success(context, 'Shift requested');
                     }
                   },
                   child: const Text('Request'),

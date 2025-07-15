@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nurseos_v3/shared/widgets/app_snackbar.dart';
 
 import '../../../core/theme/spacing.dart';
 import '../../../shared/utils/image_picker_utils.dart'; // Use your existing utility
@@ -347,9 +348,7 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to pick image: $e')),
-        );
+        AppSnackbar.error(context, 'Failed to pick image: $e');
       }
     }
   }
@@ -409,16 +408,12 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
           );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully!')),
-        );
+        AppSnackbar.success(context, 'Profile updated successfully!');
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update profile: $e')),
-        );
+        AppSnackbar.error(context, 'Failed to update profile: $e');
       }
     }
   }

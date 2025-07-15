@@ -23,6 +23,7 @@ import 'package:nurseos_v3/shared/utils/image_picker_utils.dart';
 import 'package:nurseos_v3/shared/widgets/nurse_scaffold.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/primary_button.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/secondary_button.dart';
+import 'package:nurseos_v3/shared/widgets/app_snackbar.dart';
 
 class AddPatientScreen extends ConsumerStatefulWidget {
   const AddPatientScreen({super.key});
@@ -312,24 +313,17 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_createNewShift
-                ? '✅ Patient added and new shift created'
-                : '✅ Patient added to existing shift'),
-            backgroundColor: Colors.green,
-          ),
+        AppSnackbar.success(
+          context,
+          _createNewShift
+              ? 'Patient added and new shift created'
+              : 'Patient added to existing shift',
         );
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Failed to add patient: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppSnackbar.error(context, 'Failed to add patient: $e');
       }
     } finally {
       setState(() => _isSubmitting = false);

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nurseos_v3/core/theme/app_colors.dart';
 import 'package:nurseos_v3/core/theme/spacing.dart';
 import 'package:nurseos_v3/core/theme/shape_tokens.dart';
+import 'package:nurseos_v3/shared/widgets/app_snackbar.dart';
 import 'package:nurseos_v3/shared/widgets/nurse_scaffold.dart';
 import 'package:nurseos_v3/shared/widgets/info_pill.dart';
 
@@ -212,17 +213,19 @@ class _SelectItemsScreenState extends State<SelectItemsScreen>
               Navigator.pop(context);
 
               // Show feedback snackbar
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    isFavorite
-                        ? 'Removed from favorites'
-                        : 'Added to favorites',
-                  ),
+              if (isFavorite) {
+                AppSnackbar.warning(
+                  context,
+                  'Removed from favorites',
                   duration: const Duration(seconds: 2),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+                );
+              } else {
+                AppSnackbar.success(
+                  context,
+                  'Added to favorites',
+                  duration: const Duration(seconds: 2),
+                );
+              }
             },
             style: FilledButton.styleFrom(
               backgroundColor: isFavorite ? colors.danger : Colors.amber,

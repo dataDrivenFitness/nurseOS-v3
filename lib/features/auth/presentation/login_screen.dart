@@ -10,6 +10,7 @@ import 'package:nurseos_v3/core/models/user_role.dart';
 import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
 import 'package:nurseos_v3/l10n/generated/app_localizations.dart';
 import 'package:nurseos_v3/shared/widgets/app_loader.dart';
+import 'package:nurseos_v3/shared/widgets/app_snackbar.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/primary_button.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -75,9 +76,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             });
           },
           error: (error, _) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('${l10n.loginFailed}: $error')),
-            );
+            AppSnackbar.error(context, '${l10n.loginFailed}: $error');
           },
         );
       },

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nurseos_v3/core/theme/app_colors.dart';
 import 'package:nurseos_v3/core/theme/spacing.dart';
 import 'package:nurseos_v3/core/theme/text_styles.dart';
+import 'package:nurseos_v3/shared/widgets/app_snackbar.dart';
 import 'package:nurseos_v3/shared/widgets/form_card.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/secondary_button.dart';
 
@@ -181,8 +182,6 @@ class ShiftHistoryTab extends ConsumerWidget {
 
   void _navigateToWorkHistory(BuildContext context) {
     // TODO: Navigate to existing work history screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Work history navigation - Coming soon')),
-    );
+    AppSnackbar.info(context, 'Work history navigation - Coming soon');
   }
 }

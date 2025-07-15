@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:nurseos_v3/core/theme/app_colors.dart';
 import 'package:nurseos_v3/features/patient/models/allergy_catalog.dart';
 import 'package:nurseos_v3/features/patient/services/favorites_service.dart';
+import 'package:nurseos_v3/shared/widgets/app_snackbar.dart';
 import 'package:nurseos_v3/shared/widgets/select_items_screen.dart';
 
 class SelectAllergyScreen extends StatefulWidget {
@@ -71,12 +72,7 @@ class _SelectAllergyScreenState extends State<SelectAllergyScreen> {
     } catch (e) {
       print('⚠️ Error toggling favorite allergy: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to update favorites'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppSnackbar.error(context, 'Failed to update favorites');
       }
     }
   }

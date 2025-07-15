@@ -8,6 +8,7 @@ import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
 import 'package:nurseos_v3/features/schedule/shift_pool/state/shift_pool_provider.dart';
 import 'package:nurseos_v3/features/schedule/shift_pool/state/shift_request_controller.dart';
 import 'package:nurseos_v3/shared/widgets/app_loader.dart';
+import 'package:nurseos_v3/shared/widgets/app_snackbar.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/primary_button.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/secondary_button.dart';
 
@@ -446,51 +447,9 @@ class _EnhancedAvailableViewState extends ConsumerState<EnhancedAvailableView> {
         final currentUserId = auth.value?.uid ?? 'mockUser';
         await controller.requestShift(shift.id, currentUserId);
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(
-                    Icons.check_circle_outline,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  const SizedBox(width: SpacingTokens.sm),
-                  const Text('Shift request sent successfully'),
-                ],
-              ),
-              backgroundColor: colors.success,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          );
-        }
+        AppSnackbar.success(context, 'Shift request sent successfully');
       } catch (error) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  const SizedBox(width: SpacingTokens.sm),
-                  const Text('Failed to send request. Please try again.'),
-                ],
-              ),
-              backgroundColor: colors.danger,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          );
-        }
+        AppSnackbar.error(context, 'Failed to send request. Please try again.');
       }
     }
   }

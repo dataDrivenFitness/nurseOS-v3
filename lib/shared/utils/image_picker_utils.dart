@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:nurseos_v3/shared/widgets/app_snackbar.dart';
 import 'image_crop_utils.dart';
 
 /// Shows a dialog to select image source (camera or gallery), then picks and crops the image.
@@ -157,9 +158,7 @@ Future<File?> _pickAndCropImageWithSource({
 
     if (picked == null) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Image selection cancelled')),
-        );
+        AppSnackbar.info(context, 'Image selection cancelled');
       }
       return null;
     }
@@ -173,9 +172,7 @@ Future<File?> _pickAndCropImageWithSource({
 
     if (cropped == null) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Image crop cancelled')),
-        );
+        AppSnackbar.info(context, 'Image crop cancelled');
       }
       return null;
     }
@@ -183,9 +180,7 @@ Future<File?> _pickAndCropImageWithSource({
     // Step 3: Validate file size
     if (await cropped.length() > maxSizeBytes) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Image too large. Max 5MB allowed.')),
-        );
+        AppSnackbar.warning(context, 'Image too large. Max 5MB allowed.');
       }
       return null;
     }
@@ -193,9 +188,7 @@ Future<File?> _pickAndCropImageWithSource({
     return cropped;
   } catch (e) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Image error: ${e.toString()}')),
-      );
+      AppSnackbar.error(context, 'Image error: ${e.toString()}');
     }
     return null;
   }

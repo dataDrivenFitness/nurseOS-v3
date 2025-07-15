@@ -1,5 +1,5 @@
 // 📁 lib/features/navigation_v3/presentation/available_shifts_screen.dart
-// UPDATED: Real data integration replacing mock generators
+// UPDATED: Real data integration replacing mock generators + Context Safety + AppSnackbar
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +14,7 @@ import 'package:nurseos_v3/features/schedule/shift_pool/state/shift_pool_provide
 import 'package:nurseos_v3/features/schedule/shift_pool/state/shift_request_controller.dart';
 import 'package:nurseos_v3/features/schedule/shift_pool/models/shift_model.dart';
 import 'package:nurseos_v3/features/agency/state/agency_context_provider.dart';
+import 'package:nurseos_v3/shared/widgets/app_snackbar.dart';
 import 'package:nurseos_v3/shared/widgets/nurse_scaffold.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/primary_button.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/secondary_button.dart';
@@ -594,77 +595,45 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // ACTION HANDLERS - UPDATED: Real functionality
+  // ACTION HANDLERS - UPDATED: Real functionality + Context Safety
   // ═══════════════════════════════════════════════════════════════════
 
-  /// Request a shift using the real controller
+  /// Request a shift using the real controller - UPDATED: Context safety
   Future<void> _requestShift(
     ShiftModel shift,
     ShiftRequestController controller,
     UserModel user,
   ) async {
+    // Store context before any async operations
+    final scaffoldContext = context;
+
     try {
       // Show confirmation dialog
       final confirmed = await _showRequestConfirmationDialog(shift);
-      if (!confirmed) return;
+      if (!confirmed || !mounted) return;
 
       // Show loading state
-      _showLoadingSnackBar('Sending shift request...');
+      AppSnackbar.loading(scaffoldContext, 'Sending shift request...');
 
       // Use the real shift request controller
       await controller.requestShift(shift.id, user.uid);
 
       // Show success
       if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(
-                  Icons.check_circle_outline,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                const SizedBox(width: SpacingTokens.sm),
-                const Expanded(
-                  child: Text(
-                    'Shift request sent! Admin will review and notify you.',
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: Theme.of(context).extension<AppColors>()!.success,
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 4),
-          ),
+        AppSnackbar.success(
+          scaffoldContext,
+          'Shift request sent! Admin will review and notify you.',
+          duration: const Duration(seconds: 4),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                const SizedBox(width: SpacingTokens.sm),
-                Expanded(
-                  child: Text('Failed to send request: ${_getErrorMessage(e)}'),
-                ),
-              ],
-            ),
-            backgroundColor: Theme.of(context).extension<AppColors>()!.danger,
-            behavior: SnackBarBehavior.floating,
-            action: SnackBarAction(
-              label: 'Retry',
-              textColor: Colors.white,
-              onPressed: () => _requestShift(shift, controller, user),
-            ),
+        AppSnackbar.error(
+          scaffoldContext,
+          'Failed to send request: ${_getErrorMessage(e)}',
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: () => _requestShift(shift, controller, user),
           ),
         );
       }
@@ -756,26 +725,6 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
     return confirmed ?? false;
   }
 
-  /// Show loading snack bar
-  void _showLoadingSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            const SizedBox(width: SpacingTokens.sm),
-            Text(message),
-          ],
-        ),
-        duration: const Duration(seconds: 30), // Long duration for loading
-      ),
-    );
-  }
-
   /// Get user-friendly error message
   String _getErrorMessage(dynamic error) {
     final errorString = error.toString().toLowerCase();
@@ -792,17 +741,18 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // PLACEHOLDERS - TODO: Implement actual functionality
+  // PLACEHOLDERS - TODO: Implement actual functionality + Context Safety
   // ═══════════════════════════════════════════════════════════════════
 
   void _showShiftDetails(ShiftModel shift) {
     // TODO: Navigate to shift details screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Showing details for ${shift.id}')),
-    );
+    AppSnackbar.info(context, 'Showing details for ${shift.id}');
   }
 
   void _showCreateShiftDialog() {
+    // Store context for safety
+    final scaffoldContext = context;
+
     // TODO: Show create shift dialog or navigate to creation screen
     showDialog(
       context: context,
@@ -817,9 +767,8 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
           FilledButton(
             onPressed: () {
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Shift creation coming soon!')),
-              );
+              // Use stored context for snackbar
+              AppSnackbar.info(scaffoldContext, 'Shift creation coming soon!');
             },
             child: const Text('Create'),
           ),

@@ -76,7 +76,7 @@ dependencies:
   image_cropper: ^9.1.0             # use image cropping tool
 
   # Open Map App in mobile device
-  url_launcher: ^6.2.6
+  url_launcher: ^6.3.2
 
   # 📍 Location Tools
   geolocator: ^14.0.2               # Location services
@@ -89,6 +89,9 @@ dependencies:
 
   # Card Actions
   flutter_slidable: ^4.0.0          # swipe actions for patient cards
+
+  # 📡 Reactive Extensions
+  rxdart: ^0.28.0                   # combineLatest for merging multiple Firestore streams
 
 # ──────────────────────────────────────────────
 # 🧪 Dev Dependencies – Codegen, Testing, Analysis

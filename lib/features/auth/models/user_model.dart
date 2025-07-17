@@ -1,10 +1,8 @@
-// 📁 lib/features/auth/models/user_model.dart (UPDATED FOR MULTI-AGENCY + INDEPENDENT NURSES)
+// 📁 lib/features/auth/models/user_model.dart (UPDATED FOR SHIFT-CENTRIC ARCHITECTURE)
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:nurseos_v3/core/models/user_role.dart';
 import 'package:nurseos_v3/shared/converters/timestamp_converter.dart';
-import 'package:nurseos_v3/features/agency/models/agency_role_model.dart';
-import 'package:nurseos_v3/shared/converters/agency_role_map_converter.dart';
 
 part 'user_model.freezed.dart';
 part 'user_model.g.dart';
@@ -71,21 +69,7 @@ abstract class UserModel with _$UserModel {
     String? currentSessionId,
 
     // ═══════════════════════════════════════════════════════════════
-    // 🏢 MULTI-AGENCY SUPPORT FIELDS
-    // ═══════════════════════════════════════════════════════════════
-
-    /// Currently active agency ID for the user's session
-    /// This determines which agency's data the user sees
-    String? activeAgencyId,
-
-    /// Map of agency ID to user's role within that agency
-    /// Enables nurses to work across multiple healthcare organizations
-    @AgencyRoleMapConverter()
-    @Default({})
-    Map<String, AgencyRoleModel> agencyRoles,
-
-    // ═══════════════════════════════════════════════════════════════
-    // 🏠 INDEPENDENT NURSE SUPPORT FIELDS (NEW)
+    // 🏠 INDEPENDENT NURSE SUPPORT FIELDS
     // ═══════════════════════════════════════════════════════════════
 
     /// Indicates if the nurse can operate independently (self-employed)

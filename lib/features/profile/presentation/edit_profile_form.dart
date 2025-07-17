@@ -1,4 +1,4 @@
-// 📁 lib/features/profile/presentation/edit_profile_form.dart (UPDATED)
+// 📁 lib/features/profile/presentation/edit_profile_form.dart (UPDATED - NULL SAFETY)
 
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -30,15 +30,13 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
   // Healthcare professional controllers
   late TextEditingController _licenseNumberController;
   late TextEditingController _specialtyController;
-  late TextEditingController _departmentController;
-  late TextEditingController _phoneExtensionController;
+
+  // Independent practice controllers
+  late TextEditingController _businessNameController;
 
   // Dropdowns and selections
-  String? _selectedShift;
   DateTime? _licenseExpiry;
-  DateTime? _hireDate;
   List<String> _selectedCertifications = [];
-  bool _isOnDuty = false;
 
   File? _selectedImageFile;
 
@@ -48,25 +46,71 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
 
     final user = ref.read(userProfileStreamProvider).value;
 
-    // Initialize basic controllers
+    // ✅ SAFE: Basic controllers (existing fields)
     _firstNameController = TextEditingController(text: user?.firstName ?? '');
     _lastNameController = TextEditingController(text: user?.lastName ?? '');
 
-    // Initialize healthcare controllers
-    _licenseNumberController =
-        TextEditingController(text: user?.licenseNumber ?? '');
-    _specialtyController = TextEditingController(text: user?.specialty ?? '');
-    _departmentController =
-        TextEditingController(text: user?.department ?? user?.unit ?? '');
-    _phoneExtensionController =
-        TextEditingController(text: user?.phoneExtension ?? '');
+    // ✅ SAFE: Professional controllers with null safety
+    _licenseNumberController = TextEditingController(
+      text: _safeGetString(user, 'licenseNumber'),
+    );
+    _specialtyController = TextEditingController(
+      text: _safeGetString(user, 'specialty'),
+    );
 
-    // Initialize other fields
-    _selectedShift = user?.shift;
-    _licenseExpiry = user?.licenseExpiry;
-    _hireDate = user?.hireDate;
-    _selectedCertifications = List.from(user?.certifications ?? []);
-    _isOnDuty = user?.isOnDuty ?? false;
+    // ✅ SAFE: Independent practice controller
+    _businessNameController = TextEditingController(
+      text: _safeGetString(user, 'businessName'),
+    );
+
+    // ✅ SAFE: Initialize optional fields with null safety
+    _licenseExpiry = _safeGetDateTime(user, 'licenseExpiry');
+    _selectedCertifications = _safeGetStringList(user, 'certifications');
+  }
+
+  // 🛡️ SAFETY HELPERS: Handle potential missing fields gracefully
+  String _safeGetString(dynamic user, String fieldName) {
+    try {
+      switch (fieldName) {
+        case 'licenseNumber':
+          return user?.licenseNumber?.trim() ?? '';
+        case 'specialty':
+          return user?.specialty?.trim() ?? '';
+        case 'businessName':
+          return user?.businessName?.trim() ?? '';
+        default:
+          return '';
+      }
+    } catch (e) {
+      return '';
+    }
+  }
+
+  DateTime? _safeGetDateTime(dynamic user, String fieldName) {
+    try {
+      switch (fieldName) {
+        case 'licenseExpiry':
+          return user?.licenseExpiry;
+        default:
+          return null;
+      }
+    } catch (e) {
+      return null;
+    }
+  }
+
+  List<String> _safeGetStringList(dynamic user, String fieldName) {
+    try {
+      switch (fieldName) {
+        case 'certifications':
+          final certs = user?.certifications;
+          return certs is List ? List<String>.from(certs) : <String>[];
+        default:
+          return <String>[];
+      }
+    } catch (e) {
+      return <String>[];
+    }
   }
 
   @override
@@ -75,8 +119,7 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
     _lastNameController.dispose();
     _licenseNumberController.dispose();
     _specialtyController.dispose();
-    _departmentController.dispose();
-    _phoneExtensionController.dispose();
+    _businessNameController.dispose();
     super.dispose();
   }
 
@@ -154,125 +197,75 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
 
             const SizedBox(height: SpacingTokens.lg),
 
-            // Professional Credentials
-            FormCard(
-              title: 'Professional Credentials',
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _licenseNumberController,
-                    decoration: const InputDecoration(
-                      labelText: 'License Number',
-                      hintText: 'e.g., RN123456',
-                      prefixIcon: Icon(Icons.badge),
-                    ),
-                  ),
-                  const SizedBox(height: SpacingTokens.md),
-
-                  // License Expiry Date
-                  InkWell(
-                    onTap: _selectLicenseExpiry,
-                    child: InputDecorator(
+            // ✅ SAFE: Only show professional section if user has data or is editing
+            if (_shouldShowProfessionalSection())
+              FormCard(
+                title: 'Professional Credentials',
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _licenseNumberController,
                       decoration: const InputDecoration(
-                        labelText: 'License Expiry',
-                        prefixIcon: Icon(Icons.calendar_today),
-                        suffixIcon: Icon(Icons.arrow_drop_down),
-                      ),
-                      child: Text(
-                        _licenseExpiry != null
-                            ? '${_licenseExpiry!.month.toString().padLeft(2, '0')}/${_licenseExpiry!.year}'
-                            : 'Select expiry date',
+                        labelText: 'License Number',
+                        hintText: 'e.g., RN123456',
+                        prefixIcon: Icon(Icons.badge),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: SpacingTokens.md),
+                    const SizedBox(height: SpacingTokens.md),
 
-                  TextFormField(
-                    controller: _specialtyController,
-                    decoration: const InputDecoration(
-                      labelText: 'Specialty',
-                      hintText: 'e.g., Critical Care, Med-Surg, ER',
-                      prefixIcon: Icon(Icons.local_hospital),
+                    // License Expiry Date
+                    InkWell(
+                      onTap: _selectLicenseExpiry,
+                      child: InputDecorator(
+                        decoration: const InputDecoration(
+                          labelText: 'License Expiry',
+                          prefixIcon: Icon(Icons.calendar_today),
+                          suffixIcon: Icon(Icons.arrow_drop_down),
+                        ),
+                        child: Text(
+                          _licenseExpiry != null
+                              ? '${_licenseExpiry!.month.toString().padLeft(2, '0')}/${_licenseExpiry!.year}'
+                              : 'Select expiry date',
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: SpacingTokens.md),
+                    const SizedBox(height: SpacingTokens.md),
 
-                  // Certifications
-                  _buildCertificationsField(),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: SpacingTokens.lg),
-
-            // Work Information
-            FormCard(
-              title: 'Work Information',
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _departmentController,
-                    decoration: const InputDecoration(
-                      labelText: 'Department/Unit',
-                      hintText: 'e.g., ICU, Med-Surg Floor 3',
-                      prefixIcon: Icon(Icons.business),
-                    ),
-                  ),
-                  const SizedBox(height: SpacingTokens.md),
-
-                  // Shift Dropdown
-                  DropdownButtonFormField<String>(
-                    value: _selectedShift,
-                    decoration: const InputDecoration(
-                      labelText: 'Shift',
-                      prefixIcon: Icon(Icons.schedule),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'day', child: Text('Day Shift')),
-                      DropdownMenuItem(
-                          value: 'evening', child: Text('Evening Shift')),
-                      DropdownMenuItem(
-                          value: 'night', child: Text('Night Shift')),
-                      DropdownMenuItem(
-                          value: 'rotating', child: Text('Rotating')),
-                    ],
-                    onChanged: (value) =>
-                        setState(() => _selectedShift = value),
-                  ),
-                  const SizedBox(height: SpacingTokens.md),
-
-                  TextFormField(
-                    controller: _phoneExtensionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Phone Extension',
-                      hintText: 'e.g., 4521',
-                      prefixIcon: Icon(Icons.phone),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: SpacingTokens.md),
-
-                  // Hire Date
-                  InkWell(
-                    onTap: _selectHireDate,
-                    child: InputDecorator(
+                    TextFormField(
+                      controller: _specialtyController,
                       decoration: const InputDecoration(
-                        labelText: 'Hire Date',
-                        prefixIcon: Icon(Icons.work),
-                        suffixIcon: Icon(Icons.arrow_drop_down),
-                      ),
-                      child: Text(
-                        _hireDate != null
-                            ? '${_hireDate!.month}/${_hireDate!.day}/${_hireDate!.year}'
-                            : 'Select hire date',
+                        labelText: 'Specialty',
+                        hintText: 'e.g., Critical Care, Med-Surg, ER',
+                        prefixIcon: Icon(Icons.local_hospital),
                       ),
                     ),
-                  ),
+                    const SizedBox(height: SpacingTokens.md),
 
-                  // Remove the On Duty Toggle - we'll move it to main profile screen
-                ],
+                    // Certifications
+                    _buildCertificationsField(),
+                  ],
+                ),
               ),
-            ),
+
+            // ✅ CONDITIONAL: Independent Practice section (only for independent nurses)
+            if (user.isIndependentNurse == true) ...[
+              const SizedBox(height: SpacingTokens.lg),
+              FormCard(
+                title: 'Independent Practice',
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _businessNameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Business Name',
+                        hintText: 'e.g., Smith Home Care Services',
+                        prefixIcon: Icon(Icons.business_center),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
 
             const SizedBox(height: SpacingTokens.xl),
 
@@ -289,6 +282,15 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
         ),
       ),
     );
+  }
+
+  // ✅ SAFE: Only show professional section if user has data or is actively editing
+  bool _shouldShowProfessionalSection() {
+    // Always show if user is filling out any professional field
+    return _licenseNumberController.text.isNotEmpty ||
+        _specialtyController.text.isNotEmpty ||
+        _selectedCertifications.isNotEmpty ||
+        _licenseExpiry != null;
   }
 
   Widget _buildCertificationsField() {
@@ -338,7 +340,7 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
 
   Future<void> _pickImage() async {
     try {
-      // Use your existing image picker utility
+      // ✅ SAFE: Use existing function name from your codebase
       final imageFile = await pickAndCropImage(
         context: context,
         isCircular: true, // Circular crop for profile avatars
@@ -366,28 +368,22 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
     }
   }
 
-  Future<void> _selectHireDate() async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: _hireDate ?? DateTime.now(),
-      firstDate: DateTime(1980),
-      lastDate: DateTime.now(),
-    );
-    if (date != null) {
-      setState(() => _hireDate = date);
-    }
-  }
-
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // ✅ FIX: Get user reference in the correct scope
+    final user = ref.read(userProfileStreamProvider).value;
+    if (user == null) return;
+
     try {
-      // Use the correct provider name from your existing code
+      // ✅ COMPLETE: Use extended updateUser method with only user-editable fields
       await ref.read(userProfileControllerProvider.notifier).updateUser(
+            // Basic fields (required)
             firstName: _firstNameController.text.trim(),
             lastName: _lastNameController.text.trim(),
             photoFile: _selectedImageFile,
-            // Healthcare fields - will need to add these to the updateUser method
+
+            // Professional credentials (optional)
             licenseNumber: _licenseNumberController.text.trim().isNotEmpty
                 ? _licenseNumberController.text.trim()
                 : null,
@@ -395,16 +391,15 @@ class _EditProfileFormState extends ConsumerState<EditProfileForm> {
             specialty: _specialtyController.text.trim().isNotEmpty
                 ? _specialtyController.text.trim()
                 : null,
-            department: _departmentController.text.trim().isNotEmpty
-                ? _departmentController.text.trim()
+            certifications: _selectedCertifications.isNotEmpty
+                ? _selectedCertifications
                 : null,
-            shift: _selectedShift,
-            phoneExtension: _phoneExtensionController.text.trim().isNotEmpty
-                ? _phoneExtensionController.text.trim()
+
+            // ✅ FIXED: Independent practice fields (if applicable)
+            businessName: user.isIndependentNurse &&
+                    _businessNameController.text.trim().isNotEmpty
+                ? _businessNameController.text.trim()
                 : null,
-            hireDate: _hireDate,
-            certifications: _selectedCertifications,
-            // Removed isOnDuty - now handled on main profile screen
           );
 
       if (mounted) {

@@ -30,11 +30,6 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
       lastStatusChange:
           const TimestampConverter().fromJson(json['lastStatusChange']),
       currentSessionId: json['currentSessionId'] as String?,
-      activeAgencyId: json['activeAgencyId'] as String?,
-      agencyRoles: json['agencyRoles'] == null
-          ? const {}
-          : const AgencyRoleMapConverter()
-              .fromJson(json['agencyRoles'] as Map<String, dynamic>),
       isIndependentNurse: json['isIndependentNurse'] as bool? ?? false,
       businessName: json['businessName'] as String?,
       level: (json['level'] as num?)?.toInt() ?? 1,
@@ -69,9 +64,6 @@ Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
       'lastStatusChange':
           const TimestampConverter().toJson(instance.lastStatusChange),
       'currentSessionId': instance.currentSessionId,
-      'activeAgencyId': instance.activeAgencyId,
-      'agencyRoles':
-          const AgencyRoleMapConverter().toJson(instance.agencyRoles),
       'isIndependentNurse': instance.isIndependentNurse,
       'businessName': instance.businessName,
       'level': instance.level,

@@ -1,7 +1,6 @@
-// 📁 lib/features/profile/widgets/professional_info_card.dart
+// 📁 lib/features/profile/widgets/professional_info_card.dart (UPDATED - NO WORK HISTORY)
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:nurseos_v3/features/auth/models/user_model.dart';
 import 'package:nurseos_v3/core/theme/spacing.dart';
 import 'package:nurseos_v3/core/theme/app_colors.dart';
@@ -46,18 +45,34 @@ class ProfessionalInfoCard extends StatelessWidget {
           ),
           const SizedBox(height: SpacingTokens.sm),
 
-          // Department/Unit
-          _buildInfoRow(
-            context,
-            icon: Icons.local_hospital,
-            label: 'Department',
-            value: user.department ?? user.unit ?? 'Not assigned',
-            colors: colors,
-          ),
-          const SizedBox(height: SpacingTokens.sm),
+          // Specialty
+          if (user.specialty != null) ...[
+            _buildInfoRow(
+              context,
+              icon: Icons.local_hospital,
+              label: 'Specialty',
+              value: user.specialty!,
+              colors: colors,
+            ),
+            const SizedBox(height: SpacingTokens.sm),
+          ],
 
-          // Shift & Extension
-          if (user.shift != null || user.phoneExtension != null) ...[
+          // Department/Unit (only for agency nurses)
+          if (!user.isIndependentNurse &&
+              (user.department != null || user.unit != null)) ...[
+            _buildInfoRow(
+              context,
+              icon: Icons.business,
+              label: 'Department',
+              value: user.department ?? user.unit ?? 'Not assigned',
+              colors: colors,
+            ),
+            const SizedBox(height: SpacingTokens.sm),
+          ],
+
+          // Shift & Extension (only for agency nurses)
+          if (!user.isIndependentNurse &&
+              (user.shift != null || user.phoneExtension != null)) ...[
             _buildInfoRow(
               context,
               icon: Icons.schedule,
@@ -68,19 +83,8 @@ class ProfessionalInfoCard extends StatelessWidget {
             const SizedBox(height: SpacingTokens.sm),
           ],
 
-          // Work History Link
-          _buildInfoRow(
-            context,
-            icon: Icons.history,
-            label: 'Work History',
-            value: 'View all shifts',
-            colors: colors,
-            onTap: () => context.push('/work-history'),
-          ),
-
           // Certifications
           if (user.certifications?.isNotEmpty == true) ...[
-            const SizedBox(height: SpacingTokens.sm),
             _buildInfoRow(
               context,
               icon: Icons.verified,
@@ -105,7 +109,14 @@ class ProfessionalInfoCard extends StatelessWidget {
   }) {
     final row = Row(
       children: [
-        Icon(icon, size: 20, color: colors.brandPrimary),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: colors.brandPrimary.withAlpha(26),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(icon, size: 20, color: colors.brandPrimary),
+        ),
         const SizedBox(width: SpacingTokens.sm),
         Expanded(
           child: Column(

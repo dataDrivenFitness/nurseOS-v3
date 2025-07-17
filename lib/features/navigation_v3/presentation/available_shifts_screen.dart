@@ -101,27 +101,40 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
   }
 
   /// Tab 1: Agency Shifts - UPDATED: Real data from shiftPoolProvider
+  /// Tab 1: Agency Shifts - UPDATED: Real data from shiftPoolProvider
   Widget _buildAgencyShiftsTab(UserModel user) {
     final agencyShiftsAsync = ref.watch(shiftPoolProvider);
     final currentAgencyId = ref.watch(currentAgencyIdProvider);
 
     return agencyShiftsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => _buildErrorState(
-        icon: Icons.error_outline,
-        title: 'Unable to Load Shifts',
-        subtitle: currentAgencyId == null
-            ? 'No agency selected. Please contact admin to assign you to an agency.'
-            : 'Check your connection and try again.',
-        actionLabel: currentAgencyId != null ? 'Retry' : null,
-        onAction: currentAgencyId != null
-            ? () {
-                // Trigger refresh by invalidating the provider
-                ref.invalidate(shiftPoolProvider);
-              }
-            : null,
-      ),
+      loading: () {
+        print('🔍 UI: Loading state');
+        return const Center(child: CircularProgressIndicator());
+      },
+      error: (error, stack) {
+        print('🔍 UI: Error state - $error');
+        return _buildErrorState(
+          icon: Icons.error_outline,
+          title: 'Unable to Load Shifts',
+          subtitle: currentAgencyId == null
+              ? 'No agency selected. Please contact admin to assign you to an agency.'
+              : 'Check your connection and try again.',
+          actionLabel: currentAgencyId != null ? 'Retry' : null,
+          onAction: currentAgencyId != null
+              ? () {
+                  // Trigger refresh by invalidating the provider
+                  ref.invalidate(shiftPoolProvider);
+                }
+              : null,
+        );
+      },
       data: (shifts) {
+        print('🔍 UI: Data received - ${shifts.length} shifts');
+        for (int i = 0; i < shifts.length; i++) {
+          print(
+              '🔍 UI: Shift ${i + 1}: ${shifts[i].id} - Status: ${shifts[i].status} - AssignedTo: ${shifts[i].assignedTo}');
+        }
+
         // Filter only available shifts that aren't assigned
         final availableShifts = shifts
             .where((shift) =>
@@ -129,7 +142,15 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
                 (shift.assignedTo == null || shift.assignedTo!.isEmpty))
             .toList();
 
+        print(
+            '🔍 UI: Available shifts after filter - ${availableShifts.length}');
+        for (int i = 0; i < availableShifts.length; i++) {
+          print(
+              '🔍 UI: Available shift ${i + 1}: ${availableShifts[i].id} - Location: ${availableShifts[i].location}');
+        }
+
         if (availableShifts.isEmpty) {
+          print('🔍 UI: Showing empty state');
           return _buildEmptyState(
             icon: Icons.work_off,
             title: 'No Available Shifts',
@@ -139,6 +160,7 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
           );
         }
 
+        print('🔍 UI: Building ListView with ${availableShifts.length} shifts');
         return RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(shiftPoolProvider);
@@ -150,6 +172,7 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
             itemCount: availableShifts.length,
             itemBuilder: (context, index) {
               final shift = availableShifts[index];
+              print('🔍 UI: Building card for shift: ${shift.id}');
               return _buildAgencyShiftCard(shift, user);
             },
           ),
@@ -165,7 +188,7 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
     final controller = ref.read(shiftRequestControllerProvider);
 
     // Check if user has already requested this shift
-    final hasRequested = shift.requestedBy?.contains(user.uid) ?? false;
+    final hasRequested = shift.hasRequestedBy(user.uid);
 
     return Card(
       elevation: 2,
@@ -616,7 +639,7 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
       AppSnackbar.loading(scaffoldContext, 'Sending shift request...');
 
       // Use the real shift request controller
-      await controller.requestShift(shift.id, user.uid);
+      await controller.requestShift(shift.id, shift.agencyId!);
 
       // Show success
       if (mounted) {

@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:nurseos_v3/core/theme/spacing.dart';
 import 'package:nurseos_v3/core/theme/shape_tokens.dart';
+import 'package:nurseos_v3/shared/widgets/buttons/button_variants.dart';
 
 class SecondaryButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
   final Widget? icon;
+  final ButtonVariant variant;
 
   const SecondaryButton({
     super.key,
     required this.label,
     this.onPressed,
     this.icon,
+    this.variant = ButtonVariant.normal,
   });
 
   @override
@@ -40,9 +43,21 @@ class SecondaryButton extends StatelessWidget {
   }
 
   ButtonStyle _buttonStyle(ColorScheme colorScheme) {
+    // Determine colors based on variant
+    final Color foregroundColor;
+    final Color borderColor;
+
+    if (variant == ButtonVariant.destructive) {
+      foregroundColor = colorScheme.error;
+      borderColor = colorScheme.error.withAlpha(100);
+    } else {
+      foregroundColor = colorScheme.primary;
+      borderColor = colorScheme.outline.withAlpha(100);
+    }
+
     return OutlinedButton.styleFrom(
-      foregroundColor: colorScheme.primary,
-      side: BorderSide(color: colorScheme.outline.withAlpha(100)),
+      foregroundColor: foregroundColor,
+      side: BorderSide(color: borderColor),
       padding: const EdgeInsets.symmetric(
         vertical: SpacingTokens.md,
         horizontal: SpacingTokens.md,

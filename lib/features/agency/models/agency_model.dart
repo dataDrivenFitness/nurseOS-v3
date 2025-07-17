@@ -39,6 +39,15 @@ abstract class AgencyModel with _$AgencyModel {
     @TimestampConverter() DateTime? createdAt,
     @TimestampConverter() DateTime? updatedAt,
     String? createdBy, // uid of org creator/admin
+
+    // ═══════════════════════════════════════════════════════════════
+    // 👥 NURSE MEMBERSHIP CONTROL (NEW - SHIFT-CENTRIC ARCHITECTURE)
+    // ═══════════════════════════════════════════════════════════════
+
+    /// List of nurse UIDs who are members of this agency
+    /// This is the authoritative source for agency-nurse relationships
+    /// Replaces the bidirectional agencyRoles in UserModel
+    @Default([]) List<String> nurseIds,
   }) = _AgencyModel;
 
   const AgencyModel._();
@@ -78,6 +87,29 @@ abstract class AgencyModel with _$AgencyModel {
   T? getSetting<T>(String key) {
     final value = settings[key];
     return value is T ? value : null;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 👥 NURSE MEMBERSHIP METHODS
+  // ═══════════════════════════════════════════════════════════════
+
+  /// Check if a nurse is a member of this agency
+  bool includesNurse(String nurseUid) {
+    return nurseIds.contains(nurseUid);
+  }
+
+  /// Get count of nurses in this agency
+  int get nurseCount => nurseIds.length;
+
+  /// Add a nurse to this agency
+  AgencyModel addNurse(String nurseUid) {
+    if (includesNurse(nurseUid)) return this; // Already included
+    return copyWith(nurseIds: [...nurseIds, nurseUid]);
+  }
+
+  /// Remove a nurse from this agency
+  AgencyModel removeNurse(String nurseUid) {
+    return copyWith(nurseIds: nurseIds.where((id) => id != nurseUid).toList());
   }
 
   /// Create agency with default settings based on type

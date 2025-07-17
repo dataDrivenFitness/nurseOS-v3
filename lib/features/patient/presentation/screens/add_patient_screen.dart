@@ -82,7 +82,7 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
   void initState() {
     super.initState();
     _mrnController.addListener(_checkMrn);
-    _initializeAgencyContext();
+    _initializeContext();
   }
 
   @override
@@ -103,19 +103,13 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
     super.dispose();
   }
 
-  /// 🆕 Initialize agency context and set defaults
-  void _initializeAgencyContext() {
-    final user = ref.read(authControllerProvider).value;
-    if (user?.activeAgencyId != null) {
-      _selectedAgencyId = user!.activeAgencyId;
-      _loadAvailableShifts();
-    }
+  /// 🆕 Initialize context from shifts - removed agency references
+  void _initializeContext() {
+    _loadAvailableShifts();
   }
 
-  /// 🆕 Load available shifts for selected agency
+  /// 🆕 Load available shifts for nurse across all agencies
   Future<void> _loadAvailableShifts() async {
-    if (_selectedAgencyId == null) return;
-
     final user = ref.read(authControllerProvider).value;
     if (user == null) return;
 
@@ -125,11 +119,9 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
       final todayStart = DateTime(now.year, now.month, now.day);
       final weekFromNow = now.add(const Duration(days: 7));
 
-      // Query for nurse's shifts in the selected agency within the next week
+      // Query for nurse's shifts across ALL agencies using collection group
       final query = await firestore
-          .collection('agencies')
-          .doc(_selectedAgencyId!)
-          .collection('scheduledShifts')
+          .collectionGroup('scheduledShifts')
           .where('assignedTo', isEqualTo: user.uid)
           .where('startTime',
               isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart))
@@ -141,6 +133,11 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
       final shifts = query.docs.map((doc) {
         final data = doc.data();
         data['id'] = doc.id;
+        // Extract agencyId from document path: agencies/{agencyId}/scheduledShifts/{shiftId}
+        final pathSegments = doc.reference.path.split('/');
+        if (pathSegments.length >= 2 && pathSegments[0] == 'agencies') {
+          data['agencyId'] = pathSegments[1];
+        }
         return ScheduledShiftModel.fromJson(data);
       }).toList();
 
@@ -150,6 +147,7 @@ class _AddPatientScreenState extends ConsumerState<AddPatientScreen> {
         if (shifts.isNotEmpty) {
           _createNewShift = false;
           _selectedShiftId = shifts.first.id;
+          _selectedAgencyId = shifts.first.agencyId;
         }
       });
     } catch (e) {

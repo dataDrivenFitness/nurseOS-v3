@@ -1,4 +1,5 @@
-// 📁 lib/features/profile/presentation/profile_screen.dart
+// 📁 lib/features/profile/presentation/profile_screen.dart (UPDATED BUTTON HIERARCHY)
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,15 +10,15 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../shared/widgets/nurse_scaffold.dart';
 import '../../../shared/widgets/buttons/primary_button.dart';
+import '../../../shared/widgets/buttons/secondary_button.dart';
+import '../../../shared/widgets/buttons/button_variants.dart'; // ✅ ADDED
 import '../../auth/state/auth_controller.dart';
 import '../../preferences/controllers/locale_controller.dart';
 import '../../profile/state/user_profile_controller.dart';
-import '../../work_history/state/work_history_controller.dart';
 
-// Import profile widgets (these should already exist based on your previous conversation)
+// Import profile widgets (cleaned up - removed work session widgets)
 import '../widgets/profile_header.dart';
 import '../widgets/profile_action_buttons.dart';
-import '../widgets/current_session_card.dart';
 import '../widgets/professional_info_card.dart';
 import '../widgets/app_settings_card.dart';
 import '../widgets/support_info_card.dart';
@@ -36,61 +37,29 @@ class ProfileScreen extends ConsumerWidget {
         ref.watch(localeStreamProvider).valueOrNull ?? const Locale('en');
     final themeAsync = ref.watch(themeModeStreamProvider);
     final isDark = themeAsync.valueOrNull == ThemeMode.dark;
-    final currentSessionAsync = ref.watch(currentWorkSessionStreamProvider);
 
     if (user == null) return const SizedBox.shrink();
 
     return NurseScaffold(
       child: CustomScrollView(
         slivers: [
-          // Profile Header
+          // Profile Header (simplified - no session data)
           SliverToBoxAdapter(
-            child: ProfileHeader(
-              user: user,
-              currentSession: currentSessionAsync.valueOrNull,
-            ),
+            child: ProfileHeader(user: user),
           ),
 
-          // Action Buttons (Edit Profile & Duty Toggle)
+          // Action Buttons (simplified - no duty toggle)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.lg),
               child: ProfileActionButtons(
                 user: user,
-                currentSession: currentSessionAsync.valueOrNull,
                 onEditProfile: () => context.push('/edit-profile'),
               ),
             ),
           ),
 
           const SliverToBoxAdapter(child: SizedBox(height: SpacingTokens.lg)),
-
-          // Current Session Card (if active)
-          currentSessionAsync.when(
-            data: (session) => session != null
-                ? SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: SpacingTokens.lg),
-                      child: CurrentSessionCard(session: session),
-                    ),
-                  )
-                : const SliverToBoxAdapter(child: SizedBox.shrink()),
-            loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
-            error: (_, __) =>
-                const SliverToBoxAdapter(child: SizedBox.shrink()),
-          ),
-
-          // Add spacing if session card is shown
-          currentSessionAsync.when(
-            data: (session) => session != null
-                ? const SliverToBoxAdapter(
-                    child: SizedBox(height: SpacingTokens.lg))
-                : const SliverToBoxAdapter(child: SizedBox.shrink()),
-            loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
-            error: (_, __) =>
-                const SliverToBoxAdapter(child: SizedBox.shrink()),
-          ),
 
           // Professional Information Card
           SliverToBoxAdapter(
@@ -126,7 +95,7 @@ class ProfileScreen extends ConsumerWidget {
 
           const SliverToBoxAdapter(child: SizedBox(height: SpacingTokens.lg)),
 
-          // Logout Button
+          // ✅ UPDATED: Logout Button (Red Destructive)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.lg),
@@ -134,7 +103,7 @@ class ProfileScreen extends ConsumerWidget {
                 label: l10n.logOut,
                 onPressed: () => _showLogoutConfirmation(context, ref),
                 icon: const Icon(Icons.logout),
-                backgroundColor: colors.brandPrimary,
+                variant: ButtonVariant.destructive,
               ),
             ),
           ),
@@ -164,6 +133,10 @@ class ProfileScreen extends ConsumerWidget {
               await ref.read(authControllerProvider.notifier).signOut();
               if (context.mounted) context.go('/login');
             },
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+              foregroundColor: Theme.of(dialogContext).colorScheme.onError,
+            ),
             child: const Text('Logout'),
           ),
         ],

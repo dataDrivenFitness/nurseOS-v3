@@ -73,18 +73,7 @@ mixin _$UserModel {
   /// Points to: /users/{uid}/workHistory/{sessionId}
   String?
       get currentSessionId; // ═══════════════════════════════════════════════════════════════
-// 🏢 MULTI-AGENCY SUPPORT FIELDS
-// ═══════════════════════════════════════════════════════════════
-  /// Currently active agency ID for the user's session
-  /// This determines which agency's data the user sees
-  String? get activeAgencyId;
-
-  /// Map of agency ID to user's role within that agency
-  /// Enables nurses to work across multiple healthcare organizations
-  @AgencyRoleMapConverter()
-  Map<String, AgencyRoleModel>
-      get agencyRoles; // ═══════════════════════════════════════════════════════════════
-// 🏠 INDEPENDENT NURSE SUPPORT FIELDS (NEW)
+// 🏠 INDEPENDENT NURSE SUPPORT FIELDS
 // ═══════════════════════════════════════════════════════════════
   /// Indicates if the nurse can operate independently (self-employed)
   /// When true, nurse can create their own shifts and manage patients
@@ -160,10 +149,6 @@ mixin _$UserModel {
                 other.lastStatusChange == lastStatusChange) &&
             (identical(other.currentSessionId, currentSessionId) ||
                 other.currentSessionId == currentSessionId) &&
-            (identical(other.activeAgencyId, activeAgencyId) ||
-                other.activeAgencyId == activeAgencyId) &&
-            const DeepCollectionEquality()
-                .equals(other.agencyRoles, agencyRoles) &&
             (identical(other.isIndependentNurse, isIndependentNurse) ||
                 other.isIndependentNurse == isIndependentNurse) &&
             (identical(other.businessName, businessName) ||
@@ -197,8 +182,6 @@ mixin _$UserModel {
         isOnDuty,
         lastStatusChange,
         currentSessionId,
-        activeAgencyId,
-        const DeepCollectionEquality().hash(agencyRoles),
         isIndependentNurse,
         businessName,
         level,
@@ -208,7 +191,7 @@ mixin _$UserModel {
 
   @override
   String toString() {
-    return 'UserModel(uid: $uid, firstName: $firstName, lastName: $lastName, email: $email, photoUrl: $photoUrl, createdAt: $createdAt, authProvider: $authProvider, role: $role, licenseNumber: $licenseNumber, licenseExpiry: $licenseExpiry, specialty: $specialty, department: $department, unit: $unit, shift: $shift, phoneExtension: $phoneExtension, hireDate: $hireDate, certifications: $certifications, isOnDuty: $isOnDuty, lastStatusChange: $lastStatusChange, currentSessionId: $currentSessionId, activeAgencyId: $activeAgencyId, agencyRoles: $agencyRoles, isIndependentNurse: $isIndependentNurse, businessName: $businessName, level: $level, xp: $xp, badges: $badges)';
+    return 'UserModel(uid: $uid, firstName: $firstName, lastName: $lastName, email: $email, photoUrl: $photoUrl, createdAt: $createdAt, authProvider: $authProvider, role: $role, licenseNumber: $licenseNumber, licenseExpiry: $licenseExpiry, specialty: $specialty, department: $department, unit: $unit, shift: $shift, phoneExtension: $phoneExtension, hireDate: $hireDate, certifications: $certifications, isOnDuty: $isOnDuty, lastStatusChange: $lastStatusChange, currentSessionId: $currentSessionId, isIndependentNurse: $isIndependentNurse, businessName: $businessName, level: $level, xp: $xp, badges: $badges)';
   }
 }
 
@@ -238,8 +221,6 @@ abstract mixin class $UserModelCopyWith<$Res> {
       bool? isOnDuty,
       @TimestampConverter() DateTime? lastStatusChange,
       String? currentSessionId,
-      String? activeAgencyId,
-      @AgencyRoleMapConverter() Map<String, AgencyRoleModel> agencyRoles,
       bool isIndependentNurse,
       String? businessName,
       int level,
@@ -279,8 +260,6 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
     Object? isOnDuty = freezed,
     Object? lastStatusChange = freezed,
     Object? currentSessionId = freezed,
-    Object? activeAgencyId = freezed,
-    Object? agencyRoles = null,
     Object? isIndependentNurse = null,
     Object? businessName = freezed,
     Object? level = null,
@@ -368,14 +347,6 @@ class _$UserModelCopyWithImpl<$Res> implements $UserModelCopyWith<$Res> {
           ? _self.currentSessionId
           : currentSessionId // ignore: cast_nullable_to_non_nullable
               as String?,
-      activeAgencyId: freezed == activeAgencyId
-          ? _self.activeAgencyId
-          : activeAgencyId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      agencyRoles: null == agencyRoles
-          ? _self.agencyRoles
-          : agencyRoles // ignore: cast_nullable_to_non_nullable
-              as Map<String, AgencyRoleModel>,
       isIndependentNurse: null == isIndependentNurse
           ? _self.isIndependentNurse
           : isIndependentNurse // ignore: cast_nullable_to_non_nullable
@@ -514,8 +485,6 @@ extension UserModelPatterns on UserModel {
             bool? isOnDuty,
             @TimestampConverter() DateTime? lastStatusChange,
             String? currentSessionId,
-            String? activeAgencyId,
-            @AgencyRoleMapConverter() Map<String, AgencyRoleModel> agencyRoles,
             bool isIndependentNurse,
             String? businessName,
             int level,
@@ -548,8 +517,6 @@ extension UserModelPatterns on UserModel {
             _that.isOnDuty,
             _that.lastStatusChange,
             _that.currentSessionId,
-            _that.activeAgencyId,
-            _that.agencyRoles,
             _that.isIndependentNurse,
             _that.businessName,
             _that.level,
@@ -596,8 +563,6 @@ extension UserModelPatterns on UserModel {
             bool? isOnDuty,
             @TimestampConverter() DateTime? lastStatusChange,
             String? currentSessionId,
-            String? activeAgencyId,
-            @AgencyRoleMapConverter() Map<String, AgencyRoleModel> agencyRoles,
             bool isIndependentNurse,
             String? businessName,
             int level,
@@ -629,8 +594,6 @@ extension UserModelPatterns on UserModel {
             _that.isOnDuty,
             _that.lastStatusChange,
             _that.currentSessionId,
-            _that.activeAgencyId,
-            _that.agencyRoles,
             _that.isIndependentNurse,
             _that.businessName,
             _that.level,
@@ -676,8 +639,6 @@ extension UserModelPatterns on UserModel {
             bool? isOnDuty,
             @TimestampConverter() DateTime? lastStatusChange,
             String? currentSessionId,
-            String? activeAgencyId,
-            @AgencyRoleMapConverter() Map<String, AgencyRoleModel> agencyRoles,
             bool isIndependentNurse,
             String? businessName,
             int level,
@@ -709,8 +670,6 @@ extension UserModelPatterns on UserModel {
             _that.isOnDuty,
             _that.lastStatusChange,
             _that.currentSessionId,
-            _that.activeAgencyId,
-            _that.agencyRoles,
             _that.isIndependentNurse,
             _that.businessName,
             _that.level,
@@ -746,16 +705,12 @@ class _UserModel implements UserModel {
       this.isOnDuty,
       @TimestampConverter() this.lastStatusChange,
       this.currentSessionId,
-      this.activeAgencyId,
-      @AgencyRoleMapConverter()
-      final Map<String, AgencyRoleModel> agencyRoles = const {},
       this.isIndependentNurse = false,
       this.businessName,
       this.level = 1,
       this.xp = 0,
       final List<String> badges = const []})
       : _certifications = certifications,
-        _agencyRoles = agencyRoles,
         _badges = badges;
   factory _UserModel.fromJson(Map<String, dynamic> json) =>
       _$UserModelFromJson(json);
@@ -849,30 +804,7 @@ class _UserModel implements UserModel {
   @override
   final String? currentSessionId;
 // ═══════════════════════════════════════════════════════════════
-// 🏢 MULTI-AGENCY SUPPORT FIELDS
-// ═══════════════════════════════════════════════════════════════
-  /// Currently active agency ID for the user's session
-  /// This determines which agency's data the user sees
-  @override
-  final String? activeAgencyId;
-
-  /// Map of agency ID to user's role within that agency
-  /// Enables nurses to work across multiple healthcare organizations
-  final Map<String, AgencyRoleModel> _agencyRoles;
-
-  /// Map of agency ID to user's role within that agency
-  /// Enables nurses to work across multiple healthcare organizations
-  @override
-  @JsonKey()
-  @AgencyRoleMapConverter()
-  Map<String, AgencyRoleModel> get agencyRoles {
-    if (_agencyRoles is EqualUnmodifiableMapView) return _agencyRoles;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(_agencyRoles);
-  }
-
-// ═══════════════════════════════════════════════════════════════
-// 🏠 INDEPENDENT NURSE SUPPORT FIELDS (NEW)
+// 🏠 INDEPENDENT NURSE SUPPORT FIELDS
 // ═══════════════════════════════════════════════════════════════
   /// Indicates if the nurse can operate independently (self-employed)
   /// When true, nurse can create their own shifts and manage patients
@@ -970,10 +902,6 @@ class _UserModel implements UserModel {
                 other.lastStatusChange == lastStatusChange) &&
             (identical(other.currentSessionId, currentSessionId) ||
                 other.currentSessionId == currentSessionId) &&
-            (identical(other.activeAgencyId, activeAgencyId) ||
-                other.activeAgencyId == activeAgencyId) &&
-            const DeepCollectionEquality()
-                .equals(other._agencyRoles, _agencyRoles) &&
             (identical(other.isIndependentNurse, isIndependentNurse) ||
                 other.isIndependentNurse == isIndependentNurse) &&
             (identical(other.businessName, businessName) ||
@@ -1007,8 +935,6 @@ class _UserModel implements UserModel {
         isOnDuty,
         lastStatusChange,
         currentSessionId,
-        activeAgencyId,
-        const DeepCollectionEquality().hash(_agencyRoles),
         isIndependentNurse,
         businessName,
         level,
@@ -1018,7 +944,7 @@ class _UserModel implements UserModel {
 
   @override
   String toString() {
-    return 'UserModel(uid: $uid, firstName: $firstName, lastName: $lastName, email: $email, photoUrl: $photoUrl, createdAt: $createdAt, authProvider: $authProvider, role: $role, licenseNumber: $licenseNumber, licenseExpiry: $licenseExpiry, specialty: $specialty, department: $department, unit: $unit, shift: $shift, phoneExtension: $phoneExtension, hireDate: $hireDate, certifications: $certifications, isOnDuty: $isOnDuty, lastStatusChange: $lastStatusChange, currentSessionId: $currentSessionId, activeAgencyId: $activeAgencyId, agencyRoles: $agencyRoles, isIndependentNurse: $isIndependentNurse, businessName: $businessName, level: $level, xp: $xp, badges: $badges)';
+    return 'UserModel(uid: $uid, firstName: $firstName, lastName: $lastName, email: $email, photoUrl: $photoUrl, createdAt: $createdAt, authProvider: $authProvider, role: $role, licenseNumber: $licenseNumber, licenseExpiry: $licenseExpiry, specialty: $specialty, department: $department, unit: $unit, shift: $shift, phoneExtension: $phoneExtension, hireDate: $hireDate, certifications: $certifications, isOnDuty: $isOnDuty, lastStatusChange: $lastStatusChange, currentSessionId: $currentSessionId, isIndependentNurse: $isIndependentNurse, businessName: $businessName, level: $level, xp: $xp, badges: $badges)';
   }
 }
 
@@ -1051,8 +977,6 @@ abstract mixin class _$UserModelCopyWith<$Res>
       bool? isOnDuty,
       @TimestampConverter() DateTime? lastStatusChange,
       String? currentSessionId,
-      String? activeAgencyId,
-      @AgencyRoleMapConverter() Map<String, AgencyRoleModel> agencyRoles,
       bool isIndependentNurse,
       String? businessName,
       int level,
@@ -1092,8 +1016,6 @@ class __$UserModelCopyWithImpl<$Res> implements _$UserModelCopyWith<$Res> {
     Object? isOnDuty = freezed,
     Object? lastStatusChange = freezed,
     Object? currentSessionId = freezed,
-    Object? activeAgencyId = freezed,
-    Object? agencyRoles = null,
     Object? isIndependentNurse = null,
     Object? businessName = freezed,
     Object? level = null,
@@ -1181,14 +1103,6 @@ class __$UserModelCopyWithImpl<$Res> implements _$UserModelCopyWith<$Res> {
           ? _self.currentSessionId
           : currentSessionId // ignore: cast_nullable_to_non_nullable
               as String?,
-      activeAgencyId: freezed == activeAgencyId
-          ? _self.activeAgencyId
-          : activeAgencyId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      agencyRoles: null == agencyRoles
-          ? _self._agencyRoles
-          : agencyRoles // ignore: cast_nullable_to_non_nullable
-              as Map<String, AgencyRoleModel>,
       isIndependentNurse: null == isIndependentNurse
           ? _self.isIndependentNurse
           : isIndependentNurse // ignore: cast_nullable_to_non_nullable

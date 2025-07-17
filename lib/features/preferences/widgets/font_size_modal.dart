@@ -37,8 +37,8 @@ void showTextSizeModal(BuildContext context, WidgetRef ref) {
                       children: [
                         Slider(
                           value: _snapToNearest(scale),
-                          min: 0.85,
-                          max: 1.15,
+                          min: 0.8,
+                          max: 1.6,
                           divisions: 4, // 5 levels
                           label: _labelForScale(scale),
                           onChanged: (newValue) {

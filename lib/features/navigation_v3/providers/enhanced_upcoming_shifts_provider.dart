@@ -102,15 +102,30 @@ final groupedUpcomingShiftsProvider =
   );
 });
 
-/// Provider for shift creation capabilities
+/// Provider for shift creation capabilities - FIXED: Get agencies from shifts
 final shiftCreationCapabilitiesProvider =
     Provider<ShiftCreationCapabilities>((ref) {
   final user = ref.watch(authControllerProvider).value;
+  final shiftsAsync = ref.watch(enhancedUpcomingShiftsProvider);
+
+  // Get available agencies from user's shifts
+  final availableAgencies = shiftsAsync.when(
+    data: (shifts) {
+      final agencies = shifts
+          .where((shift) => shift.agencyId != null)
+          .map((shift) => shift.agencyId!)
+          .toSet()
+          .toList();
+      return agencies;
+    },
+    loading: () => <String>[],
+    error: (_, __) => <String>[],
+  );
 
   return ShiftCreationCapabilities(
     canCreateIndependentShifts: user?.isIndependentNurse == true,
     canRequestAgencyShifts: true, // All nurses can request agency shifts
-    availableAgencies: user?.agencyRoles.keys.toList() ?? [],
+    availableAgencies: availableAgencies,
   );
 });
 

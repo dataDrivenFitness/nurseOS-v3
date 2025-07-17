@@ -1,6 +1,5 @@
 import 'package:nurseos_v3/features/auth/models/user_model.dart';
 import 'package:nurseos_v3/core/models/user_role.dart';
-import 'package:nurseos_v3/features/agency/models/agency_role_model.dart';
 
 extension UserModelExtensions on UserModel {
   /// Full display name with credentials
@@ -103,125 +102,36 @@ extension UserModelExtensions on UserModel {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // 🏥 Multi-Agency Extension Methods (FIXED for nullable activeAgencyId)
+  // 🏠 Independent Nurse Extension Methods
   // ═══════════════════════════════════════════════════════════════════
 
-  /// Check if user has access to a specific agency
-  bool hasAccessToAgency(String agencyId) {
-    return agencyRoles.containsKey(agencyId);
-  }
+  /// Check if nurse can create their own shifts
+  bool get canCreateShifts => isIndependentNurse;
 
-  /// Get the user's role at a specific agency
-  AgencyRoleModel? getRoleAtAgency(String agencyId) {
-    return agencyRoles[agencyId];
-  }
+  /// Check if nurse can manage their own patients
+  bool get canManageOwnPatients => isIndependentNurse;
 
-  /// Get the user's role at the currently active agency
-  AgencyRoleModel? get currentAgencyRole {
-    if (activeAgencyId == null) return null;
-    return agencyRoles[activeAgencyId!];
-  }
-
-  /// Get all agencies where user has access
-  List<String> get accessibleAgencies {
-    return agencyRoles.keys.toList();
-  }
-
-  /// Check if user can switch to a specific agency
-  bool canSwitchToAgency(String agencyId) {
-    return hasAccessToAgency(agencyId) && agencyId != activeAgencyId;
-  }
-
-  /// Get user's display name with current agency context
-  String get displayNameWithContext {
-    final agencyRole = currentAgencyRole;
-    if (agencyRole?.department != null) {
-      return '$firstName $lastName - ${agencyRole!.department}';
+  /// Get display name for business context
+  String get businessDisplayName {
+    if (!isIndependentNurse || businessName == null) {
+      return displayName; // Fallback to regular display name
     }
-    return displayName;
+    return businessName!;
   }
 
-  /// Check if user is admin at any agency
-  bool get isAdminAtAnyAgency {
-    return agencyRoles.values.any((role) => role.role == UserRole.admin);
-  }
+  /// Check if profile is complete for independent nursing
+  bool get isIndependentProfileComplete {
+    if (!isIndependentNurse) return true; // Not applicable
 
-  /// Check if user is admin at the current agency
-  bool get isAdminAtCurrentAgency {
-    return currentAgencyRole?.role == UserRole.admin;
-  }
-
-  /// Get all departments user works in across agencies
-  List<String> get allDepartments {
-    return agencyRoles.values
-        .where((role) => role.department != null)
-        .map((role) => role.department!)
-        .toSet()
-        .toList();
-  }
-
-  /// Get agency-specific professional context
-  String get agencyProfessionalContext {
-    final agencyRole = currentAgencyRole;
-    final parts = <String>[];
-
-    // Use agency-specific department if available, fallback to user department
-    final dept = agencyRole?.department ?? department;
-    if (dept != null) parts.add(dept);
-
-    // Use user's default shift (AgencyRoleModel doesn't have shift field)
-    if (shift != null) parts.add('$shift Shift');
-
-    if (phoneExtension != null) parts.add('Ext. $phoneExtension');
-
-    return parts.join(' • ');
-  }
-
-  /// Check if user has multiple agency access
-  bool get hasMultipleAgencies => agencyRoles.length > 1;
-
-  /// Get count of agencies user has access to
-  int get agencyCount => agencyRoles.length;
-
-  /// Check if user needs to select an agency (has access but none active)
-  bool get needsAgencySelection {
-    return agencyRoles.isNotEmpty &&
-        (activeAgencyId == null || !hasAccessToAgency(activeAgencyId!));
-  }
-
-  /// Get agency role display text for current agency
-  String get currentAgencyRoleDisplay {
-    final role = currentAgencyRole;
-    if (role == null) return 'No role assigned';
-
-    final roleName = role.role.name.substring(0, 1).toUpperCase() +
-        role.role.name.substring(1);
-
-    if (role.department != null) {
-      return '$roleName - ${role.department}';
-    }
-
-    return roleName;
-  }
-
-  /// Check if profile is complete for current agency
-  bool get isAgencyProfileComplete {
-    final agencyRole = currentAgencyRole;
     return licenseNumber != null &&
         licenseExpiry != null &&
-        (agencyRole?.department != null || department != null) &&
-        shift !=
-            null; // Use user's shift since AgencyRoleModel doesn't have shift
+        businessName != null;
   }
 
-  /// Get effective department (agency-specific or user default)
-  String? get effectiveDepartment {
-    return currentAgencyRole?.department ?? department;
-  }
-
-  /// Get effective shift (user default since AgencyRoleModel doesn't have shift)
-  String? get effectiveShift {
-    return shift; // Only user has shift field
+  /// Get working mode display text
+  String get workingModeDisplay {
+    if (isIndependentNurse) return 'Independent';
+    return 'Agency Only';
   }
 }
 
@@ -258,60 +168,4 @@ String formatLicenseDisplay(UserModel user) {
     display += ' (Exp. ${exp.month.toString().padLeft(2, '0')}/${exp.year})';
   }
   return display;
-}
-
-extension IndependentNurseExtensions on UserModel {
-  // ═══════════════════════════════════════════════════════════════════
-  // 🏠 Independent Nurse Extension Methods
-  // ═══════════════════════════════════════════════════════════════════
-
-  /// Check if nurse can create their own shifts
-  bool get canCreateShifts => isIndependentNurse;
-
-  /// Check if nurse can manage their own patients
-  bool get canManageOwnPatients => isIndependentNurse;
-
-  /// Get display name for business context
-  String get businessDisplayName {
-    if (!isIndependentNurse || businessName == null) {
-      return displayName; // Fallback to regular display name
-    }
-    return businessName!;
-  }
-
-  /// Check if nurse operates in dual mode (both agency and independent)
-  bool get isDualMode => isIndependentNurse && agencyRoles.isNotEmpty;
-
-  /// Get current working context (agency or independent)
-  String get currentWorkingContext {
-    if (activeAgencyId != null && hasAccessToAgency(activeAgencyId!)) {
-      final agencyRole = currentAgencyRole;
-      return agencyRole?.department ?? 'Agency Work';
-    }
-
-    if (isIndependentNurse) {
-      return businessName ?? 'Independent Practice';
-    }
-
-    return 'No active context';
-  }
-
-  /// Check if profile is complete for independent nursing
-  bool get isIndependentProfileComplete {
-    if (!isIndependentNurse) return true; // Not applicable
-
-    return licenseNumber != null &&
-        licenseExpiry != null &&
-        businessName != null;
-  }
-
-  /// Get working mode display text
-  String get workingModeDisplay {
-    if (isDualMode) return 'Agency + Independent';
-    if (isIndependentNurse) return 'Independent';
-    return 'Agency Only';
-  }
-
-  /// Check if nurse can switch between agency and independent mode
-  bool get canSwitchModes => isDualMode;
 }

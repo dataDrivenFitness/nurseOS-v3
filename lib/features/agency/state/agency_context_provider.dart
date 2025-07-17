@@ -1,149 +1,93 @@
 // 📁 lib/features/agency/state/agency_context_provider.dart
-// FIXED: Proper async handling for agency context
+// REFACTORED: Shift-centric architecture - derives agency relationships from shifts
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:nurseos_v3/features/agency/models/agency_role_model.dart';
-import 'package:nurseos_v3/features/auth/models/user_model_extensions.dart';
 import '../models/agency_model.dart';
 import '../../auth/state/auth_controller.dart';
-import '../../auth/models/user_model.dart';
 
-/// Manages the current agency context for the authenticated user
-/// This is the single source of truth for which agency is currently active
+/// Manages agency context by deriving relationships from scheduled shifts
+/// This replaces the old bidirectional user-agency relationship model
 class AgencyContextNotifier extends AsyncNotifier<String?> {
   @override
   Future<String?> build() async {
-    // Watch the auth state to get current user
-    final user = ref.watch(authControllerProvider).value;
-
-    // Return the user's active agency ID
-    return user?.activeAgencyId;
+    // For shift-centric architecture, there's no single "active" agency
+    // Instead, context is determined by current shift or user preference
+    return null;
   }
 
-  /// Switch to a different agency (with validation)
-  Future<void> switchAgency(String agencyId) async {
+  /// Set preferred agency for UI context (stored locally, not in user model)
+  Future<void> setPreferredAgency(String agencyId) async {
     try {
-      final user = ref.read(authControllerProvider).value;
-      if (user == null) {
-        throw Exception('User not authenticated');
-      }
-
-      // Validate user has access to this agency
-      if (!user.hasAccessToAgency(agencyId)) {
-        throw Exception('User does not have access to agency: $agencyId');
-      }
-
-      // Update user's active agency in Firestore
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .update({'activeAgencyId': agencyId});
-
-      // Update local state immediately for better UX
+      // Update local state for UI context
       state = AsyncData(agencyId);
-
-      // Refresh auth controller to pick up the change
-      ref.invalidate(authControllerProvider);
-
-      debugPrint('✅ Switched to agency: $agencyId');
+      debugPrint('✅ Set preferred agency context: $agencyId');
     } catch (e) {
-      debugPrint('❌ Failed to switch agency: $e');
+      debugPrint('❌ Failed to set preferred agency: $e');
       state = AsyncError(e, StackTrace.current);
-      rethrow;
     }
   }
 
-  /// Clear active agency (for sign out or agency removal)
-  Future<void> clearAgency() async {
+  /// Clear preferred agency context
+  Future<void> clearPreferredAgency() async {
     try {
-      final user = ref.read(authControllerProvider).value;
-      if (user == null) return;
-
-      // Clear active agency in Firestore
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .update({'activeAgencyId': null});
-
-      // Update local state
       state = const AsyncData(null);
-
-      // Refresh auth controller
-      ref.invalidate(authControllerProvider);
-
-      debugPrint('✅ Cleared active agency');
+      debugPrint('✅ Cleared preferred agency context');
     } catch (e) {
-      debugPrint('❌ Failed to clear agency: $e');
+      debugPrint('❌ Failed to clear preferred agency: $e');
       state = AsyncError(e, StackTrace.current);
-    }
-  }
-
-  /// Set agency for first-time users or after migration
-  Future<void> setInitialAgency(String agencyId) async {
-    try {
-      final user = ref.read(authControllerProvider).value;
-      if (user == null) {
-        throw Exception('User not authenticated');
-      }
-
-      // For initial setup, we're less strict about validation
-      // (useful during migration when agencyRoles might not be set yet)
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .update({'activeAgencyId': agencyId});
-
-      state = AsyncData(agencyId);
-      ref.invalidate(authControllerProvider);
-
-      debugPrint('✅ Set initial agency: $agencyId');
-    } catch (e) {
-      debugPrint('❌ Failed to set initial agency: $e');
-      state = AsyncError(e, StackTrace.current);
-      rethrow;
     }
   }
 }
 
-/// Main provider for agency context
+/// Main provider for agency context (UI preference only)
 final agencyContextNotifierProvider =
     AsyncNotifierProvider<AgencyContextNotifier, String?>(
   () => AgencyContextNotifier(),
 );
 
-/// 🔧 FIXED: Convenience provider for current agency ID with proper async handling
+/// Convenience provider for current preferred agency ID
 final currentAgencyIdProvider = Provider<String?>((ref) {
   final asyncAgency = ref.watch(agencyContextNotifierProvider);
 
-  // Handle async states properly
   return asyncAgency.when(
     data: (agencyId) => agencyId,
-    loading: () {
-      // During loading, try to get from user's activeAgencyId directly
-      final user = ref.watch(authControllerProvider).value;
-      final directAgencyId = user?.activeAgencyId;
-
-      if (directAgencyId != null) {
-        debugPrint(
-            '🔄 Agency loading - using direct user.activeAgencyId: $directAgencyId');
-        return directAgencyId;
-      }
-
-      debugPrint('🔄 Agency loading - no direct agency available');
-      return null;
-    },
+    loading: () => null,
     error: (error, stackTrace) {
       debugPrint('❌ Agency context error: $error');
-      // Fallback to user's activeAgencyId on error
-      final user = ref.watch(authControllerProvider).value;
-      return user?.activeAgencyId;
+      return null;
     },
   );
 });
 
-/// Provider for current agency details
+/// Provider that finds agencies where user is a member (agency-controlled access)
+final userAgenciesFromMembershipProvider =
+    FutureProvider<List<String>>((ref) async {
+  final user = ref.watch(authControllerProvider).value;
+  if (user == null) return [];
+
+  try {
+    // Query agencies that include this user in their nurseIds list
+    final agenciesQuery = await FirebaseFirestore.instance
+        .collection('agencies')
+        .where('nurseIds', arrayContains: user.uid)
+        .where('isActive', isEqualTo: true)
+        .get();
+
+    // Extract agency IDs
+    final agencyIds = agenciesQuery.docs.map((doc) => doc.id).toList();
+
+    debugPrint(
+        '🔍 Found ${agencyIds.length} agencies where user is member: $agencyIds');
+    return agencyIds;
+  } catch (e) {
+    debugPrint('❌ Failed to fetch user agencies from membership: $e');
+    return [];
+  }
+});
+
+/// Provider for current agency details (if preferred agency is set)
 final currentAgencyProvider = FutureProvider<AgencyModel?>((ref) async {
   final agencyId = ref.watch(currentAgencyIdProvider);
   if (agencyId == null) return null;
@@ -166,16 +110,16 @@ final currentAgencyProvider = FutureProvider<AgencyModel?>((ref) async {
   }
 });
 
-/// Provider for user's available agencies
+/// Provider for user's available agencies (agency-controlled membership)
 final userAgenciesProvider = FutureProvider<List<AgencyModel>>((ref) async {
-  final user = ref.watch(authControllerProvider).value;
-  if (user == null || !user.hasMultipleAgencies) return [];
+  final agencyIds = await ref.watch(userAgenciesFromMembershipProvider.future);
+  if (agencyIds.isEmpty) return [];
 
   try {
     final agencies = <AgencyModel>[];
 
-    // Fetch all agencies user has access to
-    for (final agencyId in user.accessibleAgencies) {
+    // Fetch agency details for each ID where user is a member
+    for (final agencyId in agencyIds) {
       final doc = await FirebaseFirestore.instance
           .collection('agencies')
           .doc(agencyId)
@@ -201,53 +145,55 @@ final userAgenciesProvider = FutureProvider<List<AgencyModel>>((ref) async {
   }
 });
 
-/// Provider for current user's role in current agency
-final currentAgencyRoleProvider = Provider((ref) {
-  final user = ref.watch(authControllerProvider).value;
-  final agencyId = ref.watch(currentAgencyIdProvider);
-
-  if (user == null || agencyId == null) return null;
-
-  return user.getRoleAtAgency(agencyId);
+/// Provider for checking if user has multiple agencies (based on membership)
+final hasMultipleAgenciesProvider = Provider<bool>((ref) {
+  final agenciesAsync = ref.watch(userAgenciesFromMembershipProvider);
+  return agenciesAsync.when(
+    data: (agencies) => agencies.length > 1,
+    loading: () => false,
+    error: (_, __) => false,
+  );
 });
 
-/// Provider for checking if user can access admin features in current agency
+/// Provider for checking if user can access admin features
+/// Since we removed agency roles, this now checks the user's base role
 final canAccessAdminDashboardProvider = Provider<bool>((ref) {
-  final role = ref.watch(currentAgencyRoleProvider);
-  return role?.canAccessAdminDashboard ?? false;
+  final user = ref.watch(authControllerProvider).value;
+  // For now, only admin users can access admin features
+  // TODO: Implement agency-specific admin roles through a different mechanism
+  return user?.role.name == 'admin';
 });
 
-/// Provider for checking if user can manage users in current agency
+/// Provider for checking if user can manage users
 final canManageUsersProvider = Provider<bool>((ref) {
-  final role = ref.watch(currentAgencyRoleProvider);
-  return role?.canManageUsers ?? false;
+  final user = ref.watch(authControllerProvider).value;
+  return user?.role.name == 'admin';
 });
 
-/// Provider for checking if user can schedule shifts in current agency
+/// Provider for checking if user can schedule shifts
 final canScheduleShiftsProvider = Provider<bool>((ref) {
-  final role = ref.watch(currentAgencyRoleProvider);
-  return role?.canScheduleShifts ?? false;
+  final user = ref.watch(authControllerProvider).value;
+  return user?.role.name == 'admin';
 });
 
 /// Provider to check if user needs agency selection
 final needsAgencySelectionProvider = Provider<bool>((ref) {
-  final user = ref.watch(authControllerProvider).value;
-  return user?.needsAgencySelection ?? false;
+  final hasMultiple = ref.watch(hasMultipleAgenciesProvider);
+  final currentAgency = ref.watch(currentAgencyIdProvider);
+
+  // User needs to select if they have multiple agencies but no preference set
+  return hasMultiple && currentAgency == null;
 });
 
 /// Provider for agency switching capability
 final canSwitchAgencyProvider = Provider<bool>((ref) {
-  final user = ref.watch(authControllerProvider).value;
-  return user?.hasMultipleAgencies ?? false;
+  return ref.watch(hasMultipleAgenciesProvider);
 });
 
 /// Extension methods for easier agency context usage
 extension AgencyContextRef on WidgetRef {
-  /// Get current agency ID
+  /// Get current preferred agency ID
   String? get currentAgencyId => watch(currentAgencyIdProvider);
-
-  /// Get current agency role
-  AgencyRoleModel? get currentAgencyRole => watch(currentAgencyRoleProvider);
 
   /// Check if user needs to select agency
   bool get needsAgencySelection => watch(needsAgencySelectionProvider);
@@ -255,13 +201,14 @@ extension AgencyContextRef on WidgetRef {
   /// Check if user can access admin features
   bool get canAccessAdmin => watch(canAccessAdminDashboardProvider);
 
-  /// Switch to different agency
-  Future<void> switchAgency(String agencyId) async {
-    await read(agencyContextNotifierProvider.notifier).switchAgency(agencyId);
+  /// Set preferred agency for UI context
+  Future<void> setPreferredAgency(String agencyId) async {
+    await read(agencyContextNotifierProvider.notifier)
+        .setPreferredAgency(agencyId);
   }
 
-  /// Clear active agency
-  Future<void> clearAgency() async {
-    await read(agencyContextNotifierProvider.notifier).clearAgency();
+  /// Clear preferred agency
+  Future<void> clearPreferredAgency() async {
+    await read(agencyContextNotifierProvider.notifier).clearPreferredAgency();
   }
 }

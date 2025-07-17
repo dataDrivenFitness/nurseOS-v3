@@ -60,10 +60,8 @@ class UserProfileController extends AsyncNotifier<UserModel?> {
         firstName: cachedFirst,
         lastName: cachedLast,
         role: UserRole.nurse, // best-effort fallback
-        activeAgencyId: 'default_agency',
-        agencyRoles: const {}, // ✅ Fixed: was agencyRoleMap, now agencyRoles
-        level: 1, // ✅ fallback default
-        xp: 0, // ✅ fallback default
+        level: 1, // fallback default
+        xp: 0, // fallback default
       );
     }
 
@@ -85,6 +83,8 @@ class UserProfileController extends AsyncNotifier<UserModel?> {
     DateTime? hireDate,
     List<String>? certifications,
     bool? isOnDuty,
+    // 🏠 Independent nurse fields
+    String? businessName,
   }) async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) throw Exception('No signed-in user');
@@ -129,6 +129,9 @@ class UserProfileController extends AsyncNotifier<UserModel?> {
         if (hireDate != null) 'hireDate': Timestamp.fromDate(hireDate),
         if (certifications != null) 'certifications': certifications,
         if (isOnDuty != null) 'isOnDuty': isOnDuty,
+
+        // 🏠 Independent nurse fields
+        if (businessName != null) 'businessName': businessName,
       };
 
       // Handle nullable fields explicitly (to allow clearing them)
@@ -140,6 +143,8 @@ class UserProfileController extends AsyncNotifier<UserModel?> {
       if (department == '') nullableUpdates['department'] = null;
       if (shift == '') nullableUpdates['shift'] = null;
       if (phoneExtension == '') nullableUpdates['phoneExtension'] = null;
+      // 🏠 Handle clearing business name
+      if (businessName == '') nullableUpdates['businessName'] = null;
 
       // Combine all updates
       updates.addAll(nullableUpdates);

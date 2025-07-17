@@ -9,7 +9,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/scheduled_shift_model.dart';
 import '../../auth/state/auth_controller.dart';
-import '../../profile/state/user_profile_controller.dart';
 
 // ═══════════════════════════════════════════════════════════════════
 // 🏭 REPOSITORY ABSTRACTION FOR UPCOMING SHIFTS
@@ -186,37 +185,9 @@ final upcomingShiftsProvider =
         return Stream.value(<ScheduledShiftModel>[]);
       }
 
-      // Get user profile to determine agency context
-      final userProfileAsync = ref.watch(userProfileStreamProvider);
-
-      return userProfileAsync.when(
-        data: (profile) {
-          final activeAgencyId = profile?.activeAgencyId;
-
-          // Validate user has access to the active agency
-          if (activeAgencyId != null &&
-              profile?.agencyRoles[activeAgencyId] == null) {
-            debugPrint(
-                '⚠️ UpcomingShifts: User $userId has activeAgencyId $activeAgencyId but no role assignment');
-            return repository.watchUpcomingShifts(userId); // Fallback to global
-          }
-
-          debugPrint(
-              '🔍 UpcomingShifts: Loading shifts for user $userId, agency: ${activeAgencyId ?? "global"}');
-          return repository.watchUpcomingShifts(userId,
-              agencyId: activeAgencyId);
-        },
-        loading: () {
-          debugPrint(
-              '🔍 UpcomingShifts: User profile loading, using global query');
-          return repository.watchUpcomingShifts(userId); // No agency filter
-        },
-        error: (error, stack) {
-          debugPrint(
-              '❌ UpcomingShifts: Profile error, falling back to global: $error');
-          return repository.watchUpcomingShifts(userId); // No agency filter
-        },
-      );
+      // Query ALL shifts for this user across all agencies (shift-centric)
+      debugPrint('🔍 UpcomingShifts: Loading ALL shifts for user $userId');
+      return repository.watchUpcomingShifts(userId);
     },
     loading: () {
       debugPrint('🔍 UpcomingShifts: Auth loading');
@@ -244,18 +215,8 @@ final shiftsNeedingConfirmationProvider =
         return Stream.value(<ScheduledShiftModel>[]);
       }
 
-      final userProfileAsync = ref.watch(userProfileStreamProvider);
-
-      return userProfileAsync.when(
-        data: (profile) {
-          final activeAgencyId = profile?.activeAgencyId;
-          return repository.watchShiftsNeedingConfirmation(userId,
-              agencyId: activeAgencyId);
-        },
-        loading: () => repository.watchShiftsNeedingConfirmation(userId),
-        error: (error, stack) =>
-            repository.watchShiftsNeedingConfirmation(userId),
-      );
+      // Query ALL shifts needing confirmation across all agencies
+      return repository.watchShiftsNeedingConfirmation(userId);
     },
     loading: () => Stream.value(<ScheduledShiftModel>[]),
     error: (error, stack) => Stream.value(<ScheduledShiftModel>[]),

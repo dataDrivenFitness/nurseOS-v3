@@ -9,4 +9,6 @@ class SpacingTokens {
   static const xxl = 40.0;
 
   static const grid = 8.0; // base grid multiplier
+  static const sidebarWidth =
+      10.0; // Consistent with patient cards, fits card radius
 }

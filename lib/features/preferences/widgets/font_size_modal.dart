@@ -1,3 +1,5 @@
+// 📁 lib/features/preferences/widgets/font_size_modal.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nurseos_v3/core/theme/spacing.dart';
@@ -36,16 +38,16 @@ void showTextSizeModal(BuildContext context, WidgetRef ref) {
                     child: Column(
                       children: [
                         Slider(
-                          value: _snapToNearest(scale),
-                          min: 0.8,
-                          max: 1.6,
-                          divisions: 4, // 5 levels
+                          value:
+                              scale.clamp(0.8, 1.2), // ✅ FIXED: Perfect range
+                          min: 0.8, // ✅ 2 steps down from 1.0
+                          max: 1.2, // ✅ 2 steps up from 1.0
+                          divisions: 4, // ✅ 5 total positions
                           label: _labelForScale(scale),
                           onChanged: (newValue) {
-                            final snapped = _snapToNearest(newValue);
-                            ref
-                                .read(fontScaleControllerProvider.notifier)
-                                .updateScale(snapped);
+                            // ✅ FIXED: Proper async handling
+                            _updateScaleWithErrorHandling(
+                                ref, newValue, context);
                           },
                         ),
                         Text(
@@ -55,11 +57,11 @@ void showTextSizeModal(BuildContext context, WidgetRef ref) {
                       ],
                     ),
                   ),
-                  loading: () => SizedBox(
+                  loading: () => const SizedBox(
                     width: double.infinity,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
-                      children: const [
+                      children: [
                         SizedBox(height: 24),
                         CircularProgressIndicator(),
                         SizedBox(height: 24),
@@ -88,7 +90,9 @@ void showTextSizeModal(BuildContext context, WidgetRef ref) {
   );
 }
 
-final _presetScales = [0.85, 0.925, 1.0, 1.075, 1.15];
+// ✅ PERFECT: 5 positions with Normal (1.0) exactly at 50%
+// Range: 0.6 to 1.4, Step size: 0.2
+final _presetScales = [0.8, 0.9, 1.0, 1.1, 1.2];
 
 double _snapToNearest(double value) {
   return _presetScales
@@ -96,13 +100,29 @@ double _snapToNearest(double value) {
 }
 
 String _labelForScale(double scale) {
-  final snapped = _snapToNearest(scale);
+  if (scale <= 0.85) return 'Smallest'; // 0.8 (0% position)
+  if (scale <= 0.95) return 'Small'; // 0.9 (25% position)
+  if (scale <= 1.05) return 'Normal'; // 1.0 (50% position) ⭐
+  if (scale <= 1.15) return 'Large'; // 1.1 (75% position)
+  return 'Largest'; // 1.2 (100% position)
+}
 
-  if ((snapped - 0.85).abs() < 0.01) return 'Smallest';
-  if ((snapped - 0.925).abs() < 0.01) return 'Small';
-  if ((snapped - 1.0).abs() < 0.01) return 'Normal';
-  if ((snapped - 1.075).abs() < 0.01) return 'Large';
-  if ((snapped - 1.15).abs() < 0.01) return 'Extra Large';
+// ✅ FIXED: Proper async error handling for modal
+void _updateScaleWithErrorHandling(
+  WidgetRef ref,
+  double newValue,
+  BuildContext context,
+) {
+  final controller = ref.read(fontScaleControllerProvider.notifier);
 
-  return '${(snapped * 100).round()}%';
+  controller.updateScale(newValue).catchError((error) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update text size: $error'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+  });
 }

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:nurseos_v3/core/error/failure.dart';
 import 'package:nurseos_v3/features/auth/models/user_model.dart';
+import 'package:nurseos_v3/features/patient/models/patient_extensions.dart';
 import 'package:nurseos_v3/features/patient/models/patient_model.dart';
 import 'package:nurseos_v3/features/schedule/models/scheduled_shift_model.dart';
 import 'package:nurseos_v3/shared/converters/patient_converter.dart';
@@ -402,6 +403,92 @@ class FirebasePatientRepository implements PatientRepository {
       return Left(Failure.unexpected('Failed to delete patient: ${e.message}'));
     } catch (e) {
       return Left(Failure.unexpected('Unexpected error: $e'));
+    }
+  }
+
+  /// ⭐ FIXED: Get multiple patients by IDs across agencies (simplified approach)
+  /// Used by PatientAnalysisService for generating smart patient descriptions
+  @override
+  Future<List<Patient>> getPatientsByIds(List<String> patientIds) async {
+    if (patientIds.isEmpty) return [];
+
+    try {
+      print('🔍 DEBUG: Getting patients by IDs: $patientIds');
+      final patients = <Patient>[];
+
+      // SIMPLIFIED APPROACH: Query patients directly across all agencies
+      // This works for the Available Shifts screen where we need patient data
+      // from shifts that might not be assigned to the current user yet
+
+      // Step 1: Get list of agencies where user has access
+      final agenciesQuery = _firestore
+          .collection('agencies')
+          .where('nurseIds', arrayContains: _user.uid)
+          .where('isActive', isEqualTo: true);
+
+      final agenciesSnapshot = await agenciesQuery.get();
+      print(
+          '🔍 DEBUG: Found ${agenciesSnapshot.docs.length} agencies where user is member');
+
+      if (agenciesSnapshot.docs.isEmpty) {
+        print('🔍 DEBUG: User has no agency access - returning empty list');
+        return [];
+      }
+
+      // Step 2: Query patients from each agency where user has access
+      for (final agencyDoc in agenciesSnapshot.docs) {
+        final agencyId = agencyDoc.id;
+        print('🔍 DEBUG: Querying patients from agency: $agencyId');
+
+        try {
+          // Batch query for this agency (Firestore 'in' supports up to 10 items)
+          final batches = <List<String>>[];
+          for (int i = 0; i < patientIds.length; i += 10) {
+            final end =
+                (i + 10 < patientIds.length) ? i + 10 : patientIds.length;
+            batches.add(patientIds.sublist(i, end));
+          }
+
+          for (final batch in batches) {
+            print('🔍 DEBUG: Querying batch $batch from agency $agencyId');
+
+            final querySnapshot = await _firestore
+                .collection('agencies')
+                .doc(agencyId)
+                .collection('patients')
+                .where(FieldPath.documentId, whereIn: batch)
+                .get();
+
+            print(
+                '🔍 DEBUG: Found ${querySnapshot.docs.length} patients in batch from agency $agencyId');
+
+            for (final doc in querySnapshot.docs) {
+              try {
+                final patientData = doc.data();
+                patientData['id'] = doc.id; // Ensure ID is set
+                final patient = Patient.fromJson(patientData);
+                patients.add(patient);
+                print(
+                    '🔍 DEBUG: Added patient ${patient.fullName} (${patient.id}) from agency $agencyId');
+              } catch (e) {
+                print('⚠️ Warning: Error parsing patient ${doc.id}: $e');
+                continue;
+              }
+            }
+          }
+        } catch (e) {
+          print(
+              '⚠️ Warning: Error querying patients from agency $agencyId: $e');
+          continue;
+        }
+      }
+
+      print(
+          '🔍 DEBUG: Successfully loaded ${patients.length} patients for analysis');
+      return patients;
+    } catch (e) {
+      print('❌ Error getting patients by IDs: $e');
+      return []; // Return empty list on error for graceful degradation
     }
   }
 }

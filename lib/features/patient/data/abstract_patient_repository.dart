@@ -1,3 +1,6 @@
+// 📁 lib/features/patient/data/abstract_patient_repository.dart
+// UPDATED: Add batch query method for patient analysis
+
 import 'package:fpdart/fpdart.dart';
 import 'package:nurseos_v3/core/error/failure.dart';
 import 'package:nurseos_v3/features/patient/models/patient_model.dart';
@@ -19,4 +22,9 @@ abstract class PatientRepository {
   /// 🔄 Watches the full patient list in real-time (Firestore snapshot stream).
   /// Emits [Right<List<Patient>>] on success, or [Left<Failure>] on error.
   Stream<Either<Failure, List<Patient>>> watchAllPatients();
+
+  /// ⭐ NEW: Get multiple patients by IDs for analysis
+  /// Used by PatientAnalysisService for generating smart descriptions
+  /// Returns empty list on error for graceful degradation
+  Future<List<Patient>> getPatientsByIds(List<String> patientIds);
 }

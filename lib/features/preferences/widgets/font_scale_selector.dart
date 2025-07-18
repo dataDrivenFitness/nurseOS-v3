@@ -23,12 +23,16 @@ class FontScaleSelector extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           Slider(
-            value: currentScale,
-            min: 0.8,
-            max: 2.0,
-            divisions: 6,
+            value: currentScale.clamp(
+                0.8, 1.2), // ✅ FIXED: Perfect range for 1.0 at center
+            min: 0.8, // ✅ 2 steps down from 1.0
+            max: 1.2, // ✅ 2 steps up from 1.0
+            divisions: 4, // ✅ 5 total positions
             label: '${(currentScale * 100).round()}%',
-            onChanged: controller.updateScale,
+            onChanged: (newValue) {
+              // ✅ FIXED: Proper async handling
+              _updateScaleWithErrorHandling(controller, newValue, context);
+            },
           ),
           Text(
             'Preview Text (Scale: ${currentScale.toStringAsFixed(2)})',
@@ -40,5 +44,25 @@ class FontScaleSelector extends ConsumerWidget {
         child: CircularProgressIndicator(),
       ),
     );
+  }
+
+  /// ✅ FIXED: Properly handle async scale updates with error handling
+  void _updateScaleWithErrorHandling(
+    FontScaleController controller,
+    double newValue,
+    BuildContext context,
+  ) {
+    // Update scale asynchronously with proper error handling
+    controller.updateScale(newValue).catchError((error) {
+      // Handle errors gracefully without breaking the modal
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update text size: $error'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    });
   }
 }

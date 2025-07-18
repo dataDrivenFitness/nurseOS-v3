@@ -44,4 +44,25 @@ class MockPatientRepository implements PatientRepository {
     debugPrint('🧪 MockPatientRepository.watchAllPatients()');
     yield Right(mockPatients);
   }
+
+  // Private field to store mock patients (add this if not exists)
+  static final List<Patient> _patients = mockPatients;
+
+  /// ⭐ NEW: Get multiple patients by IDs for analysis (mock implementation)
+  @override
+  Future<List<Patient>> getPatientsByIds(List<String> patientIds) async {
+    // Mock implementation for testing
+    await Future.delayed(
+        const Duration(milliseconds: 100)); // Simulate network delay
+
+    debugPrint(
+        '🧪 MockPatientRepository.getPatientsByIds() called with IDs: $patientIds');
+
+    final result =
+        _patients.where((patient) => patientIds.contains(patient.id)).toList();
+    debugPrint(
+        '🧪 MockPatientRepository.getPatientsByIds() returning ${result.length} patients');
+
+    return result;
+  }
 }

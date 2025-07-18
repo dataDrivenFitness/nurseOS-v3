@@ -1,5 +1,3 @@
-// 📁 lib/features/schedule/shift_pool/models/shift_model.dart
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:nurseos_v3/shared/converters/timestamp_converter.dart';
@@ -7,7 +5,6 @@ import 'package:nurseos_v3/shared/converters/timestamp_converter.dart';
 part 'shift_model.freezed.dart';
 part 'shift_model.g.dart';
 
-// Timestamp conversion helpers
 DateTime _timestampFromJson(dynamic json) {
   final result = const TimestampConverter().fromJson(json);
   if (result == null) {
@@ -46,9 +43,10 @@ abstract class ShiftModel with _$ShiftModel {
     required String location,
     String? facilityName,
     String? department,
+    String? unit,
     String? assignedTo,
     @Default('available') String status,
-    @Default([]) List<String>? requestedBy,
+    @Default([]) List<String> requestedBy,
     String? addressLine1,
     String? addressLine2,
     String? city,
@@ -59,9 +57,14 @@ abstract class ShiftModel with _$ShiftModel {
     String? specialRequirements,
     @Default(false) bool isWeekendShift,
     @Default(false) bool isNightShift,
-    @Default([]) List<String>? assignedPatientIds,
+    @Default([]) List<String> assignedPatientIds,
     String? shiftType,
     double? hourlyRate,
+    double? urgencyBonus,
+    @Default('regular') String urgencyLevel,
+    @Default([]) List<String> requiredCertifications,
+    String? requestingNurseId,
+    String? requestingNurseNote,
     String? createdBy,
   }) = _ShiftModel;
 
@@ -69,63 +72,38 @@ abstract class ShiftModel with _$ShiftModel {
       _$ShiftModelFromJson(json);
 }
 
-/// Extension methods for ShiftModel
+// ═══════════════════════════════════════════════════════════════════
+// EXTENSIONS: Safe accessors (no business logic here)
+// ═══════════════════════════════════════════════════════════════════
+
 extension ShiftModelExtensions on ShiftModel {
-  /// Get duration of the shift
   Duration get duration => endTime.difference(startTime);
-
-  /// Check if shift is available for requests
   bool get isAvailable => status == 'available';
-
-  /// Check if shift is already assigned
   bool get isAssigned => assignedTo != null;
 
-  /// Check if user has already requested this shift
-  bool hasRequestedBy(String userId) {
-    if (requestedBy == null || requestedBy!.isEmpty) return false;
-    return requestedBy!.contains(userId);
-  }
+  bool hasRequestedBy(String userId) =>
+      requestedBy.isNotEmpty && requestedBy.contains(userId);
 
-  /// Get formatted time range
-  String get timeRange {
-    final startStr =
-        '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
-    final endStr =
-        '${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}';
-    return '$startStr - $endStr';
-  }
+  String get timeRange =>
+      '${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}'
+      ' - '
+      '${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}';
 
-  /// Get formatted duration
   String get durationText {
-    final hours = duration.inHours;
-    final minutes = duration.inMinutes % 60;
-
-    if (hours > 0 && minutes > 0) {
-      return '${hours}h ${minutes}m';
-    } else if (hours > 0) {
-      return '${hours}h';
-    } else {
-      return '${minutes}m';
-    }
+    final h = duration.inHours;
+    final m = duration.inMinutes % 60;
+    if (h > 0 && m > 0) return '${h}h ${m}m';
+    if (h > 0) return '${h}h';
+    return '${m}m';
   }
 
-  /// Get display name for the shift location
-  String get displayLocation {
-    if (facilityName?.isNotEmpty == true) {
-      return facilityName!;
-    }
-    return location;
-  }
+  String get displayLocation =>
+      facilityName?.isNotEmpty == true ? facilityName! : location;
 
-  /// Get full address string
   String get fullAddress {
     final parts = <String>[];
-    if (addressLine1?.isNotEmpty == true) {
-      parts.add(addressLine1!);
-    }
-    if (addressLine2?.isNotEmpty == true) {
-      parts.add(addressLine2!);
-    }
+    if (addressLine1?.isNotEmpty == true) parts.add(addressLine1!);
+    if (addressLine2?.isNotEmpty == true) parts.add(addressLine2!);
     if (city?.isNotEmpty == true &&
         state?.isNotEmpty == true &&
         zip?.isNotEmpty == true) {
@@ -134,7 +112,6 @@ extension ShiftModelExtensions on ShiftModel {
     return parts.join(', ');
   }
 
-  /// Get shift type display text
   String get shiftTypeDisplay {
     if (isNightShift && isWeekendShift) return 'Night Weekend';
     if (isNightShift) return 'Night Shift';

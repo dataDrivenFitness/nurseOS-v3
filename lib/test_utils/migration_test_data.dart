@@ -1,5 +1,6 @@
 // lib/test_utils/migration_test_data.dart
-// UPDATED: Shift-centric architecture test data with nurseIds in agencies
+// UPDATED: Enhanced shift test data with urgency levels, coverage requests, and emergency shifts
+// CHANGED: Reduced to 1 coverage request, converted city_coverage_1 to regular shift
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
@@ -14,11 +15,58 @@ class MigrationTestData {
   static const String nurseBId = 'IjTRJyB6MThOCymSSnVDNlRQpaV2'; // City only
   static const String nurseCId =
       'R3JMhImrBvddyAQo3EDOw11vqkh2'; // Both agencies
+  static const String nurseDId = 'GK2p0eU6yRRWKtdx4NC6UIsM7s22'; // No agency
+
+  /// Helper functions for random patient data
+  static List<String> _getRandomDiagnoses(String location) {
+    if (location == 'hospital') {
+      final hospitalDiagnoses = <List<String>>[
+        ['Pneumonia', 'COPD'],
+        ['Heart Failure', 'Hypertension'],
+        ['Diabetes', 'Kidney Disease'],
+        ['Post-surgical recovery'],
+        ['Sepsis', 'Infection'],
+      ];
+      return hospitalDiagnoses[
+          DateTime.now().millisecond % hospitalDiagnoses.length];
+    } else {
+      final homeDiagnoses = <List<String>>[
+        ['Diabetes Management'],
+        ['Wound Care'],
+        ['Medication Management'],
+        ['Physical Therapy'],
+        ['Chronic Pain Management'],
+      ];
+      return homeDiagnoses[DateTime.now().millisecond % homeDiagnoses.length];
+    }
+  }
+
+  static List<String> _getRandomAllergies() {
+    final allergies = <List<String>>[
+      <String>[],
+      <String>['Penicillin'],
+      <String>['Shellfish'],
+      <String>['Latex'],
+      <String>['Penicillin', 'Shellfish'],
+    ];
+    return allergies[DateTime.now().microsecond % allergies.length];
+  }
+
+  static List<String> _getRandomDietRestrictions() {
+    final restrictions = <List<String>>[
+      <String>[],
+      <String>['Diabetic'],
+      <String>['Low sodium'],
+      <String>['Heart healthy'],
+      <String>['Low sodium', 'Diabetic'],
+    ];
+    return restrictions[DateTime.now().microsecond % restrictions.length];
+  }
 
   static Future<void> generateTestData([String? targetAgencyId]) async {
     final firestore = FirebaseFirestore.instance;
 
-    debugPrint('🧪 Generating shift-centric test data...');
+    debugPrint('🧪 Generating enhanced shift-centric test data...');
 
     // Create the 2 agencies with nurseIds
     await _createTestAgencies(firestore);
@@ -29,14 +77,15 @@ class MigrationTestData {
     // Create patients (18 total: 10 for Metro, 8 for City)
     await _createTestPatients(firestore);
 
-    // Create 4 shifts with exact patient counts
-    await _createTestShifts(firestore);
+    // Create 8 enhanced shifts with emergency, coverage, and regular types
+    await _createEnhancedTestShifts(firestore);
 
     // Create scheduled shifts for testing
     await _createTestScheduledShifts(firestore);
 
-    debugPrint('✅ Shift-centric test data generation complete!');
-    debugPrint('📊 Created: 2 agencies, 3 nurses, 18 patients, 4 shifts');
+    debugPrint('✅ Enhanced shift-centric test data generation complete!');
+    debugPrint(
+        '📊 Created: 2 agencies, 3 nurses, 18 patients, 8 shifts (3 emergency, 1 coverage, 4 regular)');
   }
 
   /// Create Metro Hospital and City Care agencies with nurseIds
@@ -102,7 +151,7 @@ class MigrationTestData {
     }
   }
 
-  /// Create 3 nurses with simplified structure (no agencyRoles)
+  /// Create 4 nurses with simplified structure (no agencyRoles)
   static Future<void> _createTestNurses(FirebaseFirestore firestore) async {
     final now = DateTime.now();
 
@@ -166,6 +215,26 @@ class MigrationTestData {
         'badges': ['leadership', 'multi_agency', 'adaptability'],
         'createdAt': FieldValue.serverTimestamp(),
       },
+
+      // Nurse D - Priya Patel (Independent only - no agency)
+      {
+        'uid': 'GK2p0eU6yRRWKtdx4NC6UIsM7s22',
+        'firstName': 'Priya',
+        'lastName': 'Patel',
+        'email': 'pri@app.com',
+        'role': 'nurse',
+        'licenseNumber': 'RN567890',
+        'licenseExpiry': now.add(const Duration(days: 365)).toIso8601String(),
+        'specialty': 'Telehealth',
+        'department': 'Remote Care',
+        'shift': 'flex',
+        'phoneExtension': '4321',
+        'isIndependentNurse': true,
+        'level': 4,
+        'xp': 950,
+        'badges': ['independent_practice', 'remote_ready'],
+        'createdAt': FieldValue.serverTimestamp(),
+      },
     ];
 
     for (final nurse in nurses) {
@@ -180,57 +249,60 @@ class MigrationTestData {
 
   /// Create 18 patients (10 for Metro, 8 for City)
   static Future<void> _createTestPatients(FirebaseFirestore firestore) async {
-    // Metro Hospital patients (10 total for 4+6 assignment)
+    // Metro Hospital patients (10 total for various assignments)
     final metroPatients = [
       _createPatient(
           'metro_patient_01', 'John', 'Smith', metroHospitalId, 'hospital',
-          department: 'ICU', room: '301A'),
+          department: 'ICU', room: '301A', isHighRisk: true, isIsolation: true),
       _createPatient(
           'metro_patient_02', 'Mary', 'Wilson', metroHospitalId, 'hospital',
-          department: 'ICU', room: '301B'),
+          department: 'ICU', room: '301B', isHighRisk: true, isFallRisk: true),
       _createPatient(
           'metro_patient_03', 'Robert', 'Davis', metroHospitalId, 'hospital',
-          department: 'ICU', room: '302A'),
+          department: 'ICU', room: '302A', isHighRisk: true),
       _createPatient(
           'metro_patient_04', 'Linda', 'Brown', metroHospitalId, 'hospital',
-          department: 'ICU', room: '302B'),
+          department: 'ICU', room: '302B', isFallRisk: true),
       _createPatient(
           'metro_patient_05', 'James', 'Taylor', metroHospitalId, 'hospital',
-          department: 'Emergency', room: 'ER-1'),
+          department: 'Emergency',
+          room: 'ER-1',
+          isHighRisk: true,
+          isIsolation: true),
       _createPatient('metro_patient_06', 'Patricia', 'Martinez',
           metroHospitalId, 'hospital',
-          department: 'Emergency', room: 'ER-2'),
+          department: 'Emergency', room: 'ER-2', isHighRisk: true),
       _createPatient('metro_patient_07', 'William', 'Anderson', metroHospitalId,
           'hospital',
-          department: 'Emergency', room: 'ER-3'),
+          department: 'Emergency', room: 'ER-3', isFallRisk: true),
       _createPatient(
           'metro_patient_08', 'Jennifer', 'Thomas', metroHospitalId, 'hospital',
           department: 'Med-Surg', room: '201A'),
       _createPatient(
           'metro_patient_09', 'David', 'Jackson', metroHospitalId, 'hospital',
-          department: 'Med-Surg', room: '201B'),
+          department: 'Med-Surg', room: '201B', isFallRisk: true),
       _createPatient(
           'metro_patient_10', 'Susan', 'White', metroHospitalId, 'hospital',
           department: 'Med-Surg', room: '202A'),
     ];
 
-    // City Care patients (8 total for 3+5 assignment)
+    // City Care patients (8 total for various assignments)
     final cityPatients = [
       _createPatient(
           'city_patient_01', 'Betty', 'Harris', cityCareId, 'residence',
-          address: '123 Oak Street, San Jose, CA 95123'),
+          address: '123 Oak Street, San Jose, CA 95123', isFallRisk: true),
       _createPatient(
           'city_patient_02', 'George', 'Clark', cityCareId, 'residence',
           address: '456 Pine Avenue, San Jose, CA 95112'),
       _createPatient(
           'city_patient_03', 'Dorothy', 'Lewis', cityCareId, 'residence',
-          address: '789 Elm Drive, San Jose, CA 95118'),
+          address: '789 Elm Drive, San Jose, CA 95118', isIsolation: true),
       _createPatient(
           'city_patient_04', 'Kenneth', 'Walker', cityCareId, 'residence',
           address: '321 Maple Lane, San Jose, CA 95110'),
       _createPatient(
           'city_patient_05', 'Helen', 'Hall', cityCareId, 'residence',
-          address: '654 Cedar Court, San Jose, CA 95134'),
+          address: '654 Cedar Court, San Jose, CA 95134', isFallRisk: true),
       _createPatient(
           'city_patient_06', 'Frank', 'Allen', cityCareId, 'residence',
           address: '987 Birch Street, San Jose, CA 95131'),
@@ -239,7 +311,7 @@ class MigrationTestData {
           address: '147 Willow Way, San Jose, CA 95128'),
       _createPatient(
           'city_patient_08', 'Anthony', 'King', cityCareId, 'residence',
-          address: '258 Ash Avenue, San Jose, CA 95112'),
+          address: '258 Ash Avenue, San Jose, CA 95112', isFallRisk: true),
     ];
 
     // Save Metro patients
@@ -275,6 +347,9 @@ class MigrationTestData {
     String? department,
     String? room,
     String? address,
+    bool isHighRisk = false,
+    bool isFallRisk = false,
+    bool isIsolation = false,
   }) {
     final patient = <String, dynamic>{
       'id': id,
@@ -283,8 +358,8 @@ class MigrationTestData {
       'mrn': 'MRN${id.substring(id.length - 3).toUpperCase()}',
       'location': location,
       'agencyId': agencyId,
-      'isFallRisk': id.hashCode % 3 == 0, // Random fall risk
-      'isIsolation': id.hashCode % 5 == 0, // Random isolation
+      'isFallRisk': isFallRisk,
+      'isIsolation': isIsolation,
       'biologicalSex': id.hashCode % 2 == 0 ? 'male' : 'female',
       'primaryDiagnoses': _getRandomDiagnoses(location),
       'allergies': _getRandomAllergies(),
@@ -293,6 +368,11 @@ class MigrationTestData {
       'createdBy': 'test_admin',
       'ownerUid': 'test_admin',
     };
+
+    // Add manual risk override for high risk patients
+    if (isHighRisk) {
+      patient['manualRiskOverride'] = 'RiskLevel.high'; // Match enum format
+    }
 
     // Add location-specific fields
     if (location == 'hospital') {
@@ -316,18 +396,22 @@ class MigrationTestData {
     return patient;
   }
 
-  /// Create 4 shifts with exact patient assignments
-  static Future<void> _createTestShifts(FirebaseFirestore firestore) async {
+  /// Create 8 enhanced shifts with emergency, coverage, and regular types
+  static Future<void> _createEnhancedTestShifts(
+      FirebaseFirestore firestore) async {
     final now = DateTime.now();
 
     final shifts = [
-      // Metro Hospital Shift 1 - 4 patients (ICU focus)
+      // 🚨 EMERGENCY SHIFTS (3 total)
+
+      // Emergency 1 - Metro Hospital ICU Critical Staffing
       {
-        'id': 'metro_shift_1',
+        'id': 'metro_emergency_1',
         'agencyId': metroHospitalId,
         'location': 'Metro Hospital',
         'facilityName': 'Metro Hospital',
         'department': 'ICU',
+        'unit': 'Unit 3A',
         'addressLine1': '123 Medical Center Drive',
         'city': 'San Jose',
         'state': 'CA',
@@ -335,75 +419,227 @@ class MigrationTestData {
         'startTime': Timestamp.fromDate(now.add(const Duration(hours: 2))),
         'endTime': Timestamp.fromDate(now.add(const Duration(hours: 14))),
         'status': 'available',
+        'urgencyLevel': 'emergency',
         'requestedBy': [],
         'assignedPatientIds': [
           'metro_patient_01',
           'metro_patient_02',
           'metro_patient_03',
-          'metro_patient_04',
-        ], // 4 patients - ICU patients
+          'metro_patient_04'
+        ],
+        'specialRequirements':
+            'Urgent: Nurse called in sick. Critical care experience preferred. COVID patients.',
+        'hourlyRate': 45.0,
+        'urgencyBonus': 15.0,
+        'requiredCertifications': ['BLS', 'ACLS', 'Critical Care'],
         'isNightShift': false,
         'isWeekendShift': false,
-        'createdAt': FieldValue.serverTimestamp(),
+        'createdAt':
+            Timestamp.fromDate(now.subtract(const Duration(minutes: 23))),
+        'createdBy': 'test_admin',
       },
 
-      // Metro Hospital Shift 2 - 6 patients (Emergency + Med-Surg)
+      // Emergency 2 - Metro Hospital Emergency Department
       {
-        'id': 'metro_shift_2',
+        'id': 'metro_emergency_2',
         'agencyId': metroHospitalId,
         'location': 'Metro Hospital',
         'facilityName': 'Metro Hospital',
-        'department': 'Emergency',
+        'department': 'Emergency Department',
         'addressLine1': '123 Medical Center Drive',
         'city': 'San Jose',
         'state': 'CA',
         'zip': '95128',
-        'startTime':
-            Timestamp.fromDate(now.add(const Duration(days: 1, hours: 6))),
+        'startTime': Timestamp.fromDate(now.add(const Duration(minutes: 45))),
         'endTime':
-            Timestamp.fromDate(now.add(const Duration(days: 1, hours: 18))),
+            Timestamp.fromDate(now.add(const Duration(hours: 8, minutes: 45))),
         'status': 'available',
-        'requestedBy': [],
+        'urgencyLevel': 'emergency',
+        'requestedBy': [nurseCId],
         'assignedPatientIds': [
           'metro_patient_05',
           'metro_patient_06',
           'metro_patient_07',
           'metro_patient_08',
           'metro_patient_09',
-          'metro_patient_10',
-        ], // 6 patients - Emergency + Med-Surg
+          'metro_patient_10'
+        ],
+        'specialRequirements':
+            'Emergency: Multiple trauma incoming. ACLS certification required.',
+        'hourlyRate': 48.0,
+        'urgencyBonus': 20.0,
+        'requiredCertifications': ['BLS', 'ACLS', 'PALS'],
         'isNightShift': false,
         'isWeekendShift': false,
-        'createdAt': FieldValue.serverTimestamp(),
+        'createdAt':
+            Timestamp.fromDate(now.subtract(const Duration(minutes: 8))),
+        'createdBy': 'test_admin',
       },
 
-      // City Care Shift 1 - 3 patients (Home health)
+      // Emergency 3 - City Care Urgent Home Health
       {
-        'id': 'city_shift_1',
+        'id': 'city_emergency_1',
         'agencyId': cityCareId,
-        'location': 'Community Route A',
+        'location': 'Emergency Home Health Route',
         'department': 'Community Care',
-        'addressLine1': 'Various Addresses - Route A',
+        'addressLine1': 'Various Addresses - Emergency Route',
         'city': 'San Jose',
         'state': 'CA',
         'zip': '95123',
-        'startTime': Timestamp.fromDate(now.add(const Duration(hours: 8))),
-        'endTime': Timestamp.fromDate(now.add(const Duration(hours: 16))),
+        'startTime': Timestamp.fromDate(now.add(const Duration(hours: 1))),
+        'endTime': Timestamp.fromDate(now.add(const Duration(hours: 9))),
         'status': 'available',
+        'urgencyLevel': 'emergency',
         'requestedBy': [],
-        'assignedPatientIds': [
-          'city_patient_01',
-          'city_patient_02',
-          'city_patient_03',
-        ], // 3 patients - Home visits
+        'assignedPatientIds': ['city_patient_01', 'city_patient_03'],
+        'specialRequirements':
+            'Emergency: Nurse called out sick. Isolation precautions required for one patient.',
+        'hourlyRate': 42.0,
+        'urgencyBonus': 12.0,
+        'requiredCertifications': ['BLS'],
         'isNightShift': false,
         'isWeekendShift': false,
-        'createdAt': FieldValue.serverTimestamp(),
+        'createdAt': Timestamp.fromDate(
+            now.subtract(const Duration(hours: 1, minutes: 15))),
+        'createdBy': 'test_admin',
       },
 
-      // City Care Shift 2 - 5 patients (Extended home health route)
+      // 🆘 COVERAGE REQUEST SHIFTS (1 total)
+
+      // Coverage 1 - Metro Hospital Med-Surg (Sarah needs coverage)
       {
-        'id': 'city_shift_2',
+        'id': 'metro_coverage_1',
+        'agencyId': metroHospitalId,
+        'location': 'Metro Hospital',
+        'facilityName': 'Metro Hospital',
+        'department': 'Med-Surg',
+        'unit': 'Floor 4',
+        'addressLine1': '123 Medical Center Drive',
+        'city': 'San Jose',
+        'state': 'CA',
+        'zip': '95128',
+        'startTime':
+            Timestamp.fromDate(now.add(const Duration(days: 1, hours: 7))),
+        'endTime':
+            Timestamp.fromDate(now.add(const Duration(days: 1, hours: 19))),
+        'status': 'available',
+        'urgencyLevel': 'coverage',
+        'requestingNurseId': nurseAId,
+        'requestingNurseNote':
+            'Family emergency came up. Would really appreciate the help! Patients are stable.',
+        'requestedBy': [],
+        'assignedPatientIds': [
+          'metro_patient_08',
+          'metro_patient_09',
+          'metro_patient_10'
+        ],
+        'hourlyRate': 42.0,
+        'requiredCertifications': ['BLS'],
+        'isNightShift': false,
+        'isWeekendShift': false,
+        'createdAt': Timestamp.fromDate(now.subtract(const Duration(hours: 2))),
+        'createdBy': nurseAId,
+      },
+
+      // 📅 REGULAR OPEN SHIFTS (4 total)
+
+      // Regular 1 - Metro Hospital Med-Surg
+      {
+        'id': 'metro_regular_1',
+        'agencyId': metroHospitalId,
+        'location': 'Metro Hospital',
+        'facilityName': 'Metro Hospital',
+        'department': 'Med-Surg',
+        'unit': 'Floor 3',
+        'addressLine1': '123 Medical Center Drive',
+        'city': 'San Jose',
+        'state': 'CA',
+        'zip': '95128',
+        'startTime':
+            Timestamp.fromDate(now.add(const Duration(days: 3, hours: 7))),
+        'endTime':
+            Timestamp.fromDate(now.add(const Duration(days: 3, hours: 19))),
+        'status': 'available',
+        'urgencyLevel': 'regular',
+        'requestedBy': [],
+        'assignedPatientIds': ['metro_patient_08', 'metro_patient_09'],
+        'hourlyRate': 40.0,
+        'requiredCertifications': ['BLS'],
+        'isNightShift': false,
+        'isWeekendShift': false,
+        'createdAt': Timestamp.fromDate(now.subtract(const Duration(days: 1))),
+        'createdBy': 'test_admin',
+      },
+
+      // Regular 2 - City Care Community Health Center
+      {
+        'id': 'city_regular_1',
+        'agencyId': cityCareId,
+        'location': 'Community Health Center',
+        'facilityName': 'Community Health Center',
+        'department': 'Outpatient Clinic',
+        'addressLine1': '789 Community Way',
+        'city': 'San Jose',
+        'state': 'CA',
+        'zip': '95112',
+        'startTime':
+            Timestamp.fromDate(now.add(const Duration(days: 4, hours: 8))),
+        'endTime':
+            Timestamp.fromDate(now.add(const Duration(days: 4, hours: 16))),
+        'status': 'available',
+        'urgencyLevel': 'regular',
+        'requestedBy': [],
+        'assignedPatientIds': [],
+        'specialRequirements':
+            'Routine outpatient appointments. Great for nurses who prefer clinic setting.',
+        'hourlyRate': 38.0,
+        'requiredCertifications': ['BLS'],
+        'isNightShift': false,
+        'isWeekendShift': false,
+        'createdAt': Timestamp.fromDate(
+            now.subtract(const Duration(days: 1, hours: 12))),
+        'createdBy': 'test_admin',
+      },
+
+      // Regular 3 - City Care Pediatric Clinic (Weekend)
+      {
+        'id': 'city_regular_2',
+        'agencyId': cityCareId,
+        'location': 'Pediatric Clinic',
+        'facilityName': 'Pediatric Clinic',
+        'department': 'Children\'s Care Unit',
+        'addressLine1': '321 Family Health Drive',
+        'city': 'San Jose',
+        'state': 'CA',
+        'zip': '95134',
+        'startTime':
+            Timestamp.fromDate(now.add(const Duration(days: 5, hours: 12))),
+        'endTime':
+            Timestamp.fromDate(now.add(const Duration(days: 5, hours: 20))),
+        'status': 'available',
+        'urgencyLevel': 'regular',
+        'requestedBy': [],
+        'assignedPatientIds': [
+          'city_patient_02',
+          'city_patient_04',
+          'city_patient_06',
+          'city_patient_07',
+          'city_patient_08'
+        ],
+        'specialRequirements':
+            'Great for nurses who love working with children. PALS certification preferred.',
+        'hourlyRate': 40.0,
+        'urgencyBonus': 5.0,
+        'requiredCertifications': ['BLS', 'PALS'],
+        'isNightShift': false,
+        'isWeekendShift': true,
+        'createdAt': Timestamp.fromDate(now.subtract(const Duration(hours: 3))),
+        'createdBy': 'test_admin',
+      },
+
+      // Regular 4 - City Care Route (Former Coverage Request - Now Regular)
+      {
+        'id': 'city_regular_3',
         'agencyId': cityCareId,
         'location': 'Community Route B',
         'department': 'Community Care',
@@ -412,21 +648,26 @@ class MigrationTestData {
         'state': 'CA',
         'zip': '95112',
         'startTime':
-            Timestamp.fromDate(now.add(const Duration(days: 1, hours: 7))),
+            Timestamp.fromDate(now.add(const Duration(days: 2, hours: 8))),
         'endTime':
-            Timestamp.fromDate(now.add(const Duration(days: 1, hours: 19))),
+            Timestamp.fromDate(now.add(const Duration(days: 2, hours: 16))),
         'status': 'available',
+        'urgencyLevel': 'regular',
         'requestedBy': [],
         'assignedPatientIds': [
           'city_patient_04',
           'city_patient_05',
-          'city_patient_06',
-          'city_patient_07',
-          'city_patient_08',
-        ], // 5 patients - Extended route
+          'city_patient_06'
+        ],
+        'specialRequirements':
+            'Routine home health visits. Good for nurses familiar with community care.',
+        'hourlyRate': 38.0,
+        'requiredCertifications': ['BLS'],
         'isNightShift': false,
         'isWeekendShift': false,
-        'createdAt': FieldValue.serverTimestamp(),
+        'createdAt': Timestamp.fromDate(
+            now.subtract(const Duration(hours: 4, minutes: 30))),
+        'createdBy': 'test_admin',
       },
     ];
 
@@ -444,8 +685,15 @@ class MigrationTestData {
           .set(shiftData);
 
       final patientCount = (shift['assignedPatientIds'] as List).length;
-      debugPrint('📅 Created shift: $shiftId with $patientCount patients');
+      final urgencyLevel = shift['urgencyLevel'] as String;
+      debugPrint(
+          '📅 Created $urgencyLevel shift: $shiftId with $patientCount patients');
     }
+
+    debugPrint('🎯 Created shifts breakdown:');
+    debugPrint('  🚨 Emergency: 3 shifts');
+    debugPrint('  🆘 Coverage: 1 shift');
+    debugPrint('  📅 Regular: 4 shifts');
   }
 
   /// Create some scheduled shifts for testing
@@ -511,62 +759,17 @@ class MigrationTestData {
     }
   }
 
-  /// Helper functions for random patient data
-  static List<String> _getRandomDiagnoses(String location) {
-    if (location == 'hospital') {
-      final hospitalDiagnoses = <List<String>>[
-        ['Pneumonia', 'COPD'],
-        ['Heart Failure', 'Hypertension'],
-        ['Diabetes', 'Kidney Disease'],
-        ['Post-surgical recovery'],
-        ['Sepsis', 'Infection'],
-      ];
-      return hospitalDiagnoses[
-          DateTime.now().millisecond % hospitalDiagnoses.length];
-    } else {
-      final homeDiagnoses = <List<String>>[
-        ['Diabetes Management'],
-        ['Wound Care'],
-        ['Medication Management'],
-        ['Physical Therapy'],
-        ['Chronic Pain Management'],
-      ];
-      return homeDiagnoses[DateTime.now().millisecond % homeDiagnoses.length];
-    }
-  }
-
-  static List<String> _getRandomAllergies() {
-    final allergies = <List<String>>[
-      <String>[],
-      <String>['Penicillin'],
-      <String>['Shellfish'],
-      <String>['Latex'],
-      <String>['Penicillin', 'Shellfish'],
-    ];
-    return allergies[DateTime.now().microsecond % allergies.length];
-  }
-
-  static List<String> _getRandomDietRestrictions() {
-    final restrictions = <List<String>>[
-      <String>[],
-      <String>['Diabetic'],
-      <String>['Low sodium'],
-      <String>['Heart healthy'],
-      <String>['Low sodium', 'Diabetic'],
-    ];
-    return restrictions[DateTime.now().microsecond % restrictions.length];
-  }
-
   /// Clear all test data
   static Future<void> clearTestData() async {
     final firestore = FirebaseFirestore.instance;
 
-    debugPrint('🧹 Clearing shift-centric test data...');
+    debugPrint('🧹 Clearing enhanced shift-centric test data...');
 
     // Clear test users
     await firestore.collection('users').doc(nurseAId).delete();
     await firestore.collection('users').doc(nurseBId).delete();
     await firestore.collection('users').doc(nurseCId).delete();
+    await firestore.collection('users').doc(nurseDId).delete();
     debugPrint('🗑️ Cleared test users');
 
     // Clear Metro Hospital data
@@ -581,18 +784,21 @@ class MigrationTestData {
           .delete();
     }
 
-    await firestore
-        .collection('agencies')
-        .doc(metroHospitalId)
-        .collection('shifts')
-        .doc('metro_shift_1')
-        .delete();
-    await firestore
-        .collection('agencies')
-        .doc(metroHospitalId)
-        .collection('shifts')
-        .doc('metro_shift_2')
-        .delete();
+    // Clear Metro shifts (emergency, coverage, regular)
+    final metroShiftIds = [
+      'metro_emergency_1',
+      'metro_emergency_2',
+      'metro_coverage_1',
+      'metro_regular_1',
+    ];
+    for (final shiftId in metroShiftIds) {
+      await firestore
+          .collection('agencies')
+          .doc(metroHospitalId)
+          .collection('shifts')
+          .doc(shiftId)
+          .delete();
+    }
 
     await firestore
         .collection('agencies')
@@ -613,18 +819,21 @@ class MigrationTestData {
           .delete();
     }
 
-    await firestore
-        .collection('agencies')
-        .doc(cityCareId)
-        .collection('shifts')
-        .doc('city_shift_1')
-        .delete();
-    await firestore
-        .collection('agencies')
-        .doc(cityCareId)
-        .collection('shifts')
-        .doc('city_shift_2')
-        .delete();
+    // Clear City shifts (emergency, regular) - Updated shift list
+    final cityShiftIds = [
+      'city_emergency_1',
+      'city_regular_1',
+      'city_regular_2',
+      'city_regular_3', // Updated from city_coverage_1
+    ];
+    for (final shiftId in cityShiftIds) {
+      await firestore
+          .collection('agencies')
+          .doc(cityCareId)
+          .collection('shifts')
+          .doc(shiftId)
+          .delete();
+    }
 
     await firestore
         .collection('agencies')
@@ -637,6 +846,7 @@ class MigrationTestData {
     await firestore.collection('agencies').doc(metroHospitalId).delete();
     await firestore.collection('agencies').doc(cityCareId).delete();
 
-    debugPrint('✅ Shift-centric test data cleared!');
+    debugPrint('✅ Enhanced shift-centric test data cleared!');
+    debugPrint('🗑️ Cleared: 2 agencies, 4 nurses, 18 patients, 8 shifts');
   }
 }

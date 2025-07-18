@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:nurseos_v3/features/patient/presentation/widgets/patient_card.dart';
 import 'package:nurseos_v3/features/profile/state/user_profile_controller.dart';
 import 'package:nurseos_v3/shared/widgets/nurse_scaffold.dart';
+import 'package:nurseos_v3/shared/widgets/animated_extended_fab.dart';
 import 'package:nurseos_v3/core/theme/spacing.dart';
 import 'package:nurseos_v3/core/theme/shape_tokens.dart';
 import 'package:nurseos_v3/core/theme/animation_tokens.dart';
@@ -26,24 +27,16 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen>
     with TickerProviderStateMixin {
   // Controllers
   late ScrollController _scrollController;
-  late AnimationController _fabAnimationController;
   late AnimationController _searchAnimationController;
 
-  // Animations
-  late Animation<double> _fabScaleAnimation;
-  late Animation<double> _fabWidthAnimation;
-  late Animation<double> _fabTextOpacityAnimation;
+  // Animations (only for search bar)
   late Animation<double> _searchHeightAnimation;
 
   // State
-  bool _showCompactFab = false;
   bool _showSearchBar = true;
   String _searchQuery = '';
 
-  // Constants
-  static const double _fabExtendedWidth = 170.0; // Increased from 160.0
-  static const double _fabCompactWidth = 56.0;
-  static const double _scrollThreshold = 100.0;
+  // Constants (only for search bar)
   static const double _searchThreshold = 10.0;
 
   @override
@@ -56,10 +49,6 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen>
 
   void _initializeControllers() {
     _scrollController = ScrollController();
-    _fabAnimationController = AnimationController(
-      duration: AnimationTokens.medium, // 300ms from design tokens
-      vsync: this,
-    );
     _searchAnimationController = AnimationController(
       duration: AnimationTokens.short, // 150ms from design tokens
       vsync: this,
@@ -67,33 +56,6 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen>
   }
 
   void _setupAnimations() {
-    // FAB scale animation (subtle scale down when compact)
-    _fabScaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.95,
-    ).animate(CurvedAnimation(
-      parent: _fabAnimationController,
-      curve: Curves.easeOutCubic,
-    ));
-
-    // FAB width animation
-    _fabWidthAnimation = Tween<double>(
-      begin: _fabExtendedWidth,
-      end: _fabCompactWidth,
-    ).animate(CurvedAnimation(
-      parent: _fabAnimationController,
-      curve: Curves.easeOutCubic,
-    ));
-
-    // FAB text opacity - fades out early in the animation
-    _fabTextOpacityAnimation = Tween<double>(
-      begin: 1.0,
-      end: 0.0,
-    ).animate(CurvedAnimation(
-      parent: _fabAnimationController,
-      curve: const Interval(0.0, 0.6, curve: Curves.easeInCubic),
-    ));
-
     // Search bar height animation
     _searchHeightAnimation = Tween<double>(
       begin: 1.0,
@@ -107,21 +69,7 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen>
   void _onScroll() {
     final currentOffset = _scrollController.offset;
 
-    // Handle FAB state
-    final bool shouldShowCompact = currentOffset > _scrollThreshold;
-    if (shouldShowCompact != _showCompactFab) {
-      setState(() {
-        _showCompactFab = shouldShowCompact;
-      });
-
-      if (_showCompactFab) {
-        _fabAnimationController.forward();
-      } else {
-        _fabAnimationController.reverse();
-      }
-    }
-
-    // Handle search bar state
+    // Handle search bar state only (FAB handled by AnimatedExtendedFAB)
     final bool shouldShowSearchBar = currentOffset <= _searchThreshold;
     if (shouldShowSearchBar != _showSearchBar) {
       setState(() {
@@ -169,7 +117,6 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen>
   @override
   void dispose() {
     _scrollController.dispose();
-    _fabAnimationController.dispose();
     _searchAnimationController.dispose();
     super.dispose();
   }
@@ -195,7 +142,13 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen>
           ),
           data: (list) => _buildPatientList(context, list, userAsync),
         ),
-        floatingActionButton: _buildAnimatedFAB(),
+        floatingActionButton: AnimatedExtendedFAB(
+          onPressed: _onAddPatientPressed,
+          label: 'Add Patient',
+          icon: Icons.add,
+          scrollController: _scrollController,
+          scrollThreshold: 100.0,
+        ),
         floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       ),
     );
@@ -315,77 +268,6 @@ class _PatientListScreenState extends ConsumerState<PatientListScreen>
           borderRadius: ShapeTokens.cardRadius,
           onTap: () => _onPatientTapped(patient.id),
           child: PatientCard(patient: patient),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAnimatedFAB() {
-    return AnimatedBuilder(
-      animation: Listenable.merge([_fabAnimationController]),
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _fabScaleAnimation.value,
-          child: SizedBox(
-            width: _fabWidthAnimation.value,
-            height: 56,
-            child: FloatingActionButton(
-              onPressed: _onAddPatientPressed,
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-              elevation: 2,
-              highlightElevation: 6,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(28),
-              ),
-              child: _buildFABContent(),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildFABContent() {
-    // Calculate current width progress (0.0 to 1.0)
-    final widthProgress = (_fabWidthAnimation.value - _fabCompactWidth) /
-        (_fabExtendedWidth - _fabCompactWidth);
-
-    // Only show text when there's actually enough room (65%+ width)
-    final showText = widthProgress > 0.65 && _fabWidthAnimation.value > 115;
-
-    return ClipRect(
-      child: Padding(
-        // ✅ Conservative padding to prevent overflow
-        padding: EdgeInsets.symmetric(
-          horizontal: showText ? 18 : 16, // Reduced from 20 to 18
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.add, size: 24),
-            // ✅ Only add spacing and text when we have sufficient width
-            if (showText) ...[
-              const SizedBox(width: 12),
-              // ✅ Flexible text to prevent overflow
-              Flexible(
-                child: AnimatedOpacity(
-                  opacity: _fabTextOpacityAnimation.value,
-                  duration: AnimationTokens.short,
-                  child: const Text(
-                    'Add Patient',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 0.5,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ),
-              ),
-            ],
-          ],
         ),
       ),
     );

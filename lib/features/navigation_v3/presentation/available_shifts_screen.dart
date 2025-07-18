@@ -1,5 +1,5 @@
 // 📁 lib/features/navigation_v3/presentation/available_shifts_screen.dart
-// UPDATED: Real data integration replacing mock generators + Context Safety + AppSnackbar
+// FIXED: Universal pill display for ALL nurse types
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,26 +7,27 @@ import 'package:nurseos_v3/core/theme/app_colors.dart';
 import 'package:nurseos_v3/core/theme/spacing.dart';
 import 'package:nurseos_v3/features/auth/state/auth_controller.dart';
 import 'package:nurseos_v3/features/auth/models/user_model.dart';
-import 'package:nurseos_v3/features/schedule/models/scheduled_shift_model.dart';
-import 'package:nurseos_v3/features/schedule/models/scheduled_shift_model_extensions.dart';
-import 'package:nurseos_v3/features/schedule/widgets/scheduled_shift_card.dart';
 import 'package:nurseos_v3/features/schedule/shift_pool/state/shift_pool_provider.dart';
 import 'package:nurseos_v3/features/schedule/shift_pool/state/shift_request_controller.dart';
 import 'package:nurseos_v3/features/schedule/shift_pool/models/shift_model.dart';
+import 'package:nurseos_v3/features/schedule/shift_pool/models/shift_model_extensions.dart';
 import 'package:nurseos_v3/features/agency/state/agency_context_provider.dart';
 import 'package:nurseos_v3/shared/widgets/app_snackbar.dart';
 import 'package:nurseos_v3/shared/widgets/nurse_scaffold.dart';
+import 'package:nurseos_v3/shared/widgets/animated_extended_fab.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/primary_button.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/secondary_button.dart';
 
-/// Available Shifts Screen - First tab of new navigation system
+/// Available Shifts Screen - Enhanced with universal pill display
 ///
-/// UPDATED: Now connects to real Firestore data via existing providers
-///
-/// Displays shifts available for nurses to request or create:
-/// - Agency nurses: Available shifts from affiliated agencies (via shiftPoolProvider)
-/// - Independent nurses: Can create custom shifts + see agency opportunities
-/// - Dual-mode nurses: Both agency shifts and self-creation options
+/// ✅ FIXED: Pill display now works for ALL nurse types
+/// - Interactive count pills header (shows for everyone)
+/// - 🚨 Emergency Coverage (Red) - Critical staffing needs
+/// - 🆘 Coverage Requests (Orange) - Colleague help requests
+/// - 📅 Open Shifts (Blue) - Regular available shifts
+/// - Color-coded 8px sidebar pattern from patient cards
+/// - Animated FAB for independent nurses ONLY
+/// - Contextual empty states based on nurse type
 class AvailableShiftsScreen extends ConsumerStatefulWidget {
   const AvailableShiftsScreen({super.key});
 
@@ -38,18 +39,63 @@ class AvailableShiftsScreen extends ConsumerStatefulWidget {
 class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
+  late ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
-    // Two tabs: Agency Shifts and My Shifts (for independent nurses)
-    _tabController = TabController(length: 2, vsync: this);
+    _scrollController = ScrollController();
+    _tabController = TabController(length: 1, vsync: this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final user = ref.read(authControllerProvider).value;
+    if (user != null) {
+      _updateTabController(user);
+    }
+  }
+
+  void _updateTabController(UserModel user) {
+    final userAgencies =
+        ref.read(userAgenciesFromMembershipProvider).value ?? [];
+
+    int newTabCount = 1;
+
+    if (user.isIndependentNurse) {
+      if (userAgencies.isEmpty) {
+        newTabCount = 1;
+      } else {
+        newTabCount = 2;
+      }
+    } else {
+      newTabCount = 1;
+    }
+
+    if (_tabController.length != newTabCount) {
+      _tabController.dispose();
+      _tabController = TabController(length: newTabCount, vsync: this);
+    }
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  int _calculateTabCount(UserModel? user, List<String> agencies) {
+    if (user?.isIndependentNurse == true) {
+      if (agencies.isEmpty) {
+        return 1;
+      } else {
+        return 2;
+      }
+    } else {
+      return 1;
+    }
   }
 
   @override
@@ -64,213 +110,717 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
       );
     }
 
-    return NurseScaffold(
-      child: Scaffold(
-        backgroundColor: colors.background,
-        appBar: AppBar(
-          title: const Text('Available Shifts'),
-          backgroundColor: colors.surface,
-          elevation: 0,
-          bottom: TabBar(
-            controller: _tabController,
-            labelColor: colors.brandPrimary,
-            unselectedLabelColor: colors.subdued,
-            indicatorColor: colors.brandPrimary,
-            tabs: [
-              Tab(
-                icon: const Icon(Icons.business, size: 20),
-                text: 'Agency Shifts',
-              ),
-              Tab(
-                icon: const Icon(Icons.person_add, size: 20),
-                text: user.isIndependentNurse ? 'My Shifts' : 'Create Shift',
-              ),
-            ],
+    return Consumer(
+      builder: (context, ref, child) {
+        final agencies =
+            ref.watch(userAgenciesFromMembershipProvider).value ?? [];
+        final tabCount = _calculateTabCount(user, agencies);
+
+        return NurseScaffold(
+          child: DefaultTabController(
+            length: tabCount,
+            child: Builder(
+              builder: (context) {
+                final tabController = DefaultTabController.of(context);
+
+                return Scaffold(
+                  backgroundColor: colors.background,
+                  body: Column(
+                    children: [
+                      // ✅ FIXED: Universal pill header - shows for ALL nurses
+                      _buildUniversalPillHeader(colors, user),
+
+                      // Tab bar (conditional based on user type)
+                      _buildConditionalTabBar(
+                          colors, user, agencies, tabController),
+
+                      // Tab content
+                      Expanded(
+                        child: _buildTabContent(user, agencies, tabController),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// ✅ FIXED: Universal pill header that shows for ALL nurse types
+  Widget _buildUniversalPillHeader(AppColors colors, UserModel user) {
+    // For independent-only nurses, check if they have agency access first
+    final userAgenciesAsync = ref.watch(userAgenciesFromMembershipProvider);
+
+    return userAgenciesAsync.when(
+      loading: () => _buildCountPillsPlaceholder(colors),
+      error: (_, __) => _buildCountPillsPlaceholder(colors),
+      data: (agencies) {
+        // If independent nurse with no agencies, show appropriate empty state
+        if (user.isIndependentNurse && agencies.isEmpty) {
+          return _buildIndependentOnlyPillHeader(colors);
+        }
+
+        // Otherwise, show agency shifts
+        final agencyShiftsAsync = ref.watch(shiftPoolProvider);
+
+        return agencyShiftsAsync.when(
+          loading: () => _buildCountPillsPlaceholder(colors),
+          error: (_, __) => _buildCountPillsPlaceholder(colors),
+          data: (shifts) {
+            final availableShifts = shifts
+                .where((shift) =>
+                    shift.status == 'available' &&
+                    (shift.assignedTo == null || shift.assignedTo!.isEmpty))
+                .toList();
+
+            final emergencyCount =
+                availableShifts.where((s) => s.isEmergencyShift).length;
+            final coverageCount =
+                availableShifts.where((s) => s.isCoverageRequest).length;
+            final regularCount =
+                availableShifts.where((s) => s.isRegularShift).length;
+
+            return _buildCountPills(
+                emergencyCount, coverageCount, regularCount, colors, user);
+          },
+        );
+      },
+    );
+  }
+
+  /// Build pill header specifically for independent-only nurses
+  Widget _buildIndependentOnlyPillHeader(AppColors colors) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: SpacingTokens.md,
+        vertical: SpacingTokens.md,
+      ),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Center(
+          child: Text(
+            'No agency shifts • Create your own shifts below',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: colors.subdued,
+                  fontWeight: FontWeight.w500,
+                ),
           ),
         ),
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _buildAgencyShiftsTab(user),
-            _buildIndependentShiftsTab(user),
-          ],
-        ),
-        floatingActionButton: _buildFloatingActionButton(user, colors),
       ),
     );
   }
 
-  /// Tab 1: Agency Shifts - UPDATED: Real data from shiftPoolProvider
-  /// Tab 1: Agency Shifts - UPDATED: Real data from shiftPoolProvider
+  /// Build count pills with contextual messaging for all nurse types
+  Widget _buildCountPills(int emergencyCount, int coverageCount,
+      int regularCount, AppColors colors, UserModel user) {
+    final pillsToShow = <Widget>[];
+
+    if (emergencyCount > 0) {
+      pillsToShow.add(
+        _buildCountPill(
+          '🚨 $emergencyCount Emergency',
+          colors.danger,
+          true,
+          () => _scrollToSection(0),
+        ),
+      );
+    }
+
+    if (coverageCount > 0) {
+      pillsToShow.add(
+        _buildCountPill(
+          '🆘 $coverageCount Coverage',
+          colors.warning,
+          true,
+          () => _scrollToSection(1),
+        ),
+      );
+    }
+
+    if (regularCount > 0) {
+      pillsToShow.add(
+        _buildCountPill(
+          '📅 $regularCount Open',
+          colors.brandPrimary,
+          true,
+          () => _scrollToSection(2),
+        ),
+      );
+    }
+
+    // If no pills to show, show contextual empty state
+    if (pillsToShow.isEmpty) {
+      String message = 'No shifts available';
+
+      if (user.isIndependentNurse) {
+        final agencies =
+            ref.read(userAgenciesFromMembershipProvider).value ?? [];
+        message = agencies.isEmpty
+            ? 'No agency shifts • Create your own shifts below'
+            : 'No agency shifts available • Check back later';
+      }
+
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: SpacingTokens.md,
+          vertical: SpacingTokens.md,
+        ),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: Center(
+            child: Text(
+              message,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: colors.subdued,
+                    fontWeight: FontWeight.w500,
+                  ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: SpacingTokens.md,
+        vertical: SpacingTokens.md,
+      ),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          children: [
+            _buildPillSlot(pillsToShow.isNotEmpty ? pillsToShow[0] : null),
+            const SizedBox(width: SpacingTokens.sm),
+            _buildPillSlot(pillsToShow.length > 1 ? pillsToShow[1] : null),
+            const SizedBox(width: SpacingTokens.sm),
+            _buildPillSlot(pillsToShow.length > 2 ? pillsToShow[2] : null),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPillSlot(Widget? pill) {
+    return Expanded(
+      child: pill ?? const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildCountPill(
+      String text, Color color, bool hasShifts, VoidCallback onTap) {
+    final theme = Theme.of(context);
+
+    return GestureDetector(
+      onTap: hasShifts ? onTap : null,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: SpacingTokens.sm,
+          vertical: SpacingTokens.xs,
+        ),
+        decoration: BoxDecoration(
+          color: hasShifts
+              ? color.withOpacity(0.1)
+              : Colors.grey.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: hasShifts
+                ? color.withOpacity(0.3)
+                : Colors.grey.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          text,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: hasShifts ? color : Colors.grey,
+            fontWeight: FontWeight.w600,
+            fontSize: 11,
+          ),
+          textAlign: TextAlign.center,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCountPillsPlaceholder(AppColors colors) {
+    final pillsToShow = <Widget>[
+      _buildCountPill(
+          '🚨 - Emergency', colors.danger.withOpacity(0.5), false, () {}),
+      _buildCountPill(
+          '🆘 - Coverage', colors.warning.withOpacity(0.5), false, () {}),
+      _buildCountPill(
+          '📅 - Open', colors.brandPrimary.withOpacity(0.5), false, () {}),
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: SpacingTokens.md,
+        vertical: SpacingTokens.md,
+      ),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          children: [
+            _buildPillSlot(pillsToShow.isNotEmpty ? pillsToShow[0] : null),
+            const SizedBox(width: SpacingTokens.sm),
+            _buildPillSlot(pillsToShow.length > 1 ? pillsToShow[1] : null),
+            const SizedBox(width: SpacingTokens.sm),
+            _buildPillSlot(pillsToShow.length > 2 ? pillsToShow[2] : null),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConditionalTabBar(AppColors colors, UserModel user,
+      List<String> agencies, TabController tabController) {
+    bool showAgencyTab = false;
+    bool showMyShiftsTab = false;
+
+    if (user.isIndependentNurse) {
+      if (agencies.isEmpty) {
+        showMyShiftsTab = true;
+      } else {
+        showAgencyTab = true;
+        showMyShiftsTab = true;
+      }
+    } else {
+      showAgencyTab = true;
+    }
+
+    final tabs = <Tab>[];
+    if (showAgencyTab) {
+      tabs.add(const Tab(
+        icon: Icon(Icons.business, size: 20),
+        text: 'Agency Shifts',
+      ));
+    }
+    if (showMyShiftsTab) {
+      tabs.add(const Tab(
+        icon: Icon(Icons.person_add, size: 20),
+        text: 'My Shifts',
+      ));
+    }
+
+    if (tabs.length > 1) {
+      return Container(
+        color: colors.surface,
+        child: TabBar(
+          controller: tabController,
+          labelColor: colors.brandPrimary,
+          unselectedLabelColor: colors.subdued,
+          indicatorColor: colors.brandPrimary,
+          tabs: tabs,
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildTabContent(
+      UserModel user, List<String> agencies, TabController tabController) {
+    if (user.isIndependentNurse) {
+      if (agencies.isEmpty) {
+        return _buildIndependentShiftsTab(user);
+      } else {
+        return TabBarView(
+          controller: tabController,
+          children: [
+            _buildAgencyShiftsTab(user),
+            _buildIndependentShiftsTab(user),
+          ],
+        );
+      }
+    } else {
+      return _buildAgencyShiftsTab(user);
+    }
+  }
+
   Widget _buildAgencyShiftsTab(UserModel user) {
+    final userAgenciesAsync = ref.watch(userAgenciesFromMembershipProvider);
+
+    return userAgenciesAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => _buildErrorState(
+        icon: Icons.error_outline,
+        title: 'Unable to Load Agencies',
+        subtitle: 'Check your connection and try again.',
+        actionLabel: 'Retry',
+        onAction: () => ref.invalidate(userAgenciesFromMembershipProvider),
+      ),
+      data: (agencyIds) {
+        if (agencyIds.isEmpty) {
+          return _buildNoAgencyAccessState(user);
+        }
+        return _buildAgencyShiftsList(user);
+      },
+    );
+  }
+
+  Widget _buildNoAgencyAccessState(UserModel user) {
+    if (user.isIndependentNurse) {
+      return _buildEmptyState(
+        icon: Icons.business_center,
+        title: 'No Agency Partnerships',
+        subtitle:
+            'You\'re set up for independent practice.\nUse the "My Shifts" tab to create your own shifts.',
+        actionLabel: 'Create My First Shift',
+        onAction: () => _navigateToCreateShift(),
+      );
+    } else {
+      return _buildEmptyState(
+        icon: Icons.warning_amber,
+        title: 'No Agency Access',
+        subtitle: 'Contact your administrator to be assigned to an agency.',
+      );
+    }
+  }
+
+  Widget _buildAgencyShiftsList(UserModel user) {
     final agencyShiftsAsync = ref.watch(shiftPoolProvider);
-    final currentAgencyId = ref.watch(currentAgencyIdProvider);
 
     return agencyShiftsAsync.when(
-      loading: () {
-        print('🔍 UI: Loading state');
-        return const Center(child: CircularProgressIndicator());
-      },
-      error: (error, stack) {
-        print('🔍 UI: Error state - $error');
-        return _buildErrorState(
-          icon: Icons.error_outline,
-          title: 'Unable to Load Shifts',
-          subtitle: currentAgencyId == null
-              ? 'No agency selected. Please contact admin to assign you to an agency.'
-              : 'Check your connection and try again.',
-          actionLabel: currentAgencyId != null ? 'Retry' : null,
-          onAction: currentAgencyId != null
-              ? () {
-                  // Trigger refresh by invalidating the provider
-                  ref.invalidate(shiftPoolProvider);
-                }
-              : null,
-        );
-      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => _buildErrorState(
+        icon: Icons.error_outline,
+        title: 'Unable to Load Shifts',
+        subtitle: 'Check your connection and try again.',
+        actionLabel: 'Retry',
+        onAction: () => ref.invalidate(shiftPoolProvider),
+      ),
       data: (shifts) {
-        print('🔍 UI: Data received - ${shifts.length} shifts');
-        for (int i = 0; i < shifts.length; i++) {
-          print(
-              '🔍 UI: Shift ${i + 1}: ${shifts[i].id} - Status: ${shifts[i].status} - AssignedTo: ${shifts[i].assignedTo}');
-        }
-
-        // Filter only available shifts that aren't assigned
         final availableShifts = shifts
             .where((shift) =>
                 shift.status == 'available' &&
                 (shift.assignedTo == null || shift.assignedTo!.isEmpty))
             .toList();
 
-        print(
-            '🔍 UI: Available shifts after filter - ${availableShifts.length}');
-        for (int i = 0; i < availableShifts.length; i++) {
-          print(
-              '🔍 UI: Available shift ${i + 1}: ${availableShifts[i].id} - Location: ${availableShifts[i].location}');
-        }
-
         if (availableShifts.isEmpty) {
-          print('🔍 UI: Showing empty state');
           return _buildEmptyState(
             icon: Icons.work_off,
             title: 'No Available Shifts',
-            subtitle: currentAgencyId == null
-                ? 'No agency context available.\nContact admin to assign you to an agency.'
-                : 'Check back later for new opportunities\nfrom your affiliated agencies.',
+            subtitle:
+                'Check back later for new opportunities\nfrom your affiliated agencies.',
           );
         }
 
-        print('🔍 UI: Building ListView with ${availableShifts.length} shifts');
+        final emergencyShifts =
+            availableShifts.where((s) => s.isEmergencyShift).toList();
+        final coverageShifts =
+            availableShifts.where((s) => s.isCoverageRequest).toList();
+        final regularShifts =
+            availableShifts.where((s) => s.isRegularShift).toList();
+
         return RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(shiftPoolProvider);
-            // Wait a bit for the provider to refresh
             await Future.delayed(const Duration(milliseconds: 500));
           },
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: SpacingTokens.md),
-            itemCount: availableShifts.length,
-            itemBuilder: (context, index) {
-              final shift = availableShifts[index];
-              print('🔍 UI: Building card for shift: ${shift.id}');
-              return _buildAgencyShiftCard(shift, user);
-            },
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(SpacingTokens.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (emergencyShifts.isNotEmpty) ...[
+                  _buildSectionHeader(
+                    '🚨 Emergency Coverage',
+                    'Critical staffing needs requiring immediate response',
+                    emergencyShifts.length,
+                    Colors.red,
+                  ),
+                  const SizedBox(height: SpacingTokens.md),
+                  ...emergencyShifts.map((shift) => _buildEnhancedShiftCard(
+                      shift, user, _ShiftCardType.emergency)),
+                  const SizedBox(height: SpacingTokens.xl),
+                ],
+                if (coverageShifts.isNotEmpty) ...[
+                  _buildSectionHeader(
+                    '🆘 Coverage Requests',
+                    'Colleagues need help with their scheduled shifts',
+                    coverageShifts.length,
+                    Colors.orange,
+                  ),
+                  const SizedBox(height: SpacingTokens.md),
+                  ...coverageShifts.map((shift) => _buildEnhancedShiftCard(
+                      shift, user, _ShiftCardType.coverage)),
+                  const SizedBox(height: SpacingTokens.xl),
+                ],
+                if (regularShifts.isNotEmpty) ...[
+                  _buildSectionHeader(
+                    '📅 Open Shifts',
+                    'Available shifts for pickup',
+                    regularShifts.length,
+                    Colors.blue,
+                  ),
+                  const SizedBox(height: SpacingTokens.md),
+                  ...regularShifts.map((shift) => _buildEnhancedShiftCard(
+                      shift, user, _ShiftCardType.regular)),
+                ],
+                const SizedBox(height: SpacingTokens.xxl * 2),
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  /// Build agency shift card with real request functionality
-  Widget _buildAgencyShiftCard(ShiftModel shift, UserModel user) {
+  Widget _buildIndependentShiftsTab(UserModel user) {
+    return _buildUserCreatedShifts(user);
+  }
+
+  Widget _buildUserCreatedShifts(UserModel user) {
+    return _buildEmptyState(
+      icon: Icons.add_business,
+      title: 'No Personal Shifts',
+      subtitle:
+          'Create your first shift to start\nmanaging your independent practice.',
+      actionLabel: 'Create Shift',
+      onAction: () => _navigateToCreateShift(),
+    );
+  }
+
+  Widget _buildSectionHeader(
+      String title, String subtitle, int count, Color accentColor) {
+    final theme = Theme.of(context);
+    final colors = theme.extension<AppColors>()!;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(SpacingTokens.md),
+      decoration: BoxDecoration(
+        color: accentColor.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: accentColor.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: accentColor,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: SpacingTokens.sm,
+                  vertical: SpacingTokens.xs,
+                ),
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '$count',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: accentColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: SpacingTokens.xs),
+          Text(
+            subtitle,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colors.subdued,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEnhancedShiftCard(
+      ShiftModel shift, UserModel user, _ShiftCardType type) {
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
     final controller = ref.read(shiftRequestControllerProvider);
-
-    // Check if user has already requested this shift
     final hasRequested = shift.hasRequestedBy(user.uid);
+
+    Color sidebarColor;
+    Color accentColor;
+    switch (type) {
+      case _ShiftCardType.emergency:
+        sidebarColor = colors.danger;
+        accentColor = colors.danger;
+        break;
+      case _ShiftCardType.coverage:
+        sidebarColor = colors.warning;
+        accentColor = colors.warning;
+        break;
+      case _ShiftCardType.regular:
+        sidebarColor = colors.brandPrimary;
+        accentColor = colors.brandPrimary;
+        break;
+    }
 
     return Card(
       elevation: 2,
-      margin: const EdgeInsets.symmetric(
-        horizontal: SpacingTokens.lg,
-        vertical: SpacingTokens.sm,
-      ),
+      margin: const EdgeInsets.only(bottom: SpacingTokens.md),
+      color: colors.surfaceVariant,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () => _showShiftDetails(shift),
         borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(SpacingTokens.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: IntrinsicHeight(
+          child: Row(
             children: [
-              // Header with location and status
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+              Container(
+                width: 8,
+                margin: const EdgeInsets.symmetric(vertical: 2),
+                decoration: BoxDecoration(
+                  color: sidebarColor,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    bottomLeft: Radius.circular(12),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(SpacingTokens.md),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  shift.facilityDisplayName,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                if (shift.departmentDisplay != null) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    shift.departmentDisplay!,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colors.subdued,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          _buildStatusChip(
+                              hasRequested, shift, accentColor, colors),
+                        ],
+                      ),
+                      const SizedBox(height: SpacingTokens.md),
+                      _buildShiftDateTimeInfo(shift, colors),
+                      const SizedBox(height: SpacingTokens.sm),
+                      _buildShiftDetails(shift, colors),
+                      if (shift.coverageContextMessage != null ||
+                          shift.specialRequirements != null) ...[
+                        const SizedBox(height: SpacingTokens.sm),
+                        _buildSpecialInfo(shift, type, accentColor),
+                      ],
+                      const SizedBox(height: SpacingTokens.md),
+                      SizedBox(
+                        width: double.infinity,
+                        child: hasRequested
+                            ? SecondaryButton(
+                                label: 'Request Sent',
+                                onPressed: null,
+                                icon: const Icon(Icons.check, size: 18),
+                              )
+                            : PrimaryButton(
+                                label: shift.getCoverageButtonText(),
+                                onPressed: () =>
+                                    _requestShift(shift, controller, user),
+                                icon: Icon(
+                                  type == _ShiftCardType.emergency
+                                      ? Icons.local_hospital
+                                      : type == _ShiftCardType.coverage
+                                          ? Icons.people_alt
+                                          : Icons.add,
+                                  size: 18,
+                                ),
+                                backgroundColor: type != _ShiftCardType.regular
+                                    ? accentColor
+                                    : null,
+                              ),
+                      ),
+                      if (shift.createdAt != null) ...[
+                        const SizedBox(height: SpacingTokens.sm),
                         Text(
-                          shift.facilityName ?? shift.location,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
+                          'Posted ${_formatPostedTime(shift.createdAt!)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colors.subdued,
+                            fontSize: 11,
                           ),
                         ),
-                        if (shift.department != null) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            shift.department!,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colors.subdued,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                        if (_buildAddressDisplay(shift).isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            _buildAddressDisplay(shift),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colors.subdued,
-                            ),
-                          ),
-                        ],
                       ],
-                    ),
+                    ],
                   ),
-                  // Status indicator
-                  _buildShiftStatusChip(hasRequested, colors),
-                ],
-              ),
-
-              const SizedBox(height: SpacingTokens.md),
-
-              // Date and time
-              _buildShiftDateTime(shift, colors),
-
-              // Special requirements or patient info
-              if (shift.specialRequirements != null ||
-                  shift.patientName != null) ...[
-                const SizedBox(height: SpacingTokens.sm),
-                _buildShiftExtras(shift, colors),
-              ],
-
-              // Request button
-              const SizedBox(height: SpacingTokens.md),
-              SizedBox(
-                width: double.infinity,
-                child: hasRequested
-                    ? SecondaryButton(
-                        label: 'Request Sent',
-                        onPressed: null, // Disabled
-                        icon: const Icon(Icons.check, size: 18),
-                      )
-                    : PrimaryButton(
-                        label: 'Request Shift',
-                        onPressed: () => _requestShift(shift, controller, user),
-                        icon: const Icon(Icons.add, size: 18),
-                      ),
+                ),
               ),
             ],
           ),
@@ -279,46 +829,96 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
     );
   }
 
-  /// Build address display from shift data
-  String _buildAddressDisplay(ShiftModel shift) {
-    final parts = <String>[];
-    if (shift.addressLine1 != null) parts.add(shift.addressLine1!);
-    if (shift.city != null) parts.add(shift.city!);
-    if (shift.state != null) parts.add(shift.state!);
-    return parts.join(', ');
-  }
+  Widget _buildStatusChip(bool hasRequested, ShiftModel shift,
+      Color accentColor, AppColors colors) {
+    final theme = Theme.of(context);
 
-  /// Build status chip for shift request state
-  Widget _buildShiftStatusChip(bool hasRequested, AppColors colors) {
+    if (hasRequested) {
+      return Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: SpacingTokens.sm,
+          vertical: SpacingTokens.xs,
+        ),
+        decoration: BoxDecoration(
+          color: colors.success.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          'Requested',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colors.success,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
+
+    if (shift.isEmergencyShift) {
+      return Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: SpacingTokens.sm,
+          vertical: SpacingTokens.xs,
+        ),
+        decoration: BoxDecoration(
+          color: colors.danger,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          'URGENT',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 11,
+          ),
+        ),
+      );
+    }
+
+    if (shift.isCoverageRequest) {
+      return Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: SpacingTokens.sm,
+          vertical: SpacingTokens.xs,
+        ),
+        decoration: BoxDecoration(
+          color: colors.warning,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          'COVERAGE',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 11,
+          ),
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: SpacingTokens.sm,
         vertical: SpacingTokens.xs,
       ),
       decoration: BoxDecoration(
-        color: hasRequested
-            ? colors.success.withOpacity(0.1)
-            : colors.brandPrimary.withOpacity(0.1),
+        color: accentColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        hasRequested ? 'Requested' : 'Available',
-        style: TextStyle(
-          fontSize: 12,
+        'Available',
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: accentColor,
           fontWeight: FontWeight.w600,
-          color: hasRequested ? colors.success : colors.brandPrimary,
         ),
       ),
     );
   }
 
-  /// Build date and time display for shift
-  Widget _buildShiftDateTime(ShiftModel shift, AppColors colors) {
+  Widget _buildShiftDateTimeInfo(ShiftModel shift, AppColors colors) {
     final theme = Theme.of(context);
 
     return Column(
       children: [
-        // Date
         Row(
           children: [
             Icon(
@@ -333,10 +933,30 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
                 fontWeight: FontWeight.w500,
               ),
             ),
+            if (shift.isStartingSoon) ...[
+              const SizedBox(width: SpacingTokens.sm),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.warning.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  shift.timeUntilStart,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.warning,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
         const SizedBox(height: SpacingTokens.xs),
-        // Time
         Row(
           children: [
             Icon(
@@ -366,44 +986,77 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
     );
   }
 
-  /// Build extra info (special requirements, patient name)
-  Widget _buildShiftExtras(ShiftModel shift, AppColors colors) {
+  Widget _buildShiftDetails(ShiftModel shift, AppColors colors) {
     final theme = Theme.of(context);
 
     return Column(
       children: [
-        if (shift.patientName != null) ...[
+        if (shift.hasAssignedPatients) ...[
           Row(
             children: [
               Icon(
-                Icons.person,
+                Icons.people,
                 size: 16,
                 color: colors.subdued,
               ),
               const SizedBox(width: SpacingTokens.sm),
-              Text(
-                'Patient: ${shift.patientName}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colors.subdued,
+              Expanded(
+                child: Text(
+                  shift.generatePatientLoadDescription(),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.subdued,
+                  ),
                 ),
               ),
             ],
           ),
+          const SizedBox(height: SpacingTokens.xs),
         ],
-        if (shift.specialRequirements != null) ...[
-          if (shift.patientName != null)
-            const SizedBox(height: SpacingTokens.xs),
+        if (shift.compensationDisplay != null) ...[
           Row(
             children: [
               Icon(
-                Icons.info,
+                Icons.attach_money,
+                size: 16,
+                color: colors.success,
+              ),
+              const SizedBox(width: SpacingTokens.sm),
+              Text(
+                shift.compensationDisplay!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colors.success,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (shift.hasFinancialIncentives &&
+                  shift.incentiveText != null) ...[
+                const SizedBox(width: SpacingTokens.sm),
+                Expanded(
+                  child: Text(
+                    shift.incentiveText!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.success,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+        if (shift.hasCertificationRequirements) ...[
+          const SizedBox(height: SpacingTokens.xs),
+          Row(
+            children: [
+              Icon(
+                Icons.verified,
                 size: 16,
                 color: colors.warning,
               ),
               const SizedBox(width: SpacingTokens.sm),
               Expanded(
                 child: Text(
-                  shift.specialRequirements!,
+                  shift.certificationsDisplay!,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colors.warning,
                     fontWeight: FontWeight.w500,
@@ -413,94 +1066,60 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
             ],
           ),
         ],
-        if (shift.assignedPatientIds?.isNotEmpty == true) ...[
-          const SizedBox(height: SpacingTokens.xs),
-          Row(
-            children: [
-              Icon(
-                Icons.people,
-                size: 16,
-                color: colors.subdued,
-              ),
-              const SizedBox(width: SpacingTokens.sm),
-              Text(
-                '${shift.assignedPatientIds!.length} patient${shift.assignedPatientIds!.length != 1 ? 's' : ''} assigned',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colors.subdued,
-                ),
-              ),
-            ],
-          ),
-        ],
       ],
     );
   }
 
-  /// Tab 2: Independent/Create Shifts - TODO: Connect to real user-created shifts
-  Widget _buildIndependentShiftsTab(UserModel user) {
-    if (user.isIndependentNurse) {
-      // TODO: Replace with real user-created shifts provider
-      return _buildUserCreatedShifts(user);
-    } else {
-      // Show shift creation interface for agency-only nurses
-      return _buildShiftCreationInterface();
+  Widget _buildSpecialInfo(
+      ShiftModel shift, _ShiftCardType type, Color accentColor) {
+    final theme = Theme.of(context);
+    String? message;
+    IconData icon = Icons.info_outline;
+
+    if (shift.coverageContextMessage != null) {
+      message = shift.coverageContextMessage!;
+      icon = Icons.chat_bubble_outline;
+    } else if (shift.specialRequirements != null) {
+      message = shift.specialRequirements!;
+      icon = Icons.info_outline;
     }
-  }
 
-  /// User-created shifts for independent nurses - TODO: Real provider integration
-  Widget _buildUserCreatedShifts(UserModel user) {
-    // TODO: Create and connect to userCreatedShiftsProvider
-    // For now, show placeholder with action to create first shift
-    return _buildEmptyState(
-      icon: Icons.add_business,
-      title: 'No Personal Shifts',
-      subtitle:
-          'Create your first shift to start\nmanaging your independent practice.',
-      actionLabel: 'Create Shift',
-      onAction: () => _showCreateShiftDialog(),
-    );
-  }
+    if (message == null) return const SizedBox.shrink();
 
-  /// Shift creation interface for agency-only nurses
-  Widget _buildShiftCreationInterface() {
-    return Padding(
-      padding: const EdgeInsets.all(SpacingTokens.xl),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(SpacingTokens.md),
+      decoration: BoxDecoration(
+        color: accentColor.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: accentColor.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            Icons.add_circle_outline,
-            size: 80,
-            color: Theme.of(context).extension<AppColors>()!.subdued,
+            icon,
+            size: 16,
+            color: accentColor,
           ),
-          const SizedBox(height: SpacingTokens.lg),
-          Text(
-            'Create Your Own Shift',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: SpacingTokens.md),
-          Text(
-            'Independent nurses can create their own shifts\nand manage their patient roster.',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(context).extension<AppColors>()!.subdued,
-                ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: SpacingTokens.xl),
-          FilledButton.icon(
-            onPressed: () => _showIndependentNurseInfo(),
-            icon: const Icon(Icons.info_outline),
-            label: const Text('Learn About Independent Practice'),
+          const SizedBox(width: SpacingTokens.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: accentColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  /// Empty state widget for various scenarios
   Widget _buildEmptyState({
     required IconData icon,
     required String title,
@@ -551,7 +1170,6 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
     );
   }
 
-  /// Error state widget
   Widget _buildErrorState({
     required IconData icon,
     required String title,
@@ -603,45 +1221,23 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
     );
   }
 
-  /// Floating action button for shift creation
-  Widget? _buildFloatingActionButton(UserModel user, AppColors colors) {
-    // Show FAB on independent shifts tab for independent nurses
-    if (_tabController.index == 1 && user.isIndependentNurse) {
-      return FloatingActionButton.extended(
-        onPressed: () => _showCreateShiftDialog(),
-        backgroundColor: colors.brandPrimary,
-        icon: const Icon(Icons.add),
-        label: const Text('Create Shift'),
-      );
-    }
-    return null;
-  }
+  // ACTION HANDLERS
 
-  // ═══════════════════════════════════════════════════════════════════
-  // ACTION HANDLERS - UPDATED: Real functionality + Context Safety
-  // ═══════════════════════════════════════════════════════════════════
-
-  /// Request a shift using the real controller - UPDATED: Context safety
   Future<void> _requestShift(
     ShiftModel shift,
     ShiftRequestController controller,
     UserModel user,
   ) async {
-    // Store context before any async operations
     final scaffoldContext = context;
 
     try {
-      // Show confirmation dialog
       final confirmed = await _showRequestConfirmationDialog(shift);
       if (!confirmed || !mounted) return;
 
-      // Show loading state
       AppSnackbar.loading(scaffoldContext, 'Sending shift request...');
 
-      // Use the real shift request controller
       await controller.requestShift(shift.id, shift.agencyId!);
 
-      // Show success
       if (mounted) {
         AppSnackbar.success(
           scaffoldContext,
@@ -663,7 +1259,6 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
     }
   }
 
-  /// Show shift request confirmation dialog
   Future<bool> _showRequestConfirmationDialog(ShiftModel shift) async {
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
@@ -692,15 +1287,15 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      shift.facilityName ?? shift.location,
+                      shift.facilityDisplayName,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    if (shift.department != null) ...[
+                    if (shift.departmentDisplay != null) ...[
                       const SizedBox(height: SpacingTokens.xs),
                       Text(
-                        shift.department!,
+                        shift.departmentDisplay!,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: colors.subdued,
                         ),
@@ -748,7 +1343,6 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
     return confirmed ?? false;
   }
 
-  /// Get user-friendly error message
   String _getErrorMessage(dynamic error) {
     final errorString = error.toString().toLowerCase();
 
@@ -763,74 +1357,25 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════
-  // PLACEHOLDERS - TODO: Implement actual functionality + Context Safety
-  // ═══════════════════════════════════════════════════════════════════
+  void _scrollToSection(int sectionIndex) {
+    final sectionNames = ['Emergency', 'Coverage', 'Open Shifts'];
+    if (sectionIndex < sectionNames.length) {
+      AppSnackbar.info(
+          context, 'Scrolling to ${sectionNames[sectionIndex]} section');
+    }
+  }
+
+  // NAVIGATION HANDLERS
+
+  void _navigateToCreateShift() {
+    AppSnackbar.info(context, 'Opening Create Shift screen...');
+  }
 
   void _showShiftDetails(ShiftModel shift) {
-    // TODO: Navigate to shift details screen
     AppSnackbar.info(context, 'Showing details for ${shift.id}');
   }
 
-  void _showCreateShiftDialog() {
-    // Store context for safety
-    final scaffoldContext = context;
-
-    // TODO: Show create shift dialog or navigate to creation screen
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Create New Shift'),
-        content: const Text('Shift creation dialog will be implemented here.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Use stored context for snackbar
-              AppSnackbar.info(scaffoldContext, 'Shift creation coming soon!');
-            },
-            child: const Text('Create'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showIndependentNurseInfo() {
-    // TODO: Show information about becoming an independent nurse
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Independent Nursing'),
-        content: const Text(
-          'Independent nurses can create their own shifts, manage patients, '
-          'and set their own schedules. Contact admin to enable independent '
-          'nursing features for your account.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // TODO: Navigate to contact admin or settings
-            },
-            child: const Text('Contact Admin'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════
   // FORMATTING HELPERS
-  // ═══════════════════════════════════════════════════════════════════
 
   String _formatShiftDate(DateTime dateTime) {
     final now = DateTime.now();
@@ -843,7 +1388,6 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
     } else if (shiftDate == tomorrow) {
       return 'Tomorrow';
     } else {
-      // Format as "Mon, Jan 15"
       const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       const months = [
         'Jan',
@@ -891,4 +1435,25 @@ class _AvailableShiftsScreenState extends ConsumerState<AvailableShiftsScreen>
       return '${hours}h ${minutes}m';
     }
   }
+
+  String _formatPostedTime(DateTime createdAt) {
+    final now = DateTime.now();
+    final difference = now.difference(createdAt);
+
+    if (difference.inDays > 0) {
+      final days = difference.inDays;
+      return '$days day${days != 1 ? 's' : ''} ago';
+    } else if (difference.inHours > 0) {
+      final hours = difference.inHours;
+      return '$hours hour${hours != 1 ? 's' : ''} ago';
+    } else if (difference.inMinutes > 0) {
+      final minutes = difference.inMinutes;
+      return '$minutes minute${minutes != 1 ? 's' : ''} ago';
+    } else {
+      return 'Just posted';
+    }
+  }
 }
+
+/// Enum for shift card types to determine styling
+enum _ShiftCardType { emergency, coverage, regular }

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nurseos_v3/core/theme/app_colors.dart';
 import 'package:nurseos_v3/core/theme/spacing.dart';
 import 'package:nurseos_v3/features/auth/models/user_model.dart';
+import 'package:nurseos_v3/features/auth/services/user_lookup_service.dart';
 import 'package:nurseos_v3/features/schedule/shift_pool/models/shift_model.dart';
 import 'package:nurseos_v3/features/schedule/shift_pool/models/shift_model_extensions.dart';
 import 'package:nurseos_v3/features/schedule/shift_pool/services/patient_analysis_service.dart';
@@ -13,12 +14,12 @@ import 'package:nurseos_v3/shared/widgets/buttons/primary_button.dart';
 import 'package:nurseos_v3/shared/widgets/buttons/secondary_button.dart';
 import 'package:nurseos_v3/features/navigation_v3/presentation/utils/shift_display_helpers.dart';
 
-/// Enhanced shift card with color-coded urgency sidebar
+/// Enhanced shift card with minimal colleague empathy
 ///
-/// ✅ REFACTORED: Clean, working implementation
+/// ✅ STREAMLINED: Focus on core empathy - "Help Sarah" button & personalized notes
 /// ✅ Smart patient load descriptions with proper loading states
-/// ✅ Colleague empathy features working correctly
-/// ✅ Broken down into focused sub-components
+/// ✅ Removed complexity: No extra badges, simplified loading states
+/// ✅ Maximum emotional impact with minimal visual noise
 enum ShiftCardType { emergency, coverage, regular }
 
 class EnhancedShiftCard extends ConsumerStatefulWidget {
@@ -45,10 +46,14 @@ class _EnhancedShiftCardState extends ConsumerState<EnhancedShiftCard> {
   String? _smartPatientDescription;
   bool _loadingDescription = false;
 
+  // 🎯 CORE EMPATHY: Simple nurse name resolution (no loading states)
+  String? _requestingNurseName;
+
   @override
   void initState() {
     super.initState();
     _loadSmartPatientDescription();
+    _loadRequestingNurseName();
   }
 
   @override
@@ -56,6 +61,9 @@ class _EnhancedShiftCardState extends ConsumerState<EnhancedShiftCard> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.shift.assignedPatientIds != widget.shift.assignedPatientIds) {
       _loadSmartPatientDescription();
+    }
+    if (oldWidget.shift.requestingNurseId != widget.shift.requestingNurseId) {
+      _loadRequestingNurseName();
     }
   }
 
@@ -95,6 +103,31 @@ class _EnhancedShiftCardState extends ConsumerState<EnhancedShiftCard> {
     }
   }
 
+  /// 🎯 STREAMLINED EMPATHY: Simple name lookup without loading ceremony
+  Future<void> _loadRequestingNurseName() async {
+    final requestingNurseId = widget.shift.requestingNurseId;
+
+    if (!widget.shift.isCoverageRequest || requestingNurseId == null) {
+      _requestingNurseName = null;
+      return;
+    }
+
+    try {
+      final userLookupService = ref.read(userLookupServiceProvider);
+      final firstName =
+          await userLookupService.getUserFirstName(requestingNurseId);
+
+      if (mounted) {
+        setState(() {
+          _requestingNurseName = firstName;
+        });
+      }
+    } catch (e) {
+      debugPrint('⚠️ Failed to load requesting nurse name: $e');
+      // Fail silently - button will show "Help Colleague" instead
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -108,7 +141,7 @@ class _EnhancedShiftCardState extends ConsumerState<EnhancedShiftCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header with facility name and status
+          // Header with facility name and status (simplified)
           _ShiftCardHeader(
             shift: widget.shift,
             hasRequested: hasRequested,
@@ -130,9 +163,19 @@ class _EnhancedShiftCardState extends ConsumerState<EnhancedShiftCard> {
             loadingDescription: _loadingDescription,
           ),
 
-          // Special information (coverage messages, requirements)
-          if (widget.shift.coverageContextMessage != null ||
-              widget.shift.specialRequirements != null) ...[
+          // 🎯 CORE EMPATHY: Personalized message (only for coverage requests)
+          if (widget.shift.coverageContextMessage != null) ...[
+            const SizedBox(height: SpacingTokens.sm),
+            _PersonalizedCoverageMessage(
+              message: widget.shift.coverageContextMessage!,
+              nurseName: _requestingNurseName,
+              accentColor: urgencyColor,
+            ),
+          ],
+
+          // Special requirements (non-coverage)
+          if (widget.shift.specialRequirements != null &&
+              widget.shift.coverageContextMessage == null) ...[
             const SizedBox(height: SpacingTokens.sm),
             _ShiftCardSpecialInfo(
               shift: widget.shift,
@@ -142,13 +185,13 @@ class _EnhancedShiftCardState extends ConsumerState<EnhancedShiftCard> {
 
           const SizedBox(height: SpacingTokens.md),
 
-          // Action button
-          _ShiftCardActionButton(
+          // 🎯 CORE EMPATHY: "Help Sarah" button
+          _EmpathyActionButton(
             shift: widget.shift,
-            user: widget.user,
             type: widget.type,
             hasRequested: hasRequested,
             urgencyColor: urgencyColor,
+            nurseName: _requestingNurseName,
             onRequestShift: widget.onRequestShift,
           ),
 
@@ -175,10 +218,10 @@ class _EnhancedShiftCardState extends ConsumerState<EnhancedShiftCard> {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// SUB-COMPONENTS: Focused, reusable widgets
+// STREAMLINED SUB-COMPONENTS: Clean, focused widgets
 // ═══════════════════════════════════════════════════════════════════
 
-/// Header section with facility name and status chip
+/// Simplified header - just facility name and status
 class _ShiftCardHeader extends StatelessWidget {
   final ShiftModel shift;
   final bool hasRequested;
@@ -507,7 +550,63 @@ class _ShiftCardDetails extends StatelessWidget {
   }
 }
 
-/// Special information section (coverage messages, requirements)
+/// 🎯 CORE EMPATHY: Personalized coverage message
+class _PersonalizedCoverageMessage extends StatelessWidget {
+  final String message;
+  final String? nurseName;
+  final Color accentColor;
+
+  const _PersonalizedCoverageMessage({
+    required this.message,
+    this.nurseName,
+    required this.accentColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    // 🎯 EMPATHY: Add nurse name to message when available
+    final displayMessage = nurseName != null
+        ? "$nurseName's note: $message"
+        : "Colleague's note: $message";
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(SpacingTokens.md),
+      decoration: BoxDecoration(
+        color: accentColor.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: accentColor.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.chat_bubble_outline,
+            size: 16,
+            color: accentColor,
+          ),
+          const SizedBox(width: SpacingTokens.sm),
+          Expanded(
+            child: Text(
+              displayMessage,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: accentColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Generic special requirements (non-coverage)
 class _ShiftCardSpecialInfo extends StatelessWidget {
   final ShiftModel shift;
   final Color accentColor;
@@ -520,16 +619,7 @@ class _ShiftCardSpecialInfo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    String? message;
-    IconData icon = Icons.info_outline;
-
-    if (shift.coverageContextMessage != null) {
-      message = shift.coverageContextMessage!;
-      icon = Icons.chat_bubble_outline;
-    } else if (shift.specialRequirements != null) {
-      message = shift.specialRequirements!;
-      icon = Icons.info_outline;
-    }
+    final message = shift.specialRequirements;
 
     if (message == null) return const SizedBox.shrink();
 
@@ -548,7 +638,7 @@ class _ShiftCardSpecialInfo extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            icon,
+            Icons.info_outline,
             size: 16,
             color: accentColor,
           ),
@@ -568,21 +658,21 @@ class _ShiftCardSpecialInfo extends StatelessWidget {
   }
 }
 
-/// Action button section
-class _ShiftCardActionButton extends StatelessWidget {
+/// 🎯 CORE EMPATHY: "Help Sarah" button
+class _EmpathyActionButton extends StatelessWidget {
   final ShiftModel shift;
-  final UserModel user;
   final ShiftCardType type;
   final bool hasRequested;
   final Color urgencyColor;
+  final String? nurseName;
   final VoidCallback? onRequestShift;
 
-  const _ShiftCardActionButton({
+  const _EmpathyActionButton({
     required this.shift,
-    required this.user,
     required this.type,
     required this.hasRequested,
     required this.urgencyColor,
+    this.nurseName,
     this.onRequestShift,
   });
 
@@ -597,7 +687,8 @@ class _ShiftCardActionButton extends StatelessWidget {
               icon: const Icon(Icons.check, size: 18),
             )
           : PrimaryButton(
-              label: shift.getCoverageButtonText(),
+              label: shift.getCoverageButtonText(
+                  nurseName), // 🎯 The magic happens here!
               onPressed: onRequestShift,
               icon: Icon(
                 _getActionIcon(),

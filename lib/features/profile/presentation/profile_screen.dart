@@ -10,7 +10,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../shared/widgets/nurse_scaffold.dart';
 import '../../../shared/widgets/buttons/primary_button.dart';
-import '../../../shared/widgets/buttons/secondary_button.dart';
 import '../../../shared/widgets/buttons/button_variants.dart'; // ✅ ADDED
 import '../../auth/state/auth_controller.dart';
 import '../../preferences/controllers/locale_controller.dart';
@@ -19,7 +18,6 @@ import '../../profile/state/user_profile_controller.dart';
 // Import profile widgets (cleaned up - removed work session widgets)
 import '../widgets/profile_header.dart';
 import '../widgets/profile_action_buttons.dart';
-import '../widgets/professional_info_card.dart';
 import '../widgets/app_settings_card.dart';
 import '../widgets/support_info_card.dart';
 
@@ -56,16 +54,6 @@ class ProfileScreen extends ConsumerWidget {
                 user: user,
                 onEditProfile: () => context.push('/edit-profile'),
               ),
-            ),
-          ),
-
-          const SliverToBoxAdapter(child: SizedBox(height: SpacingTokens.lg)),
-
-          // Professional Information Card
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: SpacingTokens.lg),
-              child: ProfessionalInfoCard(user: user),
             ),
           ),
 
